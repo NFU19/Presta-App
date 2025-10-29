@@ -1,20 +1,19 @@
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
-  Alert,
-  ActivityIndicator,
-  Image,
-  Dimensions,
-} from 'react-native';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { db, auth } from '../../firebaseConfig';
+import { collection, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { auth, db } from '../../firebaseConfig';
 
 // Define the structure of an Equipo
 interface Equipo {
@@ -59,8 +58,21 @@ const CatalogScreen = () => {
     }
   };
 
+  const handleProductPress = (item: Equipo) => {
+    router.push({
+      pathname: '../product-details' as any,
+      params: {
+        id: item.id,
+        nombre: item.nombre,
+        categoria: item.categoria || 'Sin categoría',
+        disponible: item.disponible?.toString() || 'false',
+        imagen: item.imagen || 'https://via.placeholder.com/300',
+      },
+    });
+  };
+
   const renderEquipo = ({ item }: { item: Equipo }) => (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => handleProductPress(item)}>
       <Image
         source={{ uri: item.imagen || 'https://via.placeholder.com/150' }} // Placeholder if no image
         style={styles.cardImage}
@@ -72,7 +84,7 @@ const CatalogScreen = () => {
           <Text style={styles.availabilityText}>{item.disponible ? 'Disponible' : 'No Disp.'}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
