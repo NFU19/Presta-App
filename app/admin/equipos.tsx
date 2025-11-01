@@ -1,16 +1,16 @@
 
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, doc, deleteDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, deleteDoc, doc, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { db } from '../../firebaseConfig';
 
 // Define the structure of an Equipo
@@ -18,7 +18,8 @@ interface Equipo {
   id: string;
   nombre: string;
   categoria?: string;
-  disponible?: boolean;
+  tipo?: string;
+  estado?: boolean;
 }
 
 const EquiposAdminScreen = () => {
@@ -31,8 +32,9 @@ const EquiposAdminScreen = () => {
       const equiposData: Equipo[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
         id: doc.id,
         nombre: doc.data().nombre || 'Nombre no disponible',
-        categoria: doc.data().categoria || 'Sin categoría',
-        disponible: doc.data().disponible === true,
+        categoria: doc.data().tipo || 'Sin categoría',
+        tipo: doc.data().tipo,
+        estado: doc.data().estado !== undefined ? doc.data().estado : true,
       }));
       setEquipos(equiposData);
       setLoading(false);
@@ -100,7 +102,7 @@ const EquiposAdminScreen = () => {
             <View key={item.id} style={styles.tableRow}>
               <Text style={[styles.tableCell, { flex: 3 }]}>{item.nombre}</Text>
               <Text style={[styles.tableCell, { flex: 2 }]}>{item.categoria}</Text>
-              <Text style={[styles.tableCell, { flex: 2 }]}>{item.disponible ? 'Sí' : 'No'}</Text>
+              <Text style={[styles.tableCell, { flex: 2 }]}>{item.estado ? 'Sí' : 'No'}</Text>
               <View style={[styles.tableCell, { flex: 2, flexDirection: 'row' }]}>
                 <TouchableOpacity onPress={() => handleEdit(item)}>
                   <Text style={styles.actionTextEdit}>Editar</Text>

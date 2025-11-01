@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-// This component redirects the user to the login screen by default.
-export default function EntryPoint() {
-  return <Redirect href="/login" />;
+export default function Index() {
+  // Redirige directamente al landing page
+  return <Redirect href="./landing" />;
 }

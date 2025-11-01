@@ -1,24 +1,24 @@
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  Platform,
-  ScrollView,
-} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import {
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { db } from '../../../firebaseConfig';
 
 const EquipoModalScreen = () => {
   const [nombre, setNombre] = useState('');
-  const [categoria, setCategoria] = useState('');
+  const [tipo, setTipo] = useState('');
   const [imagen, setImagen] = useState('');
-  const [disponible, setDisponible] = useState(true);
+  const [estado, setEstado] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -32,8 +32,8 @@ const EquipoModalScreen = () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setNombre(data.nombre);
-          setCategoria(data.categoria);
-          setDisponible(data.disponible);
+          setTipo(data.tipo);
+          setEstado(data.estado !== undefined ? data.estado : true);
           setImagen(data.imagen || '');
         }
       };
@@ -42,15 +42,15 @@ const EquipoModalScreen = () => {
   }, [id]);
 
   const handleSave = async () => {
-    if (!nombre || !categoria) {
-      Alert.alert('Error', 'Por favor, completa los campos nombre y categoría.');
+    if (!nombre || !tipo) {
+      Alert.alert('Error', 'Por favor, completa los campos nombre y tipo.');
       return;
     }
 
     const equipoData = {
       nombre,
-      categoria,
-      disponible,
+      tipo,
+      estado,
       imagen,
     };
 
@@ -77,15 +77,20 @@ const EquipoModalScreen = () => {
       <Text style={styles.label}>Nombre del Equipo</Text>
       <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
 
-      <Text style={styles.label}>Categoría</Text>
-      <TextInput style={styles.input} value={categoria} onChangeText={setCategoria} />
+      <Text style={styles.label}>Tipo de Equipo</Text>
+      <TextInput 
+        style={styles.input} 
+        value={tipo} 
+        onChangeText={setTipo}
+        placeholder="Ej: Mouse, Teclado, Monitor, etc."
+      />
 
       <Text style={styles.label}>URL de la Imagen</Text>
       <TextInput style={styles.input} value={imagen} onChangeText={setImagen} placeholder="https://ejemplo.com/imagen.jpg" />
 
       <View style={styles.switchContainer}>
         <Text style={styles.label}>Disponible</Text>
-        <Switch value={disponible} onValueChange={setDisponible} />
+        <Switch value={estado} onValueChange={setEstado} />
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSave}>

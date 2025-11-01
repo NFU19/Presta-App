@@ -1,10 +1,7 @@
-import { Tabs, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -21,28 +18,34 @@ export default function TabLayout() {
   }
 
   return (
-    <Tabs
+    <Stack
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
       }}>
-      <Tabs.Screen
+      <Stack.Screen
+        name="dashboard"
+        options={{
+          title: 'Inicio'
+        }}
+      />
+      <Stack.Screen
         name="index"
         options={{
-          title: 'Catálogo',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="rectangle.grid.2x2.fill" color={color} />
-          ),
+          title: 'Catálogo'
         }}
       />
-      <Tabs.Screen
-        name="history"
+      <Stack.Screen
+        name="profile"
         options={{
-          title: 'Mis Préstamos',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          title: 'Mi Perfil'
         }}
       />
-    </Tabs>
+      <Stack.Screen
+        name="favorites"
+        options={{
+          title: 'Mis Favoritos'
+        }}
+      />
+    </Stack>
   );
 }

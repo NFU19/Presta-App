@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../firebaseConfig';
 
 const LoginScreen = () => {
@@ -28,7 +28,6 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <Image source={require('../logo.png')} style={styles.logo} />
-      <Text style={styles.title}>SG-Prestamos</Text>
       <Text style={styles.subtitle}>Bienvenido de nuevo</Text>
 
       <TextInput
@@ -69,17 +68,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 180,
     resizeMode: 'contain',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0A2540', // Dark blue
-    fontFamily: 'Inter, sans-serif',
-    marginBottom: 8,
+    marginBottom: 30,
   },
   subtitle: {
     fontSize: 18,

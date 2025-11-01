@@ -1,9 +1,9 @@
 
-import { useEffect } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 
 const HandleRedirectScreen = () => {
@@ -23,12 +23,12 @@ const HandleRedirectScreen = () => {
           if (userData.role === 'admin') {
             router.replace('/admin');
           } else {
-            router.replace('/(tabs)');
+            router.replace('/(tabs)/dashboard');
           }
         } else {
           // Fallback if user doc doesn't exist
           console.log('User document not found, redirecting to user view.');
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/dashboard');
         }
       } else {
         // User is signed out
@@ -38,7 +38,7 @@ const HandleRedirectScreen = () => {
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.container}>
