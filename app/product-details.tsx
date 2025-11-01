@@ -4,8 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Animated,
     Image,
     Modal,
     SafeAreaView,
@@ -193,18 +191,82 @@ const ProductDetailsScreen = () => {
         }}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Historial del Equipo</Text>
-            <View style={styles.historyItem}>
-              <Text style={styles.historyItemText}>- Prestado a Juan Perez</Text>
-              <Text style={styles.historyItemDate}>15/10/2024 - 22/10/2024</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Historial del Equipo</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setIsHistoryModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.light.gray} />
+              </TouchableOpacity>
             </View>
-            <View style={styles.historyItem}>
-              <Text style={styles.historyItemText}>- Mantenimiento</Text>
-              <Text style={styles.historyItemDate}>10/10/2024</Text>
-            </View>
+            
+            <ScrollView style={styles.historyScrollContainer} showsVerticalScrollIndicator={false}>
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemIcon}>
+                  <Ionicons name="person-outline" size={20} color={Colors.light.secondary} />
+                </View>
+                <View style={styles.historyItemContent}>
+                  <Text style={styles.historyItemTitle}>Préstamo académico</Text>
+                  <Text style={styles.historyItemDate}>15/10/2024 - 22/10/2024</Text>
+                </View>
+                <View style={styles.historyItemStatus}>
+                  <View style={[styles.statusBadge, { backgroundColor: '#28a745' }]}>
+                    <Text style={styles.statusText}>Devuelto</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemIcon}>
+                  <Ionicons name="construct-outline" size={20} color={Colors.light.warning} />
+                </View>
+                <View style={styles.historyItemContent}>
+                  <Text style={styles.historyItemTitle}>Mantenimiento Preventivo</Text>
+                  <Text style={styles.historyItemSubtitle}>Revisión general y limpieza</Text>
+                  <Text style={styles.historyItemDate}>10/10/2024</Text>
+                </View>
+                <View style={styles.historyItemStatus}>
+                  <View style={[styles.statusBadge, { backgroundColor: Colors.light.secondary }]}>
+                    <Text style={styles.statusText}>Completado</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemIcon}>
+                  <Ionicons name="person-outline" size={20} color={Colors.light.secondary} />
+                </View>
+                <View style={styles.historyItemContent}>
+                  <Text style={styles.historyItemTitle}>Proyecto de investigación</Text>
+                  <Text style={styles.historyItemDate}>01/10/2024 - 05/10/2024</Text>
+                </View>
+                <View style={styles.historyItemStatus}>
+                  <View style={[styles.statusBadge, { backgroundColor: '#28a745' }]}>
+                    <Text style={styles.statusText}>Devuelto</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.historyItem}>
+                <View style={styles.historyItemIcon}>
+                  <Ionicons name="add-circle-outline" size={20} color={Colors.light.success} />
+                </View>
+                <View style={styles.historyItemContent}>
+                  <Text style={styles.historyItemTitle}>Equipo Registrado</Text>
+                  <Text style={styles.historyItemSubtitle}>Ingreso al inventario</Text>
+                  <Text style={styles.historyItemDate}>15/09/2024</Text>
+                </View>
+                <View style={styles.historyItemStatus}>
+                  <View style={[styles.statusBadge, { backgroundColor: Colors.light.success }]}>
+                    <Text style={styles.statusText}>Inicial</Text>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+
             <TouchableOpacity
               style={styles.modalButton}
-              onPress={() => setIsHistoryModalVisible(!isHistoryModalVisible)}>
+              onPress={() => setIsHistoryModalVisible(false)}>
               <Text style={styles.modalButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -244,7 +306,8 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     backgroundColor: Colors.light.background,
-    padding: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     alignItems: 'center',
     position: 'relative',
     shadowColor: '#000',
@@ -254,7 +317,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   productImage: {
-    width: 280,
+    width: '90%',
+    maxWidth: 280,
     height: 220,
     resizeMode: 'contain',
     borderRadius: 16,
@@ -280,9 +344,10 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     backgroundColor: Colors.light.background,
-    margin: 16,
+    marginHorizontal: 16,
+    marginVertical: 16,
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -365,16 +430,18 @@ const styles = StyleSheet.create({
   },
   secondaryActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
+    flexWrap: 'wrap',
+    gap: 12,
   },
   secondaryButton: {
     flex: 1,
+    minWidth: 120,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.light.backgroundAlt,
     paddingVertical: 14,
+    paddingHorizontal: 12,
     borderRadius: 10,
     borderWidth: 1.5,
     borderColor: Colors.light.border,
@@ -397,71 +464,149 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   specsContainer: {
-    gap: 12,
+    gap: 0,
     backgroundColor: Colors.light.backgroundAlt,
-    padding: 16,
     borderRadius: 12,
+    overflow: 'hidden',
   },
   specRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+    minHeight: 50,
   },
   specLabel: {
     fontSize: 14,
     color: Colors.light.gray,
     flex: 1,
+    fontWeight: '500',
   },
   specValue: {
     fontSize: 14,
     color: Colors.light.primary,
     fontWeight: '600',
     textAlign: 'right',
+    flex: 1,
+    flexWrap: 'wrap',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 20,
   },
   modalContent: {
     backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    width: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  historyItem: {
+    borderRadius: 16,
+    padding: 0,
     width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    alignItems: 'center',
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
-  historyItemText: {
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.light.primary,
+    letterSpacing: -0.5,
   },
-  historyItemDate: {
+  modalCloseButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.light.backgroundAlt,
+  },
+  historyScrollContainer: {
+    maxHeight: 400,
+    paddingHorizontal: 20,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border,
+  },
+  historyItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.light.backgroundAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  historyItemContent: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  historyItemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.primary,
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  historyItemSubtitle: {
     fontSize: 14,
     color: Colors.light.gray,
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  historyItemDate: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    fontWeight: '500',
+  },
+  historyItemStatus: {
+    alignItems: 'flex-end',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.background,
+    letterSpacing: 0.5,
   },
   modalButton: {
-    marginTop: 16,
+    margin: 20,
     backgroundColor: Colors.light.primary,
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalButtonText: {
-    color: '#fff',
+    color: Colors.light.background,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });
 

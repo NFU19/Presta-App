@@ -8,6 +8,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -16,7 +17,9 @@ const LoanRequestModal = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [selectedDuration, setSelectedDuration] = useState('7');
+  const [customDays, setCustomDays] = useState('14');
   const [selectedPurpose, setSelectedPurpose] = useState('');
+  const [customPurposeDescription, setCustomPurposeDescription] = useState('');
   
   const product = {
     nombre: params.nombre as string,
@@ -27,8 +30,16 @@ const LoanRequestModal = () => {
     { value: '1', label: '1 día', description: 'Uso puntual' },
     { value: '3', label: '3 días', description: 'Proyecto corto' },
     { value: '7', label: '7 días', description: 'Proyecto semanal' },
-    { value: '14', label: '14 días', description: 'Proyecto extenso' },
+    { value: 'custom', label: 'Personalizado', description: 'Elige los días específicos' },
   ];
+
+  const handlePurposeSelection = (value: string) => {
+    setSelectedPurpose(value);
+    // Limpiar la descripción personalizada si se cambia a otra opción
+    if (value !== 'other') {
+      setCustomPurposeDescription('');
+    }
+  };
 
   const purposeOptions = [
     { value: 'academic', label: 'Académico', icon: 'school-outline' },
@@ -44,9 +55,35 @@ const LoanRequestModal = () => {
       return;
     }
 
+    if (selectedPurpose === 'other') {
+      if (!customPurposeDescription.trim()) {
+        Alert.alert('Error', 'Por favor describe el propósito del préstamo');
+        return;
+      }
+      if (customPurposeDescription.trim().length < 10) {
+        Alert.alert('Error', 'La descripción debe tener al menos 10 caracteres');
+        return;
+      }
+      if (customPurposeDescription.trim().length > 100) {
+        Alert.alert('Error', 'La descripción no puede exceder 100 caracteres');
+        return;
+      }
+    }
+
+    if (selectedDuration === 'custom') {
+      const days = parseInt(customDays);
+      if (isNaN(days) || days < 1 || days > 30) {
+        Alert.alert('Error', 'Por favor ingresa un número válido de días (1-30)');
+        return;
+      }
+    }
+
+    const finalDuration = selectedDuration === 'custom' ? customDays : selectedDuration;
+    const finalPurpose = selectedPurpose === 'other' ? customPurposeDescription.trim() : selectedPurpose;
+
     Alert.alert(
       'Solicitud Enviada',
-      `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada.\n\nRecibirás una notificación cuando sea revisada.`,
+      `Tu solicitud para ${product.nombre} por ${finalDuration} día(s) ha sido enviada.\n\nPropósito: ${finalPurpose}\n\nRecibirás una notificación cuando sea revisada.`,
       [
         {
           text: 'Entendido',
@@ -119,6 +156,65 @@ const LoanRequestModal = () => {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Custom Days Selector */}
+          {selectedDuration === 'custom' && (
+            <View style={styles.customDaysContainer}>
+              <Text style={styles.customDaysLabel}>¿Cuántos días necesitas?</Text>
+              <View style={styles.daysSelector}>
+                <TouchableOpacity 
+                  style={styles.dayButton}
+                  onPress={() => {
+                    const current = parseInt(customDays) || 1;
+                    if (current > 1) setCustomDays((current - 1).toString());
+                  }}
+                >
+                  <Ionicons name="remove" size={20} color={Colors.light.secondary} />
+                </TouchableOpacity>
+                
+                <View style={styles.daysInputContainer}>
+                  <Text style={styles.daysNumber}>{customDays}</Text>
+                  <Text style={styles.daysText}>día{parseInt(customDays) !== 1 ? 's' : ''}</Text>
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.dayButton}
+                  onPress={() => {
+                    const current = parseInt(customDays) || 1;
+                    if (current < 30) setCustomDays((current + 1).toString());
+                  }}
+                >
+                  <Ionicons name="add" size={20} color={Colors.light.secondary} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.daysSliderContainer}>
+                <View style={styles.sliderTrack}>
+                  <View 
+                    style={[
+                      styles.sliderProgress, 
+                      { width: `${(parseInt(customDays) - 1) / 29 * 100}%` }
+                    ]} 
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.sliderThumb,
+                      { left: `${(parseInt(customDays) - 1) / 29 * 100}%` }
+                    ]}
+                    onPressIn={() => {}}
+                  />
+                </View>
+                <View style={styles.sliderLabels}>
+                  <Text style={styles.sliderLabel}>1 día</Text>
+                  <Text style={styles.sliderLabel}>30 días</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.customDaysHint}>
+                Mínimo: 1 día • Máximo: 30 días
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Purpose Selection */}
@@ -134,7 +230,7 @@ const LoanRequestModal = () => {
                   styles.purposeCard,
                   selectedPurpose === option.value && styles.selectedPurpose,
                 ]}
-                onPress={() => setSelectedPurpose(option.value)}
+                onPress={() => handlePurposeSelection(option.value)}
               >
                 <Ionicons
                   name={option.icon as any}
@@ -150,6 +246,52 @@ const LoanRequestModal = () => {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Custom Purpose Description */}
+          {selectedPurpose === 'other' && (
+            <View style={styles.customPurposeContainer}>
+              <Text style={styles.customPurposeLabel}>Describe el propósito específico</Text>
+              <TextInput
+                style={[
+                  styles.customPurposeInput,
+                  {
+                    borderColor: customPurposeDescription.length < 10 ? Colors.light.error :
+                                customPurposeDescription.length > 90 ? Colors.light.warning :
+                                Colors.light.success
+                  }
+                ]}
+                placeholder="Ej: Análisis de muestras para proyecto de química orgánica..."
+                placeholderTextColor={Colors.light.gray}
+                value={customPurposeDescription}
+                onChangeText={setCustomPurposeDescription}
+                maxLength={100}
+                multiline={true}
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <View style={styles.characterCount}>
+                <Text style={[
+                  styles.characterCountText,
+                  {
+                    color: customPurposeDescription.length < 10 ? Colors.light.error :
+                           customPurposeDescription.length > 90 ? Colors.light.warning :
+                           Colors.light.success
+                  }
+                ]}>
+                  {customPurposeDescription.length}/100 caracteres
+                </Text>
+                <Text style={styles.characterCountHint}>
+                  {customPurposeDescription.length < 10 
+                    ? `Necesitas ${10 - customPurposeDescription.length} caracteres más`
+                    : 'Descripción válida ✓'
+                  }
+                </Text>
+              </View>
+              <Text style={styles.customPurposeHint}>
+                💡 Sé específico: menciona el uso exacto, proyecto o actividad para la que necesitas el equipo
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Terms */}
@@ -189,10 +331,15 @@ const LoanRequestModal = () => {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!selectedPurpose || !selectedDuration) && styles.disabledButton,
+            (!selectedPurpose || !selectedDuration || 
+             (selectedDuration === 'custom' && (isNaN(parseInt(customDays)) || parseInt(customDays) < 1 || parseInt(customDays) > 30)) ||
+             (selectedPurpose === 'other' && (customPurposeDescription.trim().length < 10 || customPurposeDescription.trim().length > 100))) && 
+            styles.disabledButton,
           ]}
           onPress={handleSubmitRequest}
-          disabled={!selectedPurpose || !selectedDuration}
+          disabled={!selectedPurpose || !selectedDuration || 
+                   (selectedDuration === 'custom' && (isNaN(parseInt(customDays)) || parseInt(customDays) < 1 || parseInt(customDays) > 30)) ||
+                   (selectedPurpose === 'other' && (customPurposeDescription.trim().length < 10 || customPurposeDescription.trim().length > 100))}
         >
           <Ionicons name="send" size={20} color="#fff" />
           <Text style={styles.submitButtonText}>Enviar Solicitud</Text>
@@ -425,6 +572,162 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  customDaysContainer: {
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: Colors.light.accent,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.light.secondary,
+  },
+  customDaysLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.primary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  daysSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    gap: 20,
+  },
+  dayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.light.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.light.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  daysInputContainer: {
+    alignItems: 'center',
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderWidth: 2,
+    borderColor: Colors.light.secondary,
+    minWidth: 80,
+  },
+  daysNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.light.secondary,
+    lineHeight: 28,
+  },
+  daysText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.light.gray,
+    marginTop: 2,
+  },
+  daysSliderContainer: {
+    marginBottom: 16,
+  },
+  sliderTrack: {
+    height: 6,
+    backgroundColor: Colors.light.border,
+    borderRadius: 3,
+    position: 'relative',
+    marginHorizontal: 12,
+  },
+  sliderProgress: {
+    height: 6,
+    backgroundColor: Colors.light.secondary,
+    borderRadius: 3,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+  },
+  sliderThumb: {
+    width: 20,
+    height: 20,
+    backgroundColor: Colors.light.secondary,
+    borderRadius: 10,
+    position: 'absolute',
+    top: -7,
+    marginLeft: -10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 12,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    fontWeight: '500',
+  },
+  customDaysHint: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  customPurposeContainer: {
+    marginTop: 20,
+    padding: 20,
+    backgroundColor: Colors.light.accent,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.light.secondary,
+  },
+  customPurposeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.light.primary,
+    marginBottom: 12,
+  },
+  customPurposeInput: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.light.border,
+    padding: 12,
+    fontSize: 14,
+    color: Colors.light.textDark,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    lineHeight: 20,
+  },
+  characterCount: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  characterCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  characterCountHint: {
+    fontSize: 11,
+    color: Colors.light.gray,
+    fontStyle: 'italic',
+  },
+  customPurposeHint: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    lineHeight: 16,
+    fontStyle: 'italic',
   },
 });
 
