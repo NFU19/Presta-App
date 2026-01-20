@@ -72,7 +72,7 @@ const EquipoModalScreen = () => {
   };
 
   return (
-    <KeyboardDismissWrapper>
+    <KeyboardDismissWrapper disabled={true}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>{isEditMode ? 'Editar Equipo' : 'Añadir Equipo'}</Text>
 

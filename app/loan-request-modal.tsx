@@ -95,7 +95,7 @@ const LoanRequestModal = () => {
   };
 
   return (
-    <KeyboardDismissWrapper>
+    <KeyboardDismissWrapper disabled={true}>
       <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         {/* Header */}
