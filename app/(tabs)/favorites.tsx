@@ -42,7 +42,7 @@ const FavoritesScreen = () => {
     { id: '4', name: 'Mouse Logitech MX Master 3', tipo: 'Mouse', estado: true, imagen: 'https://resource.logitech.com/w_692,c_limit,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/logitech/en/products/mice/mx-master-3s/gallery/mx-master-3s-mouse-gallery-1-graphite.png' },
   ];
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <FavoriteProductCard item={item} onPress={() => {}} />
   );
 

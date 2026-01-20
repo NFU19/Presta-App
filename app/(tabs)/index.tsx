@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 
 import { Header } from '@/components/header';
-import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper';
 import { SideMenu } from '../../components/shared/side-menu';
 import { db } from '../../firebaseConfig';
 
@@ -37,6 +36,7 @@ const CatalogScreen = () => {
   const [loading, setLoading] = useState(true);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
@@ -107,17 +107,27 @@ const CatalogScreen = () => {
   );
 
   return (
-    <KeyboardDismissWrapper>
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header onMenuPress={toggleMenu}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color={Colors.light.gray} style={styles.searchIcon} />
+        <View style={[
+          styles.searchContainer,
+          isSearchFocused && styles.searchContainerFocused
+        ]}>
+          <Ionicons 
+            name="search-outline" 
+            size={20} 
+            color={isSearchFocused ? Colors.light.primary : Colors.light.gray} 
+            style={styles.searchIcon} 
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar equipos..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholderTextColor={Colors.light.gray}
+            returnKeyType="search"
           />
         </View>
       </Header>
@@ -143,12 +153,11 @@ const CatalogScreen = () => {
           keyExtractor={(item) => item.id}
           numColumns={2} // Set the number of columns to 2
           contentContainerStyle={styles.list}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          keyboardShouldPersistTaps="always"
         />
       )}
     </SafeAreaView>
-    </KeyboardDismissWrapper>
   );
 };
 
@@ -178,6 +187,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     height: 40,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  searchContainerFocused: {
+    backgroundColor: Colors.light.background,
+    borderColor: Colors.light.primary,
+    shadowColor: Colors.light.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   searchIcon: {
     marginRight: 8,

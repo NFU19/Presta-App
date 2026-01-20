@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 const HistoryScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedPrestamo, setSelectedPrestamo] = useState(null);
+  const [selectedPrestamo, setSelectedPrestamo] = useState<any>(null);
   const [expandedPrestamo, setExpandedPrestamo] = useState(null);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -99,18 +99,18 @@ const HistoryScreen = () => {
     }
   };
 
-  const handlePrestamoPress = (prestamo) => {
+  const handlePrestamoPress = (prestamo: any) => {
     if (prestamo.estado === 'activo') {
       setSelectedPrestamo(prestamo);
       setIsModalVisible(true);
     }
   };
 
-  const toggleExpand = (prestamoId) => {
+  const toggleExpand = (prestamoId: any) => {
     setExpandedPrestamo(expandedPrestamo === prestamoId ? null : prestamoId);
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity onPress={() => handlePrestamoPress(item)}>
       <View style={styles.prestamoCard}>
         <View style={styles.prestamoHeader}>
@@ -145,7 +145,7 @@ const HistoryScreen = () => {
             </TouchableOpacity>
             {expandedPrestamo === item.id && (
               <View style={styles.productList}>
-                {item.productos.map((producto) => (
+                {item.productos.map((producto: any) => (
                   <Text key={producto.id} style={styles.productoText}>- {producto.nombre}</Text>
                 ))}
               </View>

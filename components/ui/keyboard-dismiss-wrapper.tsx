@@ -15,9 +15,8 @@ interface KeyboardDismissWrapperProps {
 }
 
 /**
- * Componente wrapper que cierra el teclado cuando se toca fuera de los inputs
- * Solo actúa cuando el teclado está visible para no interferir con navegación
- * Útil para mejorar la experiencia de usuario en formularios
+ * Componente wrapper que cierra el teclado preservando gestos de navegación
+ * Implementación que NO interfiere con swipes ni navegación
  */
 export const KeyboardDismissWrapper: React.FC<KeyboardDismissWrapperProps> = ({
   children,
@@ -32,9 +31,8 @@ export const KeyboardDismissWrapper: React.FC<KeyboardDismissWrapperProps> = ({
     }
   };
 
-  // Si el teclado no está visible, devolvemos solo el View sin TouchableWithoutFeedback
-  // para no interferir con gestos de navegación
-  if (!isKeyboardVisible) {
+  // Si está deshabilitado o el teclado no está visible, devuelve View normal
+  if (disabled || !isKeyboardVisible) {
     return <View style={[{ flex: 1 }, style]}>{children}</View>;
   }
 
@@ -42,6 +40,7 @@ export const KeyboardDismissWrapper: React.FC<KeyboardDismissWrapperProps> = ({
     <TouchableWithoutFeedback 
       onPress={dismissKeyboard}
       accessible={false}
+      style={{ flex: 1 }}
     >
       <View style={[{ flex: 1 }, style]}>
         {children}

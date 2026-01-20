@@ -21,6 +21,7 @@ import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -40,15 +41,15 @@ const LoginScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardDismissWrapper style={styles.container}>
+      <KeyboardDismissWrapper disabled={true}>
         <KeyboardAvoidingView 
-          style={styles.keyboardContainer}
+          style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
           <ScrollView 
             contentContainerStyle={styles.scrollContainer}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
@@ -58,22 +59,32 @@ const LoginScreen = () => {
 
               <View style={styles.inputContainer}>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    focusedInput === 'email' && styles.inputFocused
+                  ]}
                   placeholder="Correo Electrónico"
                   placeholderTextColor="#888"
                   value={email}
                   onChangeText={setEmail}
+                  onFocus={() => setFocusedInput('email')}
+                  onBlur={() => setFocusedInput(null)}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   returnKeyType="next"
                   blurOnSubmit={false}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    focusedInput === 'password' && styles.inputFocused
+                  ]}
                   placeholder="Contraseña"
                   placeholderTextColor="#888"
                   value={password}
                   onChangeText={setPassword}
+                  onFocus={() => setFocusedInput('password')}
+                  onBlur={() => setFocusedInput(null)}
                   secureTextEntry
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
@@ -151,6 +162,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  inputFocused: {
+    borderColor: '#007bff',
+    borderWidth: 2,
+    shadowColor: '#007bff',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   button: {
     width: '100%',
