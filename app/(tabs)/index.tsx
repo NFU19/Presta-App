@@ -6,16 +6,13 @@ import { collection, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'fir
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Easing,
   FlatList,
-  Image,
   SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -108,7 +105,8 @@ const CatalogScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <KeyboardDismissWrapper>
+      <SafeAreaView style={styles.container}>
       <Header onMenuPress={toggleMenu}>
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color={Colors.light.gray} style={styles.searchIcon} />
@@ -143,6 +141,8 @@ const CatalogScreen = () => {
           keyExtractor={(item) => item.id}
           numColumns={2} // Set the number of columns to 2
           contentContainerStyle={styles.list}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
         />
       )}
     </SafeAreaView>

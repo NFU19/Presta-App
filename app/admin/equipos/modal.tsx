@@ -12,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper';
 import { db } from '../../../firebaseConfig';
 
 const EquipoModalScreen = () => {
@@ -71,8 +72,9 @@ const EquipoModalScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{isEditMode ? 'Editar Equipo' : 'Añadir Equipo'}</Text>
+    <KeyboardDismissWrapper>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>{isEditMode ? 'Editar Equipo' : 'Añadir Equipo'}</Text>
 
       <Text style={styles.label}>Nombre del Equipo</Text>
       <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
@@ -103,6 +105,7 @@ const EquipoModalScreen = () => {
         </TouchableOpacity>
       )}
     </ScrollView>
+    </KeyboardDismissWrapper>
   );
 };
 

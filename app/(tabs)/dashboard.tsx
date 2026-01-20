@@ -10,13 +10,11 @@ import {
   Animated,
   Easing,
   FlatList,
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SideMenu } from '../../components/shared/side-menu';
@@ -152,7 +150,12 @@ const DashboardScreen = () => {
       />
 
       {/* Contenido Principal */}
-      <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.mainContent} 
+        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Los más Reservados */}
         <HorizontalCarousel
           title="Los más Reservados"

@@ -1,4 +1,5 @@
 import { Colors } from '@/constants/theme';
+import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -94,7 +95,8 @@ const LoanRequestModal = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <KeyboardDismissWrapper>
+      <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -346,6 +348,7 @@ const LoanRequestModal = () => {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+    </KeyboardDismissWrapper>
   );
 };
 
