@@ -6,6 +6,7 @@ import { collection, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'fir
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   FlatList,
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 
 import { Header } from '@/components/header';
+import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper';
 import { SideMenu } from '../../components/shared/side-menu';
 import { db } from '../../firebaseConfig';
 
@@ -146,6 +148,7 @@ const CatalogScreen = () => {
         />
       )}
     </SafeAreaView>
+    </KeyboardDismissWrapper>
   );
 };
 
