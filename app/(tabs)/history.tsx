@@ -1,19 +1,53 @@
 
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { auth } from '../../firebaseConfig';
+import { Prestamo } from '../../types/prestamo';
+import { obtenerPrestamosUsuario } from '../../services/prestamoService';
 
 const HistoryScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedPrestamo, setSelectedPrestamo] = useState<any>(null);
-  const [expandedPrestamo, setExpandedPrestamo] = useState(null);
+  const [selectedPrestamo, setSelectedPrestamo] = useState<Prestamo | null>(null);
+  const [expandedPrestamo, setExpandedPrestamo] = useState<string | null>(null);
+  const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    loadPrestamos();
+  }, []);
+
+  const loadPrestamos = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        console.log('No hay usuario autenticado');
+        setLoading(false);
+        return;
+      }
+
+      const prestamosData = await obtenerPrestamosUsuario(user.uid);
+      setPrestamos(prestamosData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error al cargar préstamos:', error);
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadPrestamos();
+    setRefreshing(false);
+  };
 
   const toggleMenu = () => {
     const springConfig = {
@@ -38,47 +72,8 @@ const HistoryScreen = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
-  const prestamos = [
-    {
-      id: '1',
-      equipoId: 'eq1',
-      nombreEquipo: 'Laptop Dell XPS',
-      fechaPrestamo: new Date('2025-10-25'),
-      fechaDevolucion: new Date('2025-11-05'),
-      estado: 'activo',
-    },
-    {
-      id: '2',
-      equipoId: 'eq2',
-      nombreEquipo: 'Monitor LG 27"',
-      fechaPrestamo: new Date('2025-10-15'),
-      fechaDevolucion: new Date('2025-10-22'),
-      estado: 'devuelto',
-    },
-    {
-      id: '3',
-      equipoId: 'eq3',
-      nombreEquipo: 'Teclado Mecánico',
-      fechaPrestamo: new Date('2025-09-28'),
-      fechaDevolucion: new Date('2025-10-05'),
-      estado: 'vencido',
-    },
-    {
-      id: '4',
-      equipoId: 'eq4',
-      nombreEquipo: 'Varios productos',
-      fechaPrestamo: new Date('2025-10-28'),
-      fechaDevolucion: new Date('2025-11-10'),
-      estado: 'activo',
-      productos: [
-        { id: 'p1', nombre: 'Cargador para Laptop' },
-        { id: 'p2', nombre: 'Cable HDMI' },
-        { id: 'p3', nombre: 'Adaptador USB-C' },
-      ]
-    },
-  ];
-
-  const formatDate = (date: Date) => {
+  const formatDate = (date?: Date) => {
+    if (!date) return '-';
     return date.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
@@ -94,67 +89,98 @@ const HistoryScreen = () => {
         return Colors.light.gray;
       case 'vencido':
         return Colors.light.error;
+      case 'pendiente':
+        return '#ffc107';
+      case 'aprobado':
+        return '#17a2b8';
+      case 'rechazado':
+        return '#6c757d';
       default:
         return Colors.light.gray;
     }
   };
 
-  const handlePrestamoPress = (prestamo: any) => {
-    if (prestamo.estado === 'activo') {
-      setSelectedPrestamo(prestamo);
-      setIsModalVisible(true);
-    }
+  const getEstadoLabel = (estado: string) => {
+    const labels: Record<string, string> = {
+      pendiente: 'Pendiente',
+      aprobado: 'Aprobado',
+      activo: 'Activo',
+      devuelto: 'Devuelto',
+      vencido: 'Vencido',
+      rechazado: 'Rechazado',
+    };
+    return labels[estado] || estado;
   };
 
-  const toggleExpand = (prestamoId: any) => {
+  const handlePrestamoPress = (prestamo: Prestamo) => {
+    setSelectedPrestamo(prestamo);
+    setIsModalVisible(true);
+  };
+
+  const toggleExpand = (prestamoId: string) => {
     setExpandedPrestamo(expandedPrestamo === prestamoId ? null : prestamoId);
   };
 
-  const renderItem = ({ item }: { item: any }) => (
+  const renderItem = ({ item }: { item: Prestamo }) => (
     <TouchableOpacity onPress={() => handlePrestamoPress(item)}>
       <View style={styles.prestamoCard}>
         <View style={styles.prestamoHeader}>
-          <Text style={styles.prestamoEquipo}>{item.nombreEquipo}</Text>
+          <Text style={styles.prestamoEquipo}>{item.equipoNombre}</Text>
           <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(item.estado) }]}>
             <Text style={styles.estadoText}>
-              {item.estado.charAt(0).toUpperCase() + item.estado.slice(1)}
+              {getEstadoLabel(item.estado)}
             </Text>
           </View>
         </View>
         <View style={styles.prestamoDetails}>
-          <View style={styles.dateInfo}>
-            <Ionicons name="calendar-outline" size={16} color={Colors.light.gray} />
-            <Text style={styles.dateText}>
-              Prestado: {formatDate(item.fechaPrestamo)}
-            </Text>
-          </View>
-          <View style={styles.dateInfo}>
-            <Ionicons name="time-outline" size={16} color={Colors.light.gray} />
-            <Text style={styles.dateText}>
-              Devolución: {formatDate(item.fechaDevolucion)}
-            </Text>
-          </View>
-        </View>
-        {item.productos && (
-          <View>
-            <TouchableOpacity onPress={() => toggleExpand(item.id)} style={styles.expandButton}>
-              <Text style={styles.expandButtonText}>
-                {expandedPrestamo === item.id ? 'Ocultar productos' : 'Ver productos'}
+          {item.estado === 'pendiente' && (
+            <View style={styles.dateInfo}>
+              <Ionicons name="hourglass-outline" size={16} color={Colors.light.gray} />
+              <Text style={styles.dateText}>
+                Esperando aprobación
               </Text>
-              <Ionicons name={expandedPrestamo === item.id ? 'chevron-up-outline' : 'chevron-down-outline'} size={20} color={Colors.light.primary} />
-            </TouchableOpacity>
-            {expandedPrestamo === item.id && (
-              <View style={styles.productList}>
-                {item.productos.map((producto: any) => (
-                  <Text key={producto.id} style={styles.productoText}>- {producto.nombre}</Text>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
+            </View>
+          )}
+          {item.fechaPrestamo && (
+            <View style={styles.dateInfo}>
+              <Ionicons name="calendar-outline" size={16} color={Colors.light.gray} />
+              <Text style={styles.dateText}>
+                Prestado: {formatDate(item.fechaPrestamo)}
+              </Text>
+            </View>
+          )}
+          {item.fechaDevolucion && (
+            <View style={styles.dateInfo}>
+              <Ionicons name="time-outline" size={16} color={Colors.light.gray} />
+              <Text style={styles.dateText}>
+                Devolución: {formatDate(item.fechaDevolucion)}
+              </Text>
+            </View>
+          )}
+          {item.duracionDias && (
+            <View style={styles.dateInfo}>
+              <Ionicons name="timer-outline" size={16} color={Colors.light.gray} />
+              <Text style={styles.dateText}>
+                Duración: {item.duracionDias} día{item.duracionDias !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header onMenuPress={toggleMenu} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.light.secondary} />
+          <Text style={styles.loadingText}>Cargando historial...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -167,13 +193,27 @@ const HistoryScreen = () => {
       />
       <View style={styles.header}>
         <Text style={styles.title}>Mis Préstamos</Text>
+        <Text style={styles.subtitle}>
+          {prestamos.filter(p => p.estado === 'activo').length} préstamos activos
+        </Text>
       </View>
-      <FlatList
-        data={prestamos}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.list}
-      />
+      {prestamos.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="file-tray-outline" size={64} color={Colors.light.gray} />
+          <Text style={styles.emptyText}>No tienes préstamos aún</Text>
+          <Text style={styles.emptySubtext}>Solicita un equipo desde el Dashboard</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={prestamos}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      )}
       {selectedPrestamo && (
         <Modal
           animationType="slide"
@@ -184,13 +224,36 @@ const HistoryScreen = () => {
           }}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Préstamo Activo</Text>
-              <Image
-                source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=prestamo-' + selectedPrestamo.id }}
-                style={styles.qrCode}
-              />
-              <Text style={styles.modalText}>Equipo: {selectedPrestamo.nombreEquipo}</Text>
-              <Text style={styles.modalText}>Fecha de devolución: {formatDate(selectedPrestamo.fechaDevolucion)}</Text>
+              <Text style={styles.modalTitle}>Detalles del Préstamo</Text>
+              
+              {selectedPrestamo.codigoQR && (
+                <>
+                  <Image
+                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedPrestamo.codigoQR}` }}
+                    style={styles.qrCode}
+                  />
+                  <Text style={styles.qrLabel}>Código QR</Text>
+                </>
+              )}
+              
+              <View style={styles.modalDetails}>
+                <Text style={styles.modalText}>📦 {selectedPrestamo.equipoNombre}</Text>
+                <Text style={styles.modalText}>
+                  📅 Devolución: {formatDate(selectedPrestamo.fechaDevolucion)}
+                </Text>
+                <Text style={styles.modalText}>
+                  ⏱️ Duración: {selectedPrestamo.duracionDias} días
+                </Text>
+                <Text style={styles.modalText}>
+                  📝 Propósito: {selectedPrestamo.proposito}
+                </Text>
+                <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(selectedPrestamo.estado), alignSelf: 'center', marginTop: 12 }]}>
+                  <Text style={styles.estadoText}>
+                    {getEstadoLabel(selectedPrestamo.estado)}
+                  </Text>
+                </View>
+              </View>
+              
               <TouchableOpacity
                 style={styles.modalButton}
                 onPress={() => setIsModalVisible(!isModalVisible)}>
@@ -209,6 +272,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: Colors.light.gray,
+  },
   header: {
     padding: 20,
     backgroundColor: Colors.light.background,
@@ -225,6 +298,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.light.primary,
     letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: Colors.light.gray,
+    marginTop: 4,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: Colors.light.gray,
+    marginTop: 8,
   },
   list: {
     padding: 20,
@@ -299,35 +394,49 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
-    width: '80%',
+    width: '90%',
+    maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 20,
+    color: Colors.light.primary,
   },
   qrCode: {
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  qrLabel: {
+    fontSize: 12,
+    color: Colors.light.gray,
     marginBottom: 16,
   },
+  modalDetails: {
+    width: '100%',
+    gap: 8,
+  },
   modalText: {
-    fontSize: 16,
-    marginBottom: 8,
+    fontSize: 15,
+    marginBottom: 4,
+    color: Colors.light.text,
   },
   modalButton: {
-    marginTop: 16,
-    backgroundColor: Colors.light.primary,
-    padding: 12,
+    marginTop: 20,
+    backgroundColor: Colors.light.secondary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   modalButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

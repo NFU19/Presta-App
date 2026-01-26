@@ -11,8 +11,11 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    ActivityIndicator
 } from 'react-native';
+import { auth } from '../firebaseConfig';
+import { crearSolicitudPrestamo } from '../services/prestamoService';
 
 const LoanRequestModal = () => {
   const router = useRouter();
@@ -21,10 +24,13 @@ const LoanRequestModal = () => {
   const [customDays, setCustomDays] = useState('14');
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [customPurposeDescription, setCustomPurposeDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const product = {
+    id: params.id as string,
     nombre: params.nombre as string,
     categoria: params.categoria as string,
+    imagen: params.imagen as string,
   };
 
   const durationOptions = [
@@ -50,7 +56,7 @@ const LoanRequestModal = () => {
     { value: 'other', label: 'Otro', icon: 'ellipsis-horizontal-outline' },
   ];
 
-  const handleSubmitRequest = () => {
+  const handleSubmitRequest = async () => {
     if (!selectedPurpose) {
       Alert.alert('Error', 'Por favor selecciona el propósito del préstamo');
       return;
@@ -79,19 +85,88 @@ const LoanRequestModal = () => {
       }
     }
 
-    const finalDuration = selectedDuration === 'custom' ? customDays : selectedDuration;
-    const finalPurpose = selectedPurpose === 'other' ? customPurposeDescription.trim() : selectedPurpose;
+    // Verificar que el usuario esté autenticado
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para solicitar un préstamo');
+      router.replace('/login');
+      return;
+    }
 
-    Alert.alert(
-      'Solicitud Enviada',
-      `Tu solicitud para ${product.nombre} por ${finalDuration} día(s) ha sido enviada.\n\nPropósito: ${finalPurpose}\n\nRecibirás una notificación cuando sea revisada.`,
-      [
+    try {
+      setIsSubmitting(true);
+
+      const finalDuration = selectedDuration === 'custom' ? parseInt(customDays) : parseInt(selectedDuration);
+      const finalPurpose = selectedPurpose === 'other' ? customPurposeDescription.trim() : selectedPurpose;
+
+      // Obtener el nombre del propósito para mostrar
+      const purposeLabels: Record<string, string> = {
+        academic: 'Académico',
+        research: 'Investigación',
+        project: 'Proyecto',
+        presentation: 'Presentación',
+      };
+      const purposeDisplay = selectedPurpose === 'other' ? finalPurpose : purposeLabels[selectedPurpose];
+
+      // Crear solicitud en Firebase
+      const prestamoId = await crearSolicitudPrestamo(
         {
-          text: 'Entendido',
-          onPress: () => router.back(),
+          usuarioId: user.uid,
+          equipoId: product.id,
+          duracionDias: finalDuration,
+          proposito: finalPurpose,
         },
-      ]
-    );
+        user.displayName || user.email?.split('@')[0] || 'Usuario',
+        user.email || '',
+        product.nombre,
+        product.imagen
+      );
+
+      setIsSubmitting(false);
+
+      Alert.alert(
+        '¡Solicitud Enviada! 🎉',
+        `Tu solicitud para ${product.nombre} por ${finalDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${purposeDisplay}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
+        [
+          {
+            text: 'Ver Mis Préstamos',
+            onPress: () => {
+              router.back();
+              router.push('/(tabs)/history');
+            },
+          },
+          {
+            text: 'Entendido',
+            onPress: () => router.back(),
+            style: 'cancel',
+          },
+        ]
+      );
+    } catch (error: any) {
+      setIsSubmitting(false);
+      console.error('Error al crear solicitud:', error);
+      
+      // Manejo de errores específicos
+      if (error.message.includes('disponible')) {
+        Alert.alert(
+          'Equipo No Disponible',
+          'Este equipo ya ha sido reservado por otro usuario. Por favor, selecciona otro equipo.',
+          [{ text: 'Entendido', onPress: () => router.back() }]
+        );
+      } else if (error.message.includes('límite')) {
+        Alert.alert(
+          'Límite Alcanzado',
+          'Has alcanzado el límite de 3 préstamos activos. Devuelve algún equipo antes de solicitar más.',
+          [{ text: 'Ver Mis Préstamos', onPress: () => router.push('/(tabs)/history') }]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'Ocurrió un error al enviar la solicitud. Por favor, intenta de nuevo.',
+          [{ text: 'Entendido' }]
+        );
+      }
+    }
   };
 
   return (
@@ -333,18 +408,29 @@ const LoanRequestModal = () => {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!selectedPurpose || !selectedDuration || 
+            (isSubmitting ||
+             !selectedPurpose || !selectedDuration || 
              (selectedDuration === 'custom' && (isNaN(parseInt(customDays)) || parseInt(customDays) < 1 || parseInt(customDays) > 30)) ||
              (selectedPurpose === 'other' && (customPurposeDescription.trim().length < 10 || customPurposeDescription.trim().length > 100))) && 
             styles.disabledButton,
           ]}
           onPress={handleSubmitRequest}
-          disabled={!selectedPurpose || !selectedDuration || 
+          disabled={isSubmitting ||
+                   !selectedPurpose || !selectedDuration || 
                    (selectedDuration === 'custom' && (isNaN(parseInt(customDays)) || parseInt(customDays) < 1 || parseInt(customDays) > 30)) ||
                    (selectedPurpose === 'other' && (customPurposeDescription.trim().length < 10 || customPurposeDescription.trim().length > 100))}
         >
-          <Ionicons name="send" size={20} color="#fff" />
-          <Text style={styles.submitButtonText}>Enviar Solicitud</Text>
+          {isSubmitting ? (
+            <>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={styles.submitButtonText}>Enviando...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="send" size={20} color="#fff" />
+              <Text style={styles.submitButtonText}>Enviar Solicitud</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

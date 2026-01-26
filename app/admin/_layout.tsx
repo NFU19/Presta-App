@@ -27,14 +27,17 @@ const AdminLayout = () => {
         <View>
           {/* The title is now in the header, so this space is empty */}
           <TouchableOpacity style={styles.sidebarLink} onPress={() => router.replace('/admin')}>
-            <Text style={styles.sidebarLinkText}>Dashboard</Text>
+            <Text style={styles.sidebarLinkText}>📊 Dashboard</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.sidebarLink} onPress={() => router.replace('/admin/equipos')}>
-            <Text style={styles.sidebarLinkText}>Gestión de Equipos</Text>
+            <Text style={styles.sidebarLinkText}>💻 Gestión de Equipos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.sidebarLink} onPress={() => router.replace('/admin/prestamos')}>
+            <Text style={styles.sidebarLinkText}>📦 Gestión de Préstamos</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.sidebarLink} onPress={handleLogout}>
-          <Text style={styles.sidebarLinkText}>Cerrar Sesión</Text>
+          <Text style={styles.sidebarLinkText}>🚪 Cerrar Sesión</Text>
         </TouchableOpacity>
       </View>
 
