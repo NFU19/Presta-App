@@ -1,7 +1,7 @@
 
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Platform, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Platform, useWindowDimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
@@ -25,7 +25,7 @@ const HistoryScreen = () => {
   const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
 
   // Responsive values
-  const numColumns = width < 576 ? 1 : width < 992 ? 2 : 3;
+  const numColumns = width < 768 ? 1 : width < 1200 ? 2 : 3;
   const cardPadding = isMobile ? 12 : 16;
   const contentMaxWidth = isDesktop ? 1200 : width;
 
@@ -129,13 +129,33 @@ const HistoryScreen = () => {
     setExpandedPrestamo(expandedPrestamo === prestamoId ? null : prestamoId);
   };
 
+  const handleCancelar = (prestamo: Prestamo) => {
+    Alert.alert(
+      'Cancelar solicitud',
+      `¿Deseas cancelar la solicitud de ${prestamo.equipoNombre}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Cancelar', style: 'destructive', onPress: () => console.log('Cancelar préstamo', prestamo.id) },
+      ]
+    );
+  };
+
+  const handleDevolver = (prestamo: Prestamo) => {
+    Alert.alert(
+      'Registrar devolución',
+      `Confirma la devolución de ${prestamo.equipoNombre}.`,
+      [
+        { text: 'No', style: 'cancel' },
+        { text: 'Devolver', onPress: () => console.log('Devolver préstamo', prestamo.id) },
+      ]
+    );
+  };
+
   const renderItem = ({ item }: { item: Prestamo }) => (
     <TouchableOpacity 
       onPress={() => handlePrestamoPress(item)}
-      style={{ 
-        flex: numColumns > 1 ? 0.48 : 1,
-        marginHorizontal: numColumns > 1 ? 4 : 0 
-      }}>
+      activeOpacity={0.9}
+      style={{ flex: 1, maxWidth: numColumns > 1 ? '48%' : '100%' }}>
       <View style={[
         styles.prestamoCard, 
         { padding: cardPadding },
@@ -183,6 +203,20 @@ const HistoryScreen = () => {
             </View>
           )}
         </View>
+        <View style={styles.cardActionsRow}>
+          {item.estado === 'pendiente' && (
+            <TouchableOpacity style={[styles.actionChip, styles.actionChipOutline]} onPress={() => handleCancelar(item)}>
+              <Ionicons name="close-circle" size={16} color={Colors.light.error} />
+              <Text style={[styles.actionChipText, { color: Colors.light.error }]}>Cancelar</Text>
+            </TouchableOpacity>
+          )}
+          {(item.estado === 'activo' || item.estado === 'aprobado') && (
+            <TouchableOpacity style={styles.actionChip} onPress={() => handleDevolver(item)}>
+              <Ionicons name="return-down-back" size={16} color="#fff" />
+              <Text style={[styles.actionChipText, { color: '#fff' }]}>Devolver</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -190,7 +224,11 @@ const HistoryScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header onMenuPress={toggleMenu} />
+        <Header onMenuPress={toggleMenu}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Mis Préstamos</Text>
+          </View>
+        </Header>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.light.secondary} />
           <Text style={styles.loadingText}>Cargando historial...</Text>
@@ -201,19 +239,26 @@ const HistoryScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header onMenuPress={toggleMenu} />
+      <Header onMenuPress={toggleMenu}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Mis Préstamos</Text>
+            <Text style={styles.subtitle}>
+              {prestamos.filter(p => p.estado === 'activo').length} préstamos activos
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.iconButton} onPress={onRefresh}>
+            <Ionicons name="refresh" size={18} color={Colors.light.primary} />
+          </TouchableOpacity>
+        </View>
+      </Header>
       <SideMenu
         isVisible={isMenuVisible}
         onClose={toggleMenu}
         slideAnim={slideAnim}
         fadeAnim={fadeAnim}
       />
-      <View style={[styles.header, { padding: isMobile ? 16 : 24 }]}>
-        <Text style={[styles.title, { fontSize: isMobile ? 24 : isTablet ? 28 : 32 }]}>Mis Préstamos</Text>
-        <Text style={[styles.subtitle, { fontSize: isMobile ? 14 : 16 }]}>
-          {prestamos.filter(p => p.estado === 'activo').length} préstamos activos
-        </Text>
-      </View>
+      <View style={{ height: 12 }} />
       {prestamos.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="file-tray-outline" size={isMobile ? 48 : 64} color={Colors.light.gray} />
@@ -327,14 +372,24 @@ const styles = StyleSheet.create({
       }
     }),
   },
+  headerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
   title: {
     fontWeight: 'bold',
-    color: Colors.light.primary,
+    color: Colors.light.textDark,
     letterSpacing: -0.5,
+    fontSize: 24,
+    marginBottom: 2,
   },
   subtitle: {
     color: Colors.light.gray,
-    marginTop: 4,
+    marginTop: 2,
+    fontSize: 14,
   },
   emptyState: {
     flex: 1,
@@ -431,6 +486,37 @@ const styles = StyleSheet.create({
   },
   productoText: {
     fontSize: 14,
+  cardActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.light.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  actionChipOutline: {
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.light.error,
+  },
+  actionChipText: {
+    fontWeight: '700',
+    color: Colors.light.textDark,
+  },
+  iconButton: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.light.backgroundAlt,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
     color: Colors.light.gray,
     marginLeft: 16,
     marginBottom: 4,

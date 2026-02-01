@@ -28,6 +28,7 @@ const LoanRequestModal = () => {
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [customPurposeDescription, setCustomPurposeDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sliderWidth, setSliderWidth] = useState(1);
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
 
@@ -65,6 +66,13 @@ const LoanRequestModal = () => {
     { value: 'presentation', label: 'Presentación', icon: 'easel-outline' },
     { value: 'other', label: 'Otro', icon: 'ellipsis-horizontal-outline' },
   ];
+
+  const handleSliderChange = (positionX: number) => {
+    const clamped = Math.min(Math.max(positionX, 0), sliderWidth);
+    const ratio = clamped / (sliderWidth || 1);
+    const days = Math.round(ratio * 29) + 1; // 1 a 30
+    setCustomDays(days.toString());
+  };
 
   const handleSubmitRequest = async () => {
     if (!selectedPurpose) {
@@ -165,8 +173,8 @@ const LoanRequestModal = () => {
         );
       } else if (error.message.includes('límite')) {
         Alert.alert(
-          'Límite Alcanzado',
-          'Has alcanzado el límite de 3 préstamos activos. Devuelve algún equipo antes de solicitar más.',
+          '⚠️ Límite alcanzado',
+          'Has alcanzado el límite de 3 préstamos activos. Devuelve un equipo antes de solicitar más.',
           [{ text: 'Ver Mis Préstamos', onPress: () => router.push('/(tabs)/history') }]
         );
       } else {
@@ -276,19 +284,25 @@ const LoanRequestModal = () => {
               </View>
               
               <View style={styles.daysSliderContainer}>
-                <View style={styles.sliderTrack}>
+                <View
+                  style={styles.sliderTrack}
+                  onLayout={(e) => setSliderWidth(e.nativeEvent.layout.width)}
+                  onStartShouldSetResponder={() => true}
+                  onResponderMove={(e) => handleSliderChange(e.nativeEvent.locationX)}
+                  onResponderRelease={(e) => handleSliderChange(e.nativeEvent.locationX)}
+                >
                   <View 
                     style={[
                       styles.sliderProgress, 
                       { width: `${(parseInt(customDays) - 1) / 29 * 100}%` }
                     ]} 
                   />
-                  <TouchableOpacity
+                  <View
                     style={[
                       styles.sliderThumb,
                       { left: `${(parseInt(customDays) - 1) / 29 * 100}%` }
                     ]}
-                    onPressIn={() => {}}
+                    pointerEvents="none"
                   />
                 </View>
                 <View style={styles.sliderLabels}>

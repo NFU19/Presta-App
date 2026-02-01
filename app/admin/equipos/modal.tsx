@@ -2,18 +2,20 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { addDoc, collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    Modal,
-    FlatList,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Modal,
+  FlatList,
+  Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { KeyboardDismissWrapper } from '@/components/ui/keyboard-dismiss-wrapper';
 import { db } from '../../../firebaseConfig';
 
@@ -193,12 +195,6 @@ const EquipoModalScreen = () => {
     setSubcategoriaList(subcategoriaList.filter(s => s !== subcategoria));
   };
 
-  // Función para verificar si una subcategoría es personalizada al cargar datos existentes
-  const isCustomSubcategoria = (tipo: string, subcategoriaValue: string) => {
-    const predefinedOptions = subcategorias[tipo as keyof typeof subcategorias] || [];
-    return !predefinedOptions.some(option => option.id === subcategoriaValue);
-  };
-
   useEffect(() => {
     if (id) {
       setIsEditMode(true);
@@ -322,105 +318,140 @@ const EquipoModalScreen = () => {
   return (
     <KeyboardDismissWrapper disabled={true}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>{isEditMode ? 'Editar Equipo' : 'Añadir Equipo'}</Text>
+        <View style={styles.formWrapper}>
+          <Text style={styles.title}>{isEditMode ? 'Editar Equipo' : 'Añadir Equipo'}</Text>
 
-      <Text style={styles.label}>Nombre del Equipo</Text>
-      <TextInput style={styles.input} value={nombre} onChangeText={setNombre} />
+          <View style={styles.formGrid}>
+            <View style={styles.formField}>
+              <Text style={styles.label}>Nombre del Equipo</Text>
+              <TextInput style={styles.input} value={nombre} onChangeText={setNombre} placeholder="Ej. Laptop Dell" />
+            </View>
 
-      <Text style={styles.label}>Tipo de Equipo</Text>
-      <TouchableOpacity 
-        style={[styles.input, styles.dropdown]}
-        onPress={() => setShowTipoModal(true)}
-      >
-        <Text style={[styles.dropdownText, !tipo && styles.placeholder]}>
-          {tipo ? getTipoNombre(tipo) : 'Selecciona el tipo de equipo'}
-        </Text>
-      </TouchableOpacity>
+            <View style={styles.formField}>
+              <Text style={styles.label}>Tipo de Equipo</Text>
+              <TouchableOpacity 
+                style={[styles.input, styles.dropdown]}
+                onPress={() => setShowTipoModal(true)}
+              >
+                <Text style={[styles.dropdownText, !tipo && styles.placeholder]}>
+                  {tipo ? getTipoNombre(tipo) : 'Selecciona el tipo de equipo'}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
 
-      {tipo && subcategorias[tipo as keyof typeof subcategorias] && (
-        <>
-          <Text style={styles.label}>Subcategorías</Text>
-          
-          {/* Lista de subcategorías agregadas */}
-          {subcategoriaList.length > 0 && (
-            <View style={styles.subcategoriasContainer}>
-              <Text style={styles.subcategoriasLabel}>Subcategorías seleccionadas:</Text>
-              <View style={styles.subcategoriasList}>
-                {subcategoriaList.map((subcat, index) => (
-                  <View key={index} style={styles.subcategoriaChip}>
-                    <Text style={styles.subcategoriaChipText}>🏷️ {subcat}</Text>
-                    <TouchableOpacity 
-                      style={styles.removeButton}
-                      onPress={() => removeSubcategoriaFromList(subcat)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.removeButtonText}>×</Text>
+            <View style={[styles.formField, styles.formFieldFull]}>
+              {tipo && subcategorias[tipo as keyof typeof subcategorias] && (
+                <View style={styles.subsection}>
+                  <View style={styles.subsectionHeader}>
+                    <Text style={styles.label}>Subcategorías</Text>
+                    <TouchableOpacity style={styles.linkButton} onPress={() => setShowSubcategoriaModal(true)}>
+                      <Ionicons name="add-circle-outline" size={18} color="#0A66FF" />
+                      <Text style={styles.linkButtonText}>Agregar subcategoría</Text>
                     </TouchableOpacity>
                   </View>
-                ))}
+
+                  {subcategoriaList.length > 0 && (
+                    <View style={styles.subcategoriasList}>
+                      {subcategoriaList.map((subcat, index) => (
+                        <View key={index} style={styles.subcategoriaChip}>
+                          <Ionicons name="pricetag-outline" size={14} color="#0A66FF" style={{ marginRight: 6 }} />
+                          <Text style={styles.subcategoriaChipText}>{subcat}</Text>
+                          <TouchableOpacity 
+                            style={styles.removeButton}
+                            onPress={() => removeSubcategoriaFromList(subcat)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="close" size={14} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {showCustomInput && (
+                    <View style={styles.customInputContainer}>
+                      <TextInput
+                        style={[styles.input, styles.customInput]}
+                        value={customSubcategoria}
+                        onChangeText={setCustomSubcategoria}
+                        placeholder="Escribe la subcategoría personalizada"
+                        autoFocus
+                        onSubmitEditing={handleAddCustomSubcategoria}
+                      />
+                      <View style={styles.customButtonsContainer}>
+                        <TouchableOpacity 
+                          style={[styles.changeOptionButton, styles.addButton]}
+                          onPress={handleAddCustomSubcategoria}
+                        >
+                          <Text style={[styles.changeOptionText, styles.addButtonText]}>Agregar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.changeOptionButton}
+                          onPress={() => {
+                            setShowCustomInput(false);
+                            setCustomSubcategoria('');
+                            setShowSubcategoriaModal(true);
+                          }}
+                        >
+                          <Text style={styles.changeOptionText}>Elegir de la lista</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {!showCustomInput && (
+                    <TouchableOpacity 
+                      style={[styles.input, styles.dropdown, styles.subcategoryCta]}
+                      onPress={() => setShowSubcategoriaModal(true)}
+                    >
+                      <Text style={[styles.dropdownText, styles.placeholder]}>
+                        + Agregar subcategoría
+                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color="#6b7280" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.label}>URL de la Imagen</Text>
+              <TextInput style={styles.input} value={imagen} onChangeText={setImagen} placeholder="https://ejemplo.com/imagen.jpg" />
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.label}>Disponible</Text>
+              <View style={styles.switchControl}>
+                <Text style={styles.switchLabel}>{estado ? 'Disponible' : 'No disponible'}</Text>
+                <Switch value={estado} onValueChange={setEstado} />
               </View>
             </View>
-          )}
 
-          {!showCustomInput ? (
-            <TouchableOpacity 
-              style={[styles.input, styles.dropdown]}
-              onPress={() => setShowSubcategoriaModal(true)}
-            >
-              <Text style={[styles.dropdownText, styles.placeholder]}>
-                + Agregar subcategoría
-              </Text>
+            <View style={[styles.formField, styles.formFieldFull]}>
+              <Text style={styles.label}>Previsualización</Text>
+              <View style={styles.previewWrapper}>
+                {imagen ? (
+                  <Image source={{ uri: imagen }} style={styles.previewImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.previewPlaceholder}>
+                    <Ionicons name="image" size={40} color="#9aa4b5" />
+                    <Text style={styles.previewPlaceholderText}>Pega una URL para ver la imagen</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={[styles.button, styles.buttonGhost]} onPress={() => router.back()}>
+              <Text style={[styles.buttonText, styles.buttonGhostText]}>Cancelar</Text>
             </TouchableOpacity>
-          ) : (
-            <View style={styles.customInputContainer}>
-              <TextInput
-                style={[styles.input, styles.customInput]}
-                value={customSubcategoria}
-                onChangeText={setCustomSubcategoria}
-                placeholder="Escribe la subcategoría personalizada"
-                autoFocus
-                onSubmitEditing={handleAddCustomSubcategoria}
-              />
-              <View style={styles.customButtonsContainer}>
-                <TouchableOpacity 
-                  style={[styles.changeOptionButton, styles.addButton]}
-                  onPress={handleAddCustomSubcategoria}
-                >
-                  <Text style={[styles.changeOptionText, styles.addButtonText]}>✓ Agregar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.changeOptionButton}
-                  onPress={() => {
-                    setShowCustomInput(false);
-                    setCustomSubcategoria('');
-                    setShowSubcategoriaModal(true);
-                  }}
-                >
-                  <Text style={styles.changeOptionText}>📋 Seleccionar de lista</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </>
-      )}
-
-      <Text style={styles.label}>URL de la Imagen</Text>
-      <TextInput style={styles.input} value={imagen} onChangeText={setImagen} placeholder="https://ejemplo.com/imagen.jpg" />
-
-      <View style={styles.switchContainer}>
-        <Text style={styles.label}>Disponible</Text>
-        <Switch value={estado} onValueChange={setEstado} />
-      </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleSave}>
-        <Text style={styles.buttonText}>Guardar</Text>
-      </TouchableOpacity>
-
-      {Platform.OS === 'web' && (
-         <TouchableOpacity style={[styles.button, styles.buttonCancel]} onPress={() => router.back()}>
-            <Text style={styles.buttonText}>Cancelar</Text>
-        </TouchableOpacity>
-      )}
+            <TouchableOpacity style={[styles.button, styles.buttonPrimary]} onPress={handleSave}>
+              <Text style={styles.buttonText}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
       {/* Modales para dropdowns */}
       {renderDropdownModal(
@@ -446,67 +477,103 @@ const EquipoModalScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    backgroundColor: '#f5f7fb',
+  },
+  formWrapper: {
+    width: '100%',
+    maxWidth: 1080,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 24,
-    backgroundColor: '#f0f4f8',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e6edf5',
+    ...Platform.select({
+      web: { boxShadow: '0 18px 48px rgba(10,37,64,0.12)' },
+      default: {
+        shadowColor: '#0A2540',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#0A2540',
-    marginBottom: 30,
+    marginBottom: 22,
+    letterSpacing: 0.3,
+  },
+  formGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  formField: {
+    width: '48%',
+    minWidth: 260,
+    flexGrow: 1,
+  },
+  formFieldFull: {
+    width: '100%',
   },
   label: {
-    fontSize: 16,
-    color: '#525f7f',
-    alignSelf: 'flex-start',
-    marginBottom: 5,
+    fontSize: 14,
+    color: '#4b5563',
+    marginBottom: 6,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   input: {
     width: '100%',
     height: 50,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 15,
     fontSize: 16,
-    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#dfe4ea',
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 30,
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#007bff',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 15,
-  },
-  buttonCancel: {
-    backgroundColor: '#6c757d',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    borderColor: '#e4e9f2',
+    ...Platform.select({
+      web: { transition: 'border-color 0.15s ease, box-shadow 0.15s ease' },
+    }),
   },
   dropdown: {
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   dropdownText: {
     fontSize: 16,
     color: '#333',
   },
   placeholder: {
-    color: '#888',
+    color: '#9aa4b5',
+  },
+  subsection: {
+    backgroundColor: '#f7f9fc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e6edf5',
+    padding: 14,
+  },
+  subsectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  linkButtonText: {
+    color: '#0A66FF',
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,
@@ -516,10 +583,12 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 20,
     width: '80%',
     maxHeight: '70%',
+    borderWidth: 1,
+    borderColor: '#e6edf5',
   },
   modalTitle: {
     fontSize: 18,
@@ -527,6 +596,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center',
     color: '#0A2540',
+  },
+  multiSelectHint: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   modalItem: {
     padding: 15,
@@ -540,124 +615,68 @@ const styles = StyleSheet.create({
   modalCloseButton: {
     marginTop: 15,
     padding: 12,
-    backgroundColor: '#6c757d',
-    borderRadius: 8,
+    backgroundColor: '#eef2f7',
+    borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dce3ed',
   },
   modalCloseText: {
-    color: '#fff',
+    color: '#4b5563',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   customInputContainer: {
     marginBottom: 20,
     width: '100%',
   },
   customInput: {
-    marginBottom: 10,
-    width: '100%',
-  },
-  changeOptionButton: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#007bff',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  changeOptionText: {
-    color: '#007bff',
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  multiSelectHint: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 10,
-    fontStyle: 'italic',
-  },
-  modalItemSelected: {
-    backgroundColor: '#e3f2fd',
-    borderLeftWidth: 4,
-    borderLeftColor: '#007bff',
-  },
-  modalItemTextSelected: {
-    color: '#007bff',
-    fontWeight: '600',
-  },
-  modalItemDisabled: {
-    backgroundColor: '#f5f5f5',
-    opacity: 0.6,
-  },
-  modalItemTextDisabled: {
-    color: '#999',
-    fontStyle: 'italic',
+    marginTop: 10,
   },
   subcategoriasList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 15,
     gap: 10,
-    paddingHorizontal: 5,
+    marginBottom: 12,
   },
   subcategoriaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#007bff',
-    borderRadius: 25,
-    paddingVertical: 8,
-    paddingLeft: 16,
-    paddingRight: 12,
-    marginBottom: 8,
-    shadowColor: '#007bff',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#0A66FF',
+    borderRadius: 24,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 6,
   },
   subcategoriaChipText: {
-    color: '#007bff',
-    fontSize: 15,
-    fontWeight: '600',
-    marginRight: 8,
+    color: '#0A66FF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   removeButton: {
-    backgroundColor: '#ff4757',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    backgroundColor: '#d1434b',
+    borderRadius: 10,
+    width: 22,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#ff4757',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  removeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    lineHeight: 16,
+  changeOptionButton: {
+    backgroundColor: '#f8f9fb',
+    borderWidth: 1,
+    borderColor: '#e4e9f2',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+  },
+  changeOptionText: {
+    color: '#0A66FF',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   customButtonsContainer: {
     flexDirection: 'row',
@@ -665,27 +684,85 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addButton: {
-    backgroundColor: '#28a745',
-    borderColor: '#28a745',
+    backgroundColor: '#0A66FF',
+    borderColor: '#0A66FF',
   },
   addButtonText: {
     color: '#fff',
   },
-  subcategoriasContainer: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: '#f8f9fa',
+  subcategoryCta: { marginTop: 10 },
+  switchControl: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e4e9f2',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 50,
+    backgroundColor: '#f9fafb',
+  },
+  switchLabel: {
+    fontSize: 15,
+    color: '#4b5563',
+    fontWeight: '700',
+  },
+  previewWrapper: {
+    width: '100%',
+    backgroundColor: '#f7f9fc',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: '#e6edf5',
+    minHeight: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  subcategoriasLabel: {
+  previewImage: {
+    width: '100%',
+    height: 260,
+  },
+  previewPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    gap: 8,
+  },
+  previewPlaceholderText: {
+    color: '#6b7280',
     fontSize: 14,
-    fontWeight: '600',
-    color: '#495057',
-    marginBottom: 12,
-    textAlign: 'center',
   },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
+  },
+  button: {
+    paddingHorizontal: 20,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 140,
+  },
+  buttonPrimary: {
+    backgroundColor: '#0A66FF',
+    ...Platform.select({
+      web: { boxShadow: '0 12px 24px rgba(10,102,255,0.25)' },
+    }),
+  },
+  buttonGhost: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e4e9f2',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  buttonGhostText: { color: '#4b5563' },
 });
 
 export default EquipoModalScreen;

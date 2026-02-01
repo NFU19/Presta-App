@@ -28,7 +28,7 @@ const AdminLayout = () => {
     }
   };
 
-  const navigateTo = (path: string) => {
+  const navigateTo = (path: '/admin' | '/admin/equipos' | '/admin/prestamos') => {
     router.replace(path);
     if (isMobile || isTablet) {
       setIsMenuOpen(false);
@@ -174,13 +174,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sidebar: {
-    width: 250,
+    width: 260,
     backgroundColor: '#0A2540',
-    paddingVertical: 20,
+    paddingVertical: 22,
     justifyContent: 'space-between',
+    borderRightWidth: Platform.OS === 'web' ? 1 : 0,
+    borderRightColor: 'rgba(255,255,255,0.06)',
     ...Platform.select({
       web: {
-        boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+        boxShadow: '2px 0 20px rgba(0,0,0,0.15)',
       },
     }),
   },
@@ -196,7 +198,8 @@ const styles = StyleSheet.create({
   sidebarTitle: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   closeButton: {
     padding: 4,
@@ -208,16 +211,17 @@ const styles = StyleSheet.create({
   sidebarLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    marginTop: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        transition: 'background-color 0.2s ease',
+        transition: 'background-color 0.18s ease, transform 0.18s ease',
         ':hover': {
-          backgroundColor: 'rgba(255,255,255,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.08)',
+          transform: 'translateX(4px)',
         },
       },
     }),
@@ -228,15 +232,16 @@ const styles = StyleSheet.create({
   sidebarLinkText: {
     color: '#fff',
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   logoutButton: {
-    marginTop: 16,
+    marginTop: 18,
     marginHorizontal: 20,
     marginBottom: 20,
-    backgroundColor: 'rgba(220, 53, 69, 0.2)',
+    backgroundColor: 'rgba(220, 53, 69, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 53, 69, 0.5)',
+    borderColor: 'rgba(220, 53, 69, 0.35)',
   },
   mainContent: {
     flex: 1,

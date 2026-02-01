@@ -2,7 +2,7 @@ import { GridProductCard } from '@/components/shared/grid-product-card';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,8 +14,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
-  Platform,
 } from 'react-native';
 
 import { Header } from '@/components/header';
@@ -42,7 +42,28 @@ const CatalogScreen = () => {
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
-  const { width, isMobile, isTablet, isDesktop } = useResponsive();
+  const { width, isMobile, isTablet } = useResponsive();
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'equipos'),
+      snapshot => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...(doc.data() as Equipo),
+        }));
+        setEquipos(data);
+        setLoading(false);
+      },
+      error => {
+        console.error('Error al obtener equipos', error);
+        Alert.alert('Error', 'No se pudieron cargar los equipos.');
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // Calcular número de columnas basado en el ancho de pantalla
   const getNumColumns = () => {
@@ -50,7 +71,7 @@ const CatalogScreen = () => {
     if (width >= 1200) return 4; // Large desktop
     if (width >= 992) return 3;  // Desktop
     if (width >= 768) return 2;  // Tablet
-    return 1; // Mobile
+    return 2; // Mobile ahora muestra grid de 2 columnas
   };
 
   const numColumns = getNumColumns();
@@ -77,29 +98,6 @@ const CatalogScreen = () => {
     ]).start();
     setIsMenuVisible(!isMenuVisible);
   };
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'equipos'), (snapshot) => {
-      const equiposData: Equipo[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-        id: doc.id,
-        nombre: doc.data().nombre || 'Nombre no disponible',
-        categoria: doc.data().tipo || 'Sin categoría',
-        tipo: doc.data().tipo,
-        estado: doc.data().estado !== undefined ? doc.data().estado : true,
-        imagen: doc.data().imagen,
-      }));
-      setEquipos(equiposData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching equipos: ", error);
-      Alert.alert("Error", "No se pudieron cargar los equipos.");
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-
 
   const handleProductPress = (item: Equipo) => {
     router.push({
@@ -187,29 +185,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
   },
-  titleContainer: {
-    padding: 20,
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
-  searchContainer: {
+  headerRow: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 10,
     backgroundColor: Colors.light.backgroundAlt,
-    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.light.backgroundAlt,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     height: 40,
     borderWidth: 1,
     borderColor: 'transparent',
+    minWidth: 180,
   },
   searchContainerFocused: {
     backgroundColor: Colors.light.background,
@@ -281,6 +291,26 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 8,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  filterButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });
 

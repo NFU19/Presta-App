@@ -1,7 +1,7 @@
 
 import { useRouter } from 'expo-router';
 import { collection, deleteDoc, doc, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,10 @@ import {
   View,
   Platform,
   useWindowDimensions,
+  Image,
+  DimensionValue,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../firebaseConfig';
 import { useResponsive } from '@/hooks/use-responsive';
 
@@ -23,6 +26,7 @@ interface Equipo {
   categoria?: string;
   tipo?: string;
   estado?: boolean;
+  imagen?: string;
 }
 
 const EquiposAdminScreen = () => {
@@ -40,6 +44,7 @@ const EquiposAdminScreen = () => {
         categoria: doc.data().tipo || 'Sin categoría',
         tipo: doc.data().tipo,
         estado: doc.data().estado !== undefined ? doc.data().estado : true,
+        imagen: doc.data().imagen,
       }));
       setEquipos(equiposData);
       setLoading(false);
@@ -83,34 +88,54 @@ const EquiposAdminScreen = () => {
     router.push('/admin/equipos/modal');
   };
 
-  // Card component for mobile view
+  const columns = useMemo(() => {
+    if (isMobile) return 1;
+    if (isTablet) return 2;
+    if (width < 1200) return 3;
+    return 4;
+  }, [isMobile, isTablet, width]);
+
+  const cardWidth: DimensionValue = useMemo(() => `${100 / columns - 2}%` as DimensionValue, [columns]);
+
+  const StatusDot = ({ active }: { active: boolean }) => (
+    <View style={[styles.statusDot, active ? styles.statusDotOn : styles.statusDotOff]} />
+  );
+
   const EquipoCard = ({ item }: { item: Equipo }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.nombre}</Text>
-        <View style={[styles.badge, { backgroundColor: item.estado ? '#4CAF50' : '#f44336' }]}>
-          <Text style={styles.badgeText}>{item.estado ? 'Disponible' : 'No Disponible'}</Text>
-        </View>
-      </View>
-      <View style={styles.cardBody}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Categoría:</Text>
-          <Text style={styles.cardValue}>{item.categoria}</Text>
-        </View>
-        {item.descripcion && (
-          <View style={styles.cardRow}>
-            <Text style={styles.cardLabel}>Descripción:</Text>
-            <Text style={styles.cardValue}>{item.descripcion}</Text>
+    <View style={[styles.card, { width: isMobile ? '100%' : cardWidth }]}> 
+      <View style={styles.cardImageWrapper}>
+        {item.imagen ? (
+          <Image source={{ uri: item.imagen }} style={styles.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.cardImagePlaceholder}>
+            <Ionicons name="image" size={28} color="#9aa4b5" />
+            <Text style={styles.cardPlaceholderText}>Sin imagen</Text>
           </View>
         )}
+        <View style={styles.cardStatus}>
+          <StatusDot active={!!item.estado} />
+          <Text style={styles.statusLabel}>{item.estado ? 'Disponible' : 'No disponible'}</Text>
+        </View>
+        <View style={styles.cardActionsHover}>
+          <TouchableOpacity style={[styles.iconButton, styles.iconButtonPrimary]} onPress={() => handleEdit(item)}>
+            <Ionicons name="pencil" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.iconButton, styles.iconButtonDanger]} onPress={() => handleDelete(item)}>
+            <Ionicons name="trash" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(item)}>
-          <Text style={styles.editButtonText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item)}>
-          <Text style={styles.deleteButtonText}>Eliminar</Text>
-        </TouchableOpacity>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.cardTitle}>{item.nombre}</Text>
+        <Text style={styles.cardCategory}>{item.categoria || 'Sin categoría'}</Text>
+      </View>
+
+      <View style={styles.cardFooter}>
+        <View style={styles.metaChip}>
+          <Ionicons name="hardware-chip-outline" size={14} color="#4b5563" style={{ marginRight: 6 }} />
+          <Text style={styles.metaChipText}>{item.tipo || 'Tipo no especificado'}</Text>
+        </View>
       </View>
     </View>
   );
@@ -127,46 +152,13 @@ const EquiposAdminScreen = () => {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
+        <ActivityIndicator size="large" color="#0A66FF" style={styles.loader} />
       ) : (
-        <>
-          {/* Mobile/Tablet view - Cards */}
-          {(isMobile || isTablet) ? (
-            <View style={styles.cardsContainer}>
-              {equipos.map((item) => (
-                <EquipoCard key={item.id} item={item} />
-              ))}
-            </View>
-          ) : (
-            /* Desktop view - Table */
-            <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScroll}>
-              <View style={styles.table}>
-                <View style={styles.tableRowHeader}>
-                  <Text style={[styles.tableCell, styles.headerText, { flex: 3, minWidth: 150 }]}>Nombre</Text>
-                  <Text style={[styles.tableCell, styles.headerText, { flex: 2, minWidth: 120 }]}>Categoría</Text>
-                  <Text style={[styles.tableCell, styles.headerText, { flex: 2, minWidth: 120 }]}>Disponibilidad</Text>
-                  <Text style={[styles.tableCell, styles.headerText, { flex: 2, minWidth: 150 }]}>Acciones</Text>
-                </View>
-
-                {equipos.map((item) => (
-                  <View key={item.id} style={styles.tableRow}>
-                    <Text style={[styles.tableCell, { flex: 3, minWidth: 150 }]}>{item.nombre}</Text>
-                    <Text style={[styles.tableCell, { flex: 2, minWidth: 120 }]}>{item.categoria}</Text>
-                    <Text style={[styles.tableCell, { flex: 2, minWidth: 120 }]}>{item.estado ? 'Sí' : 'No'}</Text>
-                    <View style={[styles.tableCell, { flex: 2, minWidth: 150, flexDirection: 'row' }]}>
-                      <TouchableOpacity onPress={() => handleEdit(item)}>
-                        <Text style={styles.actionTextEdit}>Editar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDelete(item)}>
-                        <Text style={styles.actionTextDelete}>Eliminar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          )}
-        </>
+        <View style={[styles.cardsContainer, { justifyContent: 'flex-start' }]}>
+          {equipos.map((item) => (
+            <EquipoCard key={item.id} item={item} />
+          ))}
+        </View>
       )}
     </ScrollView>
   );
@@ -175,7 +167,7 @@ const EquiposAdminScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f7fb',
     padding: 24,
   },
   containerMobile: {
@@ -194,22 +186,24 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#0A2540',
+    letterSpacing: 0.2,
   },
   titleMobile: {
     fontSize: 20,
     flex: 1,
   },
   addButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
+    backgroundColor: '#0A66FF',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        transition: 'all 0.2s',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 14px 32px rgba(10,102,255,0.25)',
       },
     }),
   },
@@ -224,7 +218,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   addButtonTextMobile: {
     fontSize: 24,
@@ -235,144 +229,135 @@ const styles = StyleSheet.create({
   },
   // Card styles for mobile
   cardsContainer: {
-    gap: 16,
-    paddingBottom: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 18,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#e6edf5',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 18px 42px rgba(10,37,64,0.12)',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        cursor: 'pointer',
+      },
+      default: {
+        shadowColor: '#0A2540',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        elevation: 6,
+      },
+    }),
   },
-  cardHeader: {
+  cardImageWrapper: {
+    width: '100%',
+    height: 180,
+    position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#f5f7fb',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardImagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardPlaceholderText: {
+    color: '#9aa4b5',
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  cardStatus: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#e6edf5',
+  },
+  statusLabel: { color: '#0A2540', fontWeight: '700', fontSize: 12 },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.75,
+    shadowRadius: 6,
+  },
+  statusDotOn: { backgroundColor: '#22c55e' },
+  statusDotOff: { backgroundColor: '#d1434b', shadowColor: '#d1434b' },
+  cardActionsHover: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    gap: 10,
+    opacity: 1,
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: { boxShadow: '0 10px 18px rgba(0,0,0,0.12)' },
+    }),
+  },
+  iconButtonPrimary: { backgroundColor: '#0A66FF' },
+  iconButtonDanger: { backgroundColor: '#d1434b' },
+  cardBody: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 6,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#0A2540',
-    flex: 1,
   },
-  badge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+  cardCategory: {
+    fontSize: 14,
+    color: '#6b7280',
+    letterSpacing: 0.2,
   },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardBody: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  cardRow: {
+  cardFooter: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     flexDirection: 'row',
     gap: 8,
   },
-  cardLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    minWidth: 80,
-  },
-  cardValue: {
-    fontSize: 14,
-    color: '#333',
-    flex: 1,
-  },
-  cardActions: {
+  metaChip: {
     flexDirection: 'row',
-    gap: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  editButton: {
-    flex: 1,
-    backgroundColor: '#007bff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
     alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: '#f4f6fb',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#f44336',
-    minHeight: 44,
-    justifyContent: 'center',
+    borderColor: '#e6edf5',
   },
-  deleteButtonText: {
-    color: '#f44336',
-    fontSize: 16,
+  metaChipText: {
+    fontSize: 13,
+    color: '#4b5563',
     fontWeight: '600',
-  },
-  // Table styles for desktop
-  tableScroll: {
-    flex: 1,
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-    minWidth: '100%',
-  },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#0A2540',
-    padding: 12,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    padding: 12,
-    backgroundColor: '#fff',
-  },
-  tableCell: {
-    fontSize: 14,
-    color: '#333',
-    paddingHorizontal: 8,
-  },
-  headerText: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  actionTextEdit: {
-    color: '#007bff',
-    marginRight: 15,
-    textDecorationLine: 'underline',
-    fontSize: 14,
-  },
-  actionTextDelete: {
-    color: '#f44336',
-    textDecorationLine: 'underline',
-    fontSize: 14,
   },
 });
 

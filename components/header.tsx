@@ -36,7 +36,7 @@ export const Header = ({ onMenuPress, showBackButton, onBackPress, children }: H
           color={Colors.light.primary} 
         />
       </TouchableOpacity>
-      {children}
+      <View style={styles.content}>{children}</View>
     </View>
   );
 };
@@ -66,5 +66,12 @@ const styles = StyleSheet.create({
       transition: 'background-color 0.2s ease',
       cursor: 'pointer',
     } : {}),
+  },
+  content: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
 });

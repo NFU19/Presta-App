@@ -60,19 +60,22 @@ const ProductDetailsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center' }}>
+      <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center', paddingHorizontal: contentPadding }}>
         <View style={{ width: '100%', maxWidth: isDesktop ? 1000 : width }}>
           {/* Header */}
-          <Header showBackButton onBackPress={() => router.back()} />
-          <View style={[styles.titleContainer, { paddingHorizontal: contentPadding }]}>
-            <Text style={[styles.headerTitle, { fontSize: isMobile ? 20 : isTablet ? 24 : 28 }]}>Detalles del Producto</Text>
-            <TouchableOpacity onPress={handleAddToFavorites} style={styles.favoriteButton}>
-              <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={isMobile ? 22 : 24} color={Colors.light.error} />
-            </TouchableOpacity>
-          </View>
+          <Header showBackButton onBackPress={() => router.back()}>
+            <View style={styles.headerRow}>
+              <Text style={[styles.headerTitle, { fontSize: isMobile ? 20 : isTablet ? 24 : 28 }]}>Detalles del Producto</Text>
+              <View style={styles.headerActions}>
+                <TouchableOpacity onPress={handleAddToFavorites} style={styles.favoriteButton}>
+                  <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={isMobile ? 22 : 24} color={Colors.light.error} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Header>
 
           {/* Product Image */}
-          <View style={styles.imageContainer}>
+          <View style={[styles.imageContainer, { paddingHorizontal: contentPadding }]}>
             <Image
               source={{ uri: product.imagen || 'https://via.placeholder.com/300' }}
               style={[styles.productImage, { height: imageHeight }]}
@@ -310,6 +313,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
+  },
+  headerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
     fontWeight: '600',
