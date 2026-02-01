@@ -1,16 +1,24 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Animated, Easing, FlatList } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, FlatList, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
 import React, { useState } from 'react';
 import { FavoriteProductCard } from '@/components/shared/favorite-product-card';
+import { useResponsive } from '@/hooks/use-responsive';
 
 const FavoritesScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const { width } = useWindowDimensions();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+
+  // Responsive values
+  const numColumns = width < 576 ? 1 : width < 768 ? 2 : width < 1200 ? 3 : 4;
+  const headerPadding = isMobile ? 16 : isTablet ? 20 : 24;
+  const contentMaxWidth = isDesktop ? 1200 : width;
 
   const toggleMenu = () => {
     const springConfig = {
@@ -55,16 +63,26 @@ const FavoritesScreen = () => {
         slideAnim={slideAnim}
         fadeAnim={fadeAnim}
       />
-      <View style={styles.header}>
-        <Text style={styles.title}>Mis Favoritos</Text>
+      <View style={[styles.header, { padding: headerPadding }]}>
+        <Text style={[styles.title, { fontSize: isMobile ? 24 : isTablet ? 28 : 32 }]}>Mis Favoritos</Text>
       </View>
-      <FlatList
-        data={favorites}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.list}
-      />
+      <View style={{ alignItems: 'center' }}>
+        <FlatList
+          data={favorites}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          key={numColumns}
+          numColumns={numColumns}
+          contentContainerStyle={[
+            styles.list,
+            { 
+              paddingHorizontal: isMobile ? 8 : isTablet ? 12 : 16,
+              maxWidth: contentMaxWidth,
+            }
+          ]}
+          columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -75,24 +93,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.backgroundAlt,
   },
   header: {
-    padding: 20,
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 3,
+      }
+    }),
   },
   title: {
-    fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
   list: {
-    paddingHorizontal: 8,
+    paddingVertical: 16,
   },
 });
 

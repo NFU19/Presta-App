@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, useWindowDimensions, Platform } from 'react-native';
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -11,15 +11,28 @@ interface HeaderProps {
 }
 
 export const Header = ({ onMenuPress, showBackButton, onBackPress, children }: HeaderProps) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const isDesktop = width >= 1024;
+  
   return (
-    <View style={styles.header}>
+    <View style={[
+      styles.header,
+      {
+        padding: isMobile ? 12 : 16,
+        paddingHorizontal: isDesktop ? 24 : isMobile ? 12 : 16,
+      }
+    ]}>
       <TouchableOpacity 
         onPress={showBackButton ? onBackPress : onMenuPress} 
-        style={styles.menuButton}
+        style={[
+          styles.menuButton,
+          { padding: isMobile ? 6 : 8 }
+        ]}
       >
         <Ionicons 
           name={showBackButton ? 'arrow-back-outline' : 'menu-outline'}
-          size={28} 
+          size={isMobile ? 24 : 28} 
           color={Colors.light.primary} 
         />
       </TouchableOpacity>
@@ -32,7 +45,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
@@ -41,10 +53,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 3,
+    ...(Platform.OS === 'web' ? {
+      position: 'sticky' as any,
+      top: 0,
+      zIndex: 100,
+    } : {}),
   },
   menuButton: {
-    padding: 8,
     borderRadius: 8,
     backgroundColor: Colors.light.backgroundAlt,
+    ...(Platform.OS === 'web' ? {
+      transition: 'background-color 0.2s ease',
+      cursor: 'pointer',
+    } : {}),
   },
 });

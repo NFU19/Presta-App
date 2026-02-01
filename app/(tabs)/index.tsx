@@ -15,11 +15,13 @@ import {
   Text,
   TextInput,
   View,
+  Platform,
 } from 'react-native';
 
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
 import { db } from '../../firebaseConfig';
+import { useResponsive } from '@/hooks/use-responsive';
 
 // Define the structure of an Equipo
 interface Equipo {
@@ -40,6 +42,18 @@ const CatalogScreen = () => {
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
+  const { width, isMobile, isTablet, isDesktop } = useResponsive();
+
+  // Calcular número de columnas basado en el ancho de pantalla
+  const getNumColumns = () => {
+    if (width >= 1400) return 5; // XL screens
+    if (width >= 1200) return 4; // Large desktop
+    if (width >= 992) return 3;  // Desktop
+    if (width >= 768) return 2;  // Tablet
+    return 1; // Mobile
+  };
+
+  const numColumns = getNumColumns();
 
   const toggleMenu = () => {
     const springConfig = {
@@ -146,13 +160,20 @@ const CatalogScreen = () => {
         <ActivityIndicator size="large" color="#007bff" style={{ flex: 1 }} />
       ) : (
         <FlatList
+          key={numColumns} // Importante: forzar re-render cuando cambian las columnas
           data={displayedEquipos}
           renderItem={({ item }) => (
             <GridProductCard item={item} onPress={() => handleProductPress(item)} />
           )}
           keyExtractor={(item) => item.id}
-          numColumns={2} // Set the number of columns to 2
-          contentContainerStyle={styles.list}
+          numColumns={numColumns}
+          contentContainerStyle={[
+            styles.list,
+            {
+              paddingHorizontal: isMobile ? 12 : isTablet ? 20 : 32,
+            }
+          ]}
+          columnWrapperStyle={numColumns > 1 ? { gap: isMobile ? 12 : 16 } : undefined}
           keyboardDismissMode="none"
           keyboardShouldPersistTaps="always"
         />

@@ -16,9 +16,13 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { SideMenu } from '../../components/shared/side-menu';
 import { db } from '../../firebaseConfig';
+import { useResponsive } from '@/hooks/use-responsive';
+
 // Interfaces
 interface Equipo {
   id: string;
@@ -29,21 +33,50 @@ interface Equipo {
 }
 
 // Componente de Carrusel Horizontal
-const HorizontalCarousel = ({ title, data, onItemPress }: { title: string; data: Equipo[]; onItemPress: (item: Equipo) => void }) => (
-  <View style={styles.carouselContainer}>
-    <Text style={styles.sectionTitle}>{title}</Text>
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={data}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <ProductCard item={item} onPress={() => onItemPress(item)} />
-      )}
-      contentContainerStyle={styles.carouselContent}
-    />
-  </View>
-);
+const HorizontalCarousel = ({ 
+  title, 
+  data, 
+  onItemPress 
+}: { 
+  title: string; 
+  data: Equipo[]; 
+  onItemPress: (item: Equipo) => void 
+}) => {
+  const { isMobile, isTablet } = useResponsive();
+  
+  return (
+    <View style={[
+      styles.carouselContainer,
+      { 
+        paddingHorizontal: isMobile ? 12 : isTablet ? 16 : 20,
+        marginBottom: isMobile ? 16 : 20,
+      }
+    ]}>
+      <Text style={[
+        styles.sectionTitle,
+        { 
+          fontSize: isMobile ? 18 : isTablet ? 20 : 22,
+          marginBottom: isMobile ? 12 : 16,
+        }
+      ]}>
+        {title}
+      </Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={data}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ProductCard item={item} onPress={() => onItemPress(item)} />
+        )}
+        contentContainerStyle={[
+          styles.carouselContent,
+          { paddingHorizontal: isMobile ? 4 : 8 }
+        ]}
+      />
+    </View>
+  );
+};
 
 // Componente Principal
 const DashboardScreen = () => {
@@ -51,11 +84,13 @@ const DashboardScreen = () => {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const router = useRouter();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
 
   // Animaciones del menú lateral
   const slideAnim = useState(new Animated.Value(-300))[0];
-  const fadeAnim = useState(new Animated.Value(0))[0]; // Valor para la opacidad del fondo
+  const fadeAnim = useState(new Animated.Value(0))[0];
 
   const toggleMenu = () => {
     const springConfig = {
@@ -129,13 +164,24 @@ const DashboardScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <Header onMenuPress={toggleMenu}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color={Colors.light.gray} style={styles.searchIcon} />
+        <View style={[
+          styles.searchContainer,
+          isSearchFocused && styles.searchContainerFocused,
+          { marginLeft: isMobile ? 8 : 12 }
+        ]}>
+          <Ionicons 
+            name="search-outline" 
+            size={isMobile ? 18 : 20} 
+            color={isSearchFocused ? Colors.light.primary : Colors.light.gray} 
+            style={styles.searchIcon} 
+          />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontSize: isMobile ? 14 : 16 }]}
             placeholder="Buscar equipos..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholderTextColor={Colors.light.gray}
           />
         </View>
@@ -155,6 +201,9 @@ const DashboardScreen = () => {
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingBottom: isMobile ? 20 : 30,
+        }}
       >
         {/* Los más Reservados */}
         <HorizontalCarousel
@@ -191,59 +240,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.light.backgroundAlt,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  menuButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: Colors.light.backgroundAlt,
+  mainContent: {
+    flex: 1,
   },
   searchContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
-    marginLeft: 12,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    borderRadius: 8,
     height: 40,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    ...(Platform.OS === 'web' ? {
+      transition: 'all 0.2s ease',
+    } : {}),
+  },
+  searchContainerFocused: {
+    backgroundColor: Colors.light.background,
+    borderColor: Colors.light.secondary,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.light.secondary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
     color: Colors.light.textDark,
-  },
-  mainContent: {
-    flex: 1,
+    ...(Platform.OS === 'web' ? {
+      outlineStyle: 'none' as any,
+    } : {}),
   },
   carouselContainer: {
-    marginTop: 24,
-  },
-  carouselContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    marginTop: 8,
   },
   sectionTitle: {
-    fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.light.primary,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    letterSpacing: -0.5,
+    color: Colors.light.textDark,
+  },
+  carouselContent: {
+    paddingVertical: 8,
   },
 });
 

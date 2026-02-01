@@ -1,8 +1,7 @@
 // app/admin/prestamos.tsx
 // Panel de administración para gestionar solicitudes de préstamos
 
-import { useRouter } from 'expo-router';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,9 +20,9 @@ import { Prestamo, EstadoPrestamo } from '../../types/prestamo';
 import {
   aprobarSolicitudPrestamo,
   rechazarSolicitudPrestamo,
-  obtenerSolicitudesPendientes,
 } from '../../services/prestamoService';
 import { Colors } from '@/constants/theme';
+import { useResponsive } from '@/hooks/use-responsive';
 
 const PrestamosAdminScreen = () => {
   const [solicitudes, setSolicitudes] = useState<Prestamo[]>([]);
@@ -34,7 +33,7 @@ const PrestamosAdminScreen = () => {
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [actionType, setActionType] = useState<'aprobar' | 'rechazar'>('aprobar');
   const [processing, setProcessing] = useState(false);
-  const router = useRouter();
+  const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
     const q = query(
@@ -162,12 +161,84 @@ const PrestamosAdminScreen = () => {
     });
   };
 
+  // PrestamoCard component for mobile view
+  const PrestamoCard = ({ solicitud }: { solicitud: Prestamo }) => {
+    const { label, color, icon } = getEstadoBadge(solicitud.estado);
+    
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.badge, { backgroundColor: color }]}>
+            <Ionicons name={icon as any} size={16} color="#fff" />
+            <Text style={styles.badgeText}>{label}</Text>
+          </View>
+          <Text style={styles.cardId}>#{solicitud.id.substring(0, 8)}</Text>
+        </View>
+
+        <View style={styles.cardBody}>
+          <View style={styles.infoRow}>
+            <Ionicons name="person-outline" size={18} color={Colors.light.gray} />
+            <Text style={styles.infoText}>{solicitud.usuarioNombre}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="mail-outline" size={18} color={Colors.light.gray} />
+            <Text style={styles.infoText}>{solicitud.usuarioEmail}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="cube-outline" size={18} color={Colors.light.secondary} />
+            <Text style={[styles.infoText, styles.equipoText]}>{solicitud.equipoNombre}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={18} color={Colors.light.gray} />
+            <Text style={styles.infoText}>{solicitud.duracionDias} días</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="document-text-outline" size={18} color={Colors.light.gray} />
+            <Text style={styles.infoText}>{solicitud.proposito}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="time-outline" size={18} color={Colors.light.gray} />
+            <Text style={styles.infoTextSmall}>
+              Solicitado: {formatDate(solicitud.fechaSolicitud)}
+            </Text>
+          </View>
+        </View>
+
+        {solicitud.estado === 'pendiente' && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.approveButton]}
+              onPress={() => handleAprobar(solicitud)}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.actionButtonText}>Aprobar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => handleRechazar(solicitud)}
+            >
+              <Ionicons name="close-circle" size={20} color="#fff" />
+              <Text style={styles.actionButtonText}>Rechazar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {solicitud.estado === 'aprobado' && solicitud.codigoQR && (
+          <View style={styles.qrInfo}>
+            <Ionicons name="qr-code-outline" size={24} color={Colors.light.secondary} />
+            <Text style={styles.qrText}>Código QR: {solicitud.codigoQR}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}>
         <View>
-          <Text style={styles.title}>Gestión de Préstamos</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}>Gestión de Préstamos</Text>
+          <Text style={[styles.subtitle, (isMobile || isTablet) && styles.subtitleMobile]}>
             {solicitudes.filter(s => s.estado === 'pendiente').length} solicitudes pendientes
           </Text>
         </View>
@@ -181,76 +252,10 @@ const PrestamosAdminScreen = () => {
           <Text style={styles.emptyText}>No hay solicitudes en este momento</Text>
         </View>
       ) : (
-        <View style={styles.cardsContainer}>
-          {solicitudes.map((solicitud) => {
-            const { label, color, icon } = getEstadoBadge(solicitud.estado);
-            return (
-              <View key={solicitud.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={[styles.badge, { backgroundColor: color }]}>
-                    <Ionicons name={icon as any} size={16} color="#fff" />
-                    <Text style={styles.badgeText}>{label}</Text>
-                  </View>
-                  <Text style={styles.cardId}>#{solicitud.id.substring(0, 8)}</Text>
-                </View>
-
-                <View style={styles.cardBody}>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="person-outline" size={18} color={Colors.light.gray} />
-                    <Text style={styles.infoText}>{solicitud.usuarioNombre}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="mail-outline" size={18} color={Colors.light.gray} />
-                    <Text style={styles.infoText}>{solicitud.usuarioEmail}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="cube-outline" size={18} color={Colors.light.secondary} />
-                    <Text style={[styles.infoText, styles.equipoText]}>{solicitud.equipoNombre}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="calendar-outline" size={18} color={Colors.light.gray} />
-                    <Text style={styles.infoText}>{solicitud.duracionDias} días</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="document-text-outline" size={18} color={Colors.light.gray} />
-                    <Text style={styles.infoText}>{solicitud.proposito}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="time-outline" size={18} color={Colors.light.gray} />
-                    <Text style={styles.infoTextSmall}>
-                      Solicitado: {formatDate(solicitud.fechaSolicitud)}
-                    </Text>
-                  </View>
-                </View>
-
-                {solicitud.estado === 'pendiente' && (
-                  <View style={styles.cardActions}>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.approveButton]}
-                      onPress={() => handleAprobar(solicitud)}
-                    >
-                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                      <Text style={styles.actionButtonText}>Aprobar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.rejectButton]}
-                      onPress={() => handleRechazar(solicitud)}
-                    >
-                      <Ionicons name="close-circle" size={20} color="#fff" />
-                      <Text style={styles.actionButtonText}>Rechazar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {solicitud.estado === 'aprobado' && solicitud.codigoQR && (
-                  <View style={styles.qrInfo}>
-                    <Ionicons name="qr-code-outline" size={24} color={Colors.light.secondary} />
-                    <Text style={styles.qrText}>Código QR: {solicitud.codigoQR}</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
+        <View style={[styles.cardsContainer, (isMobile || isTablet) && styles.cardsContainerMobile]}>
+          {solicitudes.map((solicitud) => (
+            <PrestamoCard key={solicitud.id} solicitud={solicitud} />
+          ))}
         </View>
       )}
 
@@ -344,15 +349,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
+  headerMobile: {
+    padding: 16,
+    paddingTop: 8,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.primary,
     marginBottom: 4,
   },
+  titleMobile: {
+    fontSize: 20,
+  },
   subtitle: {
     fontSize: 14,
     color: Colors.light.gray,
+  },
+  subtitleMobile: {
+    fontSize: 13,
   },
   loader: {
     marginTop: 40,
@@ -369,6 +384,9 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     padding: 16,
+  },
+  cardsContainerMobile: {
+    padding: 12,
   },
   card: {
     backgroundColor: '#fff',

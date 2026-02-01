@@ -6,19 +6,29 @@ import React, { useState } from 'react';
 import {
     Image,
     Modal,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    useWindowDimensions
 } from 'react-native';
+import { useResponsive } from '@/hooks/use-responsive';
 
 const ProductDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const { width } = useWindowDimensions();
+  const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
+  
+  // Responsive values
+  const imageHeight = isMobile ? 250 : isTablet ? 350 : 450;
+  const contentPadding = isMobile ? 16 : isTablet ? 24 : 32;
+  const modalMaxWidth = isDesktop ? 600 : width * 0.9;
   
   // Datos del producto que vendrían de los parámetros
   const product = {
@@ -50,36 +60,38 @@ const ProductDetailsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
-        {/* Header */}
-        <Header showBackButton onBackPress={() => router.back()} />
-        <View style={styles.titleContainer}>
-          <Text style={styles.headerTitle}>Detalles del Producto</Text>
-          <TouchableOpacity onPress={handleAddToFavorites} style={styles.favoriteButton}>
-            <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={24} color={Colors.light.error} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Product Image */}
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: product.imagen || 'https://via.placeholder.com/300' }}
-            style={styles.productImage}
-          />
-          <View style={[
-            styles.availabilityBadge,
-            { backgroundColor: product.estado ? '#28a745' : '#dc3545' }
-          ]}>
-            <Text style={styles.availabilityText}>
-              {product.estado ? 'Disponible' : 'No Disponible'}
-            </Text>
+      <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center' }}>
+        <View style={{ width: '100%', maxWidth: isDesktop ? 1000 : width }}>
+          {/* Header */}
+          <Header showBackButton onBackPress={() => router.back()} />
+          <View style={[styles.titleContainer, { paddingHorizontal: contentPadding }]}>
+            <Text style={[styles.headerTitle, { fontSize: isMobile ? 20 : isTablet ? 24 : 28 }]}>Detalles del Producto</Text>
+            <TouchableOpacity onPress={handleAddToFavorites} style={styles.favoriteButton}>
+              <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={isMobile ? 22 : 24} color={Colors.light.error} />
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Product Info */}
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{product.nombre}</Text>
-          <Text style={styles.productCategory}>{product.categoria}</Text>
+          {/* Product Image */}
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: product.imagen || 'https://via.placeholder.com/300' }}
+              style={[styles.productImage, { height: imageHeight }]}
+            />
+            <View style={[
+              styles.availabilityBadge,
+              { backgroundColor: product.estado ? '#28a745' : '#dc3545' }
+            ]}>
+              <Text style={[styles.availabilityText, { fontSize: isMobile ? 12 : 14 }]}>
+                {product.estado ? 'Disponible' : 'No Disponible'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Product Info */}
+          <View style={[styles.productInfo, { padding: contentPadding }]}>
+            <Text style={[styles.productName, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}>{product.nombre}</Text>
+            <Text style={[styles.productCategory, { fontSize: isMobile ? 14 : 16 }]}>{product.categoria}</Text>
+          </View>
           
           {/* Product Details */}
           <View style={styles.detailsSection}>
@@ -190,13 +202,19 @@ const ProductDetailsScreen = () => {
           setIsHistoryModalVisible(!isHistoryModalVisible);
         }}>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[
+            styles.modalContent, 
+            { 
+              maxWidth: modalMaxWidth,
+              padding: isMobile ? 20 : 24,
+            }
+          ]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Historial del Equipo</Text>
+              <Text style={[styles.modalTitle, { fontSize: isMobile ? 18 : 20 }]}>Historial del Equipo</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setIsHistoryModalVisible(false)}>
-                <Ionicons name="close" size={24} color={Colors.light.gray} />
+                <Ionicons name="close" size={isMobile ? 22 : 24} color={Colors.light.gray} />
               </TouchableOpacity>
             </View>
             
@@ -288,13 +306,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 16,
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
   headerTitle: {
-    fontSize: 20,
     fontWeight: '600',
     color: Colors.light.primary,
     letterSpacing: -0.5,
@@ -303,6 +320,15 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     backgroundColor: Colors.light.backgroundAlt,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'transform 0.2s ease',
+        ':hover': {
+          transform: 'scale(1.1)',
+        },
+      },
+    }),
   },
   imageContainer: {
     backgroundColor: Colors.light.background,
@@ -310,16 +336,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
+      }
+    }),
   },
   productImage: {
     width: '90%',
-    maxWidth: 280,
-    height: 220,
+    maxWidth: 400,
     resizeMode: 'contain',
     borderRadius: 16,
   },
@@ -330,11 +362,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      }
+    }),
   },
   availabilityText: {
     color: Colors.light.background,

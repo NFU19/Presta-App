@@ -10,7 +10,6 @@ import {
   where, 
   getDocs,
   getDoc,
-  orderBy,
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';

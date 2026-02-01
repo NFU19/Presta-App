@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    Platform,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -12,10 +13,12 @@ import {
     TextInput,
     TouchableOpacity,
     View,
-    ActivityIndicator
+    ActivityIndicator,
+    useWindowDimensions
 } from 'react-native';
 import { auth } from '../firebaseConfig';
 import { crearSolicitudPrestamo } from '../services/prestamoService';
+import { useResponsive } from '@/hooks/use-responsive';
 
 const LoanRequestModal = () => {
   const router = useRouter();
@@ -25,6 +28,13 @@ const LoanRequestModal = () => {
   const [selectedPurpose, setSelectedPurpose] = useState('');
   const [customPurposeDescription, setCustomPurposeDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { width } = useWindowDimensions();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+
+  // Responsive values
+  const contentPadding = isMobile ? 16 : isTablet ? 20 : 24;
+  const modalMaxWidth = isDesktop ? 700 : width * 0.95;
+  const buttonsPerRow = width < 576 ? 1 : width < 768 ? 2 : 3;
   
   const product = {
     id: params.id as string,

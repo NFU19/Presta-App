@@ -1,7 +1,7 @@
 
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, FlatList, Modal, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../../firebaseConfig';
 import { Prestamo } from '../../types/prestamo';
 import { obtenerPrestamosUsuario } from '../../services/prestamoService';
+import { useResponsive } from '@/hooks/use-responsive';
 
 const HistoryScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -20,6 +21,13 @@ const HistoryScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const { width } = useWindowDimensions();
+  const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
+
+  // Responsive values
+  const numColumns = width < 576 ? 1 : width < 992 ? 2 : 3;
+  const cardPadding = isMobile ? 12 : 16;
+  const contentMaxWidth = isDesktop ? 1200 : width;
 
   useEffect(() => {
     loadPrestamos();
@@ -122,12 +130,21 @@ const HistoryScreen = () => {
   };
 
   const renderItem = ({ item }: { item: Prestamo }) => (
-    <TouchableOpacity onPress={() => handlePrestamoPress(item)}>
-      <View style={styles.prestamoCard}>
+    <TouchableOpacity 
+      onPress={() => handlePrestamoPress(item)}
+      style={{ 
+        flex: numColumns > 1 ? 0.48 : 1,
+        marginHorizontal: numColumns > 1 ? 4 : 0 
+      }}>
+      <View style={[
+        styles.prestamoCard, 
+        { padding: cardPadding },
+        isWeb && styles.prestamoCardWeb
+      ]}>
         <View style={styles.prestamoHeader}>
-          <Text style={styles.prestamoEquipo}>{item.equipoNombre}</Text>
+          <Text style={[styles.prestamoEquipo, { fontSize: isMobile ? 16 : 18 }]}>{item.equipoNombre}</Text>
           <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(item.estado) }]}>
-            <Text style={styles.estadoText}>
+            <Text style={[styles.estadoText, { fontSize: isMobile ? 11 : 12 }]}>
               {getEstadoLabel(item.estado)}
             </Text>
           </View>
@@ -135,32 +152,32 @@ const HistoryScreen = () => {
         <View style={styles.prestamoDetails}>
           {item.estado === 'pendiente' && (
             <View style={styles.dateInfo}>
-              <Ionicons name="hourglass-outline" size={16} color={Colors.light.gray} />
-              <Text style={styles.dateText}>
+              <Ionicons name="hourglass-outline" size={isMobile ? 14 : 16} color={Colors.light.gray} />
+              <Text style={[styles.dateText, { fontSize: isMobile ? 12 : 14 }]}>
                 Esperando aprobación
               </Text>
             </View>
           )}
           {item.fechaPrestamo && (
             <View style={styles.dateInfo}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.light.gray} />
-              <Text style={styles.dateText}>
+              <Ionicons name="calendar-outline" size={isMobile ? 14 : 16} color={Colors.light.gray} />
+              <Text style={[styles.dateText, { fontSize: isMobile ? 12 : 14 }]}>
                 Prestado: {formatDate(item.fechaPrestamo)}
               </Text>
             </View>
           )}
           {item.fechaDevolucion && (
             <View style={styles.dateInfo}>
-              <Ionicons name="time-outline" size={16} color={Colors.light.gray} />
-              <Text style={styles.dateText}>
+              <Ionicons name="time-outline" size={isMobile ? 14 : 16} color={Colors.light.gray} />
+              <Text style={[styles.dateText, { fontSize: isMobile ? 12 : 14 }]}>
                 Devolución: {formatDate(item.fechaDevolucion)}
               </Text>
             </View>
           )}
           {item.duracionDias && (
             <View style={styles.dateInfo}>
-              <Ionicons name="timer-outline" size={16} color={Colors.light.gray} />
-              <Text style={styles.dateText}>
+              <Ionicons name="timer-outline" size={isMobile ? 14 : 16} color={Colors.light.gray} />
+              <Text style={[styles.dateText, { fontSize: isMobile ? 12 : 14 }]}>
                 Duración: {item.duracionDias} día{item.duracionDias !== 1 ? 's' : ''}
               </Text>
             </View>
@@ -191,28 +208,39 @@ const HistoryScreen = () => {
         slideAnim={slideAnim}
         fadeAnim={fadeAnim}
       />
-      <View style={styles.header}>
-        <Text style={styles.title}>Mis Préstamos</Text>
-        <Text style={styles.subtitle}>
+      <View style={[styles.header, { padding: isMobile ? 16 : 24 }]}>
+        <Text style={[styles.title, { fontSize: isMobile ? 24 : isTablet ? 28 : 32 }]}>Mis Préstamos</Text>
+        <Text style={[styles.subtitle, { fontSize: isMobile ? 14 : 16 }]}>
           {prestamos.filter(p => p.estado === 'activo').length} préstamos activos
         </Text>
       </View>
       {prestamos.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="file-tray-outline" size={64} color={Colors.light.gray} />
-          <Text style={styles.emptyText}>No tienes préstamos aún</Text>
-          <Text style={styles.emptySubtext}>Solicita un equipo desde el Dashboard</Text>
+          <Ionicons name="file-tray-outline" size={isMobile ? 48 : 64} color={Colors.light.gray} />
+          <Text style={[styles.emptyText, { fontSize: isMobile ? 16 : 18 }]}>No tienes préstamos aún</Text>
+          <Text style={[styles.emptySubtext, { fontSize: isMobile ? 13 : 14 }]}>Solicita un equipo desde el Dashboard</Text>
         </View>
       ) : (
-        <FlatList
-          data={prestamos}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
+        <View style={{ alignItems: 'center' }}>
+          <FlatList
+            data={prestamos}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            key={numColumns}
+            numColumns={numColumns}
+            contentContainerStyle={[
+              styles.list,
+              { 
+                paddingHorizontal: isMobile ? 12 : isTablet ? 20 : 32,
+                maxWidth: contentMaxWidth,
+              }
+            ]}
+            columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          />
+        </View>
       )}
       {selectedPrestamo && (
         <Modal
@@ -283,24 +311,28 @@ const styles = StyleSheet.create({
     color: Colors.light.gray,
   },
   header: {
-    padding: 20,
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 3,
+      }
+    }),
   },
   title: {
-    fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
     color: Colors.light.gray,
     marginTop: 4,
   },
@@ -311,40 +343,58 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    fontSize: 18,
     fontWeight: '600',
     color: Colors.light.text,
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
     color: Colors.light.gray,
     marginTop: 8,
   },
   list: {
-    padding: 20,
+    paddingVertical: 20,
   },
   prestamoCard: {
     backgroundColor: Colors.light.background,
     borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        cursor: 'pointer',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }
+    }),
+  },
+  prestamoCardWeb: {
+    ...Platform.select({
+      web: {
+        ':hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+        },
+      },
+    }),
   },
   prestamoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   prestamoEquipo: {
-    fontSize: 16,
     fontWeight: '600',
     color: Colors.light.textDark,
+    flex: 1,
   },
   estadoBadge: {
     paddingHorizontal: 8,
@@ -353,7 +403,6 @@ const styles = StyleSheet.create({
   },
   estadoText: {
     color: '#fff',
-    fontSize: 12,
     fontWeight: '500',
   },
   prestamoDetails: {
