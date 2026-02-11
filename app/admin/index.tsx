@@ -101,6 +101,9 @@ const AdminDashboard = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalAnimation] = useState(new Animated.Value(0));
 
+  // Modal mock para escaneo QR (RF-6)
+  const [showQrModal, setShowQrModal] = useState(false);
+
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
 
@@ -238,6 +241,22 @@ const AdminDashboard = () => {
     }).start(() => setActiveModal(null));
   };
 
+  // Acciones RF-5 (aprobación/rechazo)
+  const actualizarEstadoPrestamo = (prestamoId: string, nuevoEstado: 'aprobado' | 'rechazado') => {
+    setPrestamosHoy((prev) => prev.map((p) => (p.id === prestamoId ? { ...p, estado: nuevoEstado } : p)));
+    setPrestamosActivos((prev) => prev.map((p) => (p.id === prestamoId ? { ...p, estado: nuevoEstado } : p)));
+  };
+
+  const aprobarPrestamo = (prestamoId: string) => {
+    Alert.alert('Demo', 'En la versión completa, esto aprobaría la solicitud y notificaría al usuario.');
+    actualizarEstadoPrestamo(prestamoId, 'aprobado');
+  };
+
+  const rechazarPrestamo = (prestamoId: string) => {
+    Alert.alert('Demo', 'En la versión completa, esto rechazaría la solicitud y notificaría al usuario.');
+    actualizarEstadoPrestamo(prestamoId, 'rechazado');
+  };
+
   const marcarComoDevuelto = async (prestamoId: string) => {
     Alert.alert('Demo', 'En la versión completa, esto marcaría el préstamo como devuelto');
     setPrestamosActivos((prev) => prev.filter((p) => p.id !== prestamoId));
@@ -306,6 +325,27 @@ const AdminDashboard = () => {
             </View>
           ) : null}
         </View>
+
+        {item.estado === 'pendiente' && (
+          <View style={styles.quickActionsRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonSuccess]}
+              onPress={() => aprobarPrestamo(item.id)}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="checkmark" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Aprobar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonDanger]}
+              onPress={() => rechazarPrestamo(item.id)}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="close" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Rechazar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {item.estado === 'aprobado' && (
           <TouchableOpacity style={styles.actionButton} onPress={() => marcarComoDevuelto(item.id)} activeOpacity={0.85}>
@@ -392,28 +432,37 @@ const AdminDashboard = () => {
 
   const filtrarDatos = (datos: any[], tipo: string) => {
     let datosFiltrados = datos;
+    const normalize = (text?: string) =>
+      (text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
 
     if (filtroTexto) {
+      const q = normalize(filtroTexto);
       switch (tipo) {
         case 'prestamos':
           datosFiltrados = datos.filter(
             (item) =>
-              item.equipoNombre?.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-              item.usuarioNombre?.toLowerCase().includes(filtroTexto.toLowerCase()),
+              normalize(item.equipoNombre).includes(q) ||
+              normalize(item.usuarioNombre).includes(q),
           );
           break;
         case 'equipos':
           datosFiltrados = datos.filter(
             (item) =>
-              item.nombre?.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-              item.categoria?.toLowerCase().includes(filtroTexto.toLowerCase()),
+              normalize(item.nombre).includes(q) ||
+              normalize(item.categoria).includes(q) ||
+              normalize(item.tipo).includes(q),
           );
           break;
         case 'usuarios':
           datosFiltrados = datos.filter(
             (item) =>
-              item.nombre?.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-              item.email?.toLowerCase().includes(filtroTexto.toLowerCase()),
+              normalize(item.nombre).includes(q) ||
+              normalize(item.email).includes(q) ||
+              normalize(item.matricula).includes(q),
           );
           break;
       }
@@ -517,6 +566,14 @@ const AdminDashboard = () => {
               placeholder="Buscar..."
               value={filtroTexto}
               onChangeText={setFiltroTexto}
+              autoCapitalize="none"
+              autoCorrect={false}
+              blurOnSubmit={false}
+              returnKeyType="search"
+              inputMode="search"
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
             />
           </View>
 
@@ -546,6 +603,7 @@ const AdminDashboard = () => {
           style={styles.modalList}
           contentContainerStyle={styles.modalListContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="document-outline" size={48} color="#ccc" />
@@ -569,26 +627,249 @@ const AdminDashboard = () => {
   const containerPadding = isMobile ? 16 : isTablet ? 20 : 24;
   const titleSize = isMobile ? 22 : isTablet ? 26 : 32;
 
+  // Datos de ejemplo para las gráficas
+  const lineChartData = [45, 52, 48, 65, 70, 58];
+  const lineChartLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'];
+  
+  const barChartData = [
+    { label: 'Laptops', value: 20, color: '#3b82f6' },
+    { label: 'Proyectores', value: 15, color: '#8b5cf6' },
+    { label: 'Cámaras', value: 8, color: '#ec4899' },
+    { label: 'Tablets', value: 12, color: '#10b981' },
+    { label: 'Otros', value: 14, color: '#f59e0b' },
+  ];
+
+  const pieChartData = [
+    { name: 'Activos', value: 45, color: '#10b981' },
+    { name: 'Pendientes', value: 18, color: '#fbbf24' },
+    { name: 'Devueltos', value: 32, color: '#6b7280' },
+    { name: 'Vencidos', value: 5, color: '#ef4444' },
+  ];
+
+  const progressData = [
+    { label: 'Disponibilidad', value: 0.84, color: '#3b82f6' },
+    { label: 'Utilización', value: 0.72, color: '#8b5cf6' },
+    { label: 'Satisfacción', value: 0.91, color: '#10b981' },
+  ];
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{
-        padding: containerPadding,
-        paddingTop: isMobile || isTablet ? containerPadding + 8 : containerPadding,
-      }}
-    >
-      <View style={{ width: '100%', maxWidth: isDesktop ? 1400 : '100%' }}>
-        <Text style={[styles.title, { fontSize: titleSize, marginBottom: isMobile ? 16 : 24 }]}>Dashboard de Administrador</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{
+          padding: containerPadding,
+          paddingTop: isMobile || isTablet ? containerPadding + 8 : containerPadding,
+        }}
+      >
+        <View style={{ width: '100%', maxWidth: isDesktop ? 1400 : '100%' }}>
+          {/* Header con título y botón de reporte (RF-8) */}
+        <View style={[styles.dashboardHeader, { marginBottom: isMobile ? 16 : 24 }]}>
+          <Text style={[styles.title, { fontSize: titleSize, marginBottom: 0 }]}>Dashboard de Administrador</Text>
+          <TouchableOpacity 
+            style={styles.downloadButton}
+            onPress={() => {
+              Alert.alert(
+                'Descargar Reporte',
+                '¿En qué formato deseas descargar el reporte?',
+                [
+                  {
+                    text: 'PDF',
+                    onPress: () => Alert.alert('Descargando...', 'Reporte en formato PDF generado correctamente')
+                  },
+                  {
+                    text: 'CSV',
+                    onPress: () => Alert.alert('Descargando...', 'Reporte en formato CSV generado correctamente')
+                  },
+                  {
+                    text: 'Cancelar',
+                    style: 'cancel'
+                  }
+                ]
+              );
+            }}
+          >
+            <Ionicons name="download-outline" size={isMobile ? 18 : 20} color="#fff" />
+            <Text style={[styles.downloadButtonText, { fontSize: isMobile ? 12 : 14 }]}>
+              {isMobile ? 'Reporte' : 'Descargar Reporte (PDF/CSV)'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.cardsContainer}>
           <StatCard title="Préstamos Activos" value={prestamosActivos.length.toString()} iconName="stats-chart" onPress={() => openModal('prestamos-activos')} />
           <StatCard title="Equipos Disponibles" value={equipos.filter((e) => e.estado).length.toString()} iconName="checkbox-outline" onPress={() => openModal('equipos')} />
           <StatCard title="Total de Usuarios" value={usuarios.length.toString()} iconName="people" onPress={() => openModal('usuarios')} />
           <StatCard title="Préstamos Hoy" value={prestamosHoy.length.toString()} iconName="calendar-outline" onPress={() => openModal('prestamos-hoy')} />
         </View>
-        <View style={styles.placeholder}>
-          <Text style={[styles.placeholderText, { fontSize: isMobile ? 14 : 16 }]}>Más reportes y gráficos aparecerán aquí.</Text>
+
+        {/* Sección de Gráficas */}
+        <View style={styles.chartsSection}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="bar-chart" size={isMobile ? 20 : 24} color={Colors.light.primary} />
+            <Text style={[styles.sectionTitle, { fontSize: isMobile ? 18 : 22 }]}>
+              Análisis y Reportes
+            </Text>
+          </View>
+
+          {/* Gráfica de Línea - Préstamos por Mes */}
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Ionicons name="trending-up" size={24} color="#0A66FF" />
+              <Text style={styles.chartTitle}>Préstamos Mensuales</Text>
+            </View>
+            <Text style={styles.chartDescription}>
+              Evolución de préstamos durante los últimos 6 meses
+            </Text>
+            <View style={styles.lineChartContainer}>
+              <View style={styles.lineChartGrid}>
+                {lineChartData.map((value, index) => {
+                  const maxValue = Math.max(...lineChartData);
+                  const heightPercent = (value / maxValue) * 100;
+                  return (
+                    <View key={index} style={styles.lineChartColumn}>
+                      <View style={styles.lineChartBarWrapper}>
+                        <View 
+                          style={[
+                            styles.lineChartBar, 
+                            { height: `${heightPercent}%` as any }
+                          ]} 
+                        />
+                        <Text style={styles.lineChartValue}>{value}</Text>
+                      </View>
+                      <Text style={styles.lineChartLabel}>{lineChartLabels[index]}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          {/* Gráfica de Barras - Equipos por Categoría */}
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <Ionicons name="bar-chart" size={24} color="#0A66FF" />
+              <Text style={styles.chartTitle}>Equipos por Categoría</Text>
+            </View>
+            <Text style={styles.chartDescription}>
+              Distribución del inventario por tipo de equipo
+            </Text>
+            <View style={styles.barChartContainer}>
+              {barChartData.map((item, index) => {
+                const maxValue = Math.max(...barChartData.map(d => d.value));
+                const widthPercent = (item.value / maxValue) * 100;
+                return (
+                  <View key={index} style={styles.barChartRow}>
+                    <Text style={styles.barChartLabel}>{item.label}</Text>
+                    <View style={styles.barChartBarContainer}>
+                      <View 
+                        style={[
+                          styles.barChartBar, 
+                          { width: `${widthPercent}%` as any, backgroundColor: item.color }
+                        ]} 
+                      />
+                      <Text style={styles.barChartValue}>{item.value}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Grid de 2 columnas para gráficas más pequeñas */}
+          <View style={[styles.chartsGrid, isMobile && { flexDirection: 'column' }]}>
+            {/* Gráfica de Pie - Estados de Préstamos */}
+            <View style={[styles.chartCard, !isMobile && styles.chartCardSmall]}>
+              <View style={styles.chartHeader}>
+                <Ionicons name="pie-chart" size={20} color="#0A66FF" />
+                <Text style={[styles.chartTitle, { fontSize: isMobile ? 15 : 16 }]}>
+                  Estados de Préstamos
+                </Text>
+              </View>
+              <View style={styles.pieChartContainer}>
+                {pieChartData.map((item, index) => {
+                  const total = pieChartData.reduce((sum, d) => sum + d.value, 0);
+                  const percentage = ((item.value / total) * 100).toFixed(0);
+                  return (
+                    <View key={index} style={styles.pieChartRow}>
+                      <View style={[styles.pieChartColor, { backgroundColor: item.color }]} />
+                      <Text style={styles.pieChartLabel}>{item.name}</Text>
+                      <Text style={styles.pieChartValue}>{item.value} ({percentage}%)</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Gráfica de Progreso - Métricas Clave */}
+            <View style={[styles.chartCard, !isMobile && styles.chartCardSmall]}>
+              <View style={styles.chartHeader}>
+                <Ionicons name="stats-chart" size={20} color="#0A66FF" />
+                <Text style={[styles.chartTitle, { fontSize: isMobile ? 15 : 16 }]}>
+                  Métricas Clave
+                </Text>
+              </View>
+              <View style={styles.progressChartContainer}>
+                {progressData.map((item, index) => {
+                  const percentage = item.value * 100;
+                  return (
+                    <View key={index} style={styles.progressChartRow}>
+                      <Text style={styles.progressChartLabel}>{item.label}</Text>
+                      <View style={styles.progressBarContainer}>
+                        <View style={styles.progressBarBackground}>
+                          <View 
+                            style={[
+                              styles.progressBarFill, 
+                              { width: `${percentage}%` as any, backgroundColor: item.color }
+                            ]} 
+                          />
+                        </View>
+                        <Text style={styles.progressBarValue}>{percentage.toFixed(0)}%</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          {/* Tarjetas de Insights */}
+          <View style={styles.insightsContainer}>
+            <Text style={[styles.sectionTitle, { fontSize: isMobile ? 16 : 18, marginBottom: 12 }]}>
+              💡 Insights Rápidos
+            </Text>
+            <View style={[styles.insightsGrid, isMobile && { gap: 10 }]}>
+              <View style={styles.insightCard}>
+                <View style={[styles.insightIcon, { backgroundColor: '#dcfce7' }]}>
+                  <Ionicons name="checkmark-circle" size={isMobile ? 20 : 24} color="#16a34a" />
+                </View>
+                <Text style={[styles.insightValue, isMobile && { fontSize: 24 }]}>84%</Text>
+                <Text style={[styles.insightLabel, isMobile && { fontSize: 11 }]}>Tasa de Disponibilidad</Text>
+              </View>
+              <View style={styles.insightCard}>
+                <View style={[styles.insightIcon, { backgroundColor: '#dbeafe' }]}>
+                  <Ionicons name="people" size={isMobile ? 20 : 24} color="#2563eb" />
+                </View>
+                <Text style={[styles.insightValue, isMobile && { fontSize: 24 }]}>134</Text>
+                <Text style={[styles.insightLabel, isMobile && { fontSize: 11 }]}>Usuarios Activos</Text>
+              </View>
+              <View style={styles.insightCard}>
+                <View style={[styles.insightIcon, { backgroundColor: '#fef3c7' }]}>
+                  <Ionicons name="time" size={isMobile ? 20 : 24} color="#d97706" />
+                </View>
+                <Text style={[styles.insightValue, isMobile && { fontSize: 24 }]}>5.2</Text>
+                <Text style={[styles.insightLabel, isMobile && { fontSize: 11 }]}>Días Promedio</Text>
+              </View>
+              <View style={styles.insightCard}>
+                <View style={[styles.insightIcon, { backgroundColor: '#e0e7ff' }]}>
+                  <Ionicons name="trending-up" size={isMobile ? 20 : 24} color="#6366f1" />
+                </View>
+                <Text style={[styles.insightValue, isMobile && { fontSize: 24 }]}>+15%</Text>
+                <Text style={[styles.insightLabel, isMobile && { fontSize: 11 }]}>Crecimiento Mensual</Text>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
+        </View>
+      </ScrollView>
 
       <Modal visible={activeModal !== null} transparent animationType="none" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
@@ -596,7 +877,51 @@ const AdminDashboard = () => {
           {renderModalContent()}
         </View>
       </Modal>
-    </ScrollView>
+
+      {/* Botón flotante para Escanear QR (RF-6) */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowQrModal(true)}
+        activeOpacity={0.9}
+      >
+        <Ionicons name="qr-code-outline" size={24} color="#fff" />
+        <Text style={styles.fabText}>Escanear QR</Text>
+      </TouchableOpacity>
+
+      {/* Modal mock de cámara QR */}
+      <Modal
+        visible={showQrModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowQrModal(false)}
+      >
+        <View style={styles.qrModalOverlay}>
+          <View style={styles.qrModalContent}>
+            <View style={styles.qrModalHeader}>
+              <Ionicons name="qr-code" size={26} color="#0A2540" />
+              <Text style={styles.qrModalTitle}>Escanear Código QR</Text>
+              <TouchableOpacity onPress={() => setShowQrModal(false)}>
+                <Ionicons name="close" size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.qrMockCamera}>
+              <Ionicons name="scan-outline" size={64} color="#0A66FF" />
+              <Text style={styles.qrMockText}>{`Simulación de cámara\n(implementación real pendiente)`}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonSuccess, styles.qrPrimaryButton]}
+              onPress={() => {
+                Alert.alert('Demo', 'Simulando lectura de QR y actualización de estado');
+                setShowQrModal(false);
+              }}
+            >
+              <Ionicons name="flash" size={18} color="#fff" />
+              <Text style={styles.actionButtonText}>Simular escaneo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
@@ -608,6 +933,46 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0A2540',
     marginBottom: 24,
+    ...Platform.select({
+      web: { fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' },
+    }),
+  },
+  dashboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a3a6b',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'background-color 0.2s ease, transform 0.1s ease',
+        ':hover': {
+          backgroundColor: '#2a4a7b',
+          transform: 'translateY(-1px)',
+        },
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+    }),
+  },
+  downloadButtonText: {
+    color: '#fff',
+    fontWeight: '600',
     ...Platform.select({
       web: { fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' },
     }),
@@ -689,6 +1054,257 @@ const styles = StyleSheet.create({
     }),
   },
   placeholderText: { color: '#6b7280', textAlign: 'center', letterSpacing: 0.2 },
+  chartsSection: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0A2540',
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  chartCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e6edf5',
+    ...Platform.select({
+      web: { boxShadow: '0 10px 30px rgba(10,37,64,0.08)' },
+      default: {
+        shadowColor: '#0A2540',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 5,
+      },
+    }),
+  },
+  chartCardSmall: {
+    flex: 1,
+    marginBottom: 16,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 10,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0A2540',
+  },
+  chartDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  lineChartContainer: {
+    marginTop: 10,
+  },
+  lineChartGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 200,
+    paddingHorizontal: 10,
+  },
+  lineChartColumn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  lineChartBarWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  lineChartBar: {
+    width: '60%',
+    backgroundColor: '#0A66FF',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    minHeight: 20,
+    ...Platform.select({
+      web: {
+        transition: 'height 0.3s ease',
+      },
+    }),
+  },
+  lineChartValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0A2540',
+    marginTop: 4,
+  },
+  lineChartLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+  barChartContainer: {
+    paddingVertical: 10,
+  },
+  barChartRow: {
+    marginBottom: 16,
+  },
+  barChartLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginBottom: 6,
+  },
+  barChartBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  barChartBar: {
+    height: 28,
+    borderRadius: 6,
+    minWidth: 30,
+    ...Platform.select({
+      web: {
+        transition: 'width 0.3s ease',
+      },
+    }),
+  },
+  barChartValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A2540',
+  },
+  pieChartContainer: {
+    paddingVertical: 10,
+  },
+  pieChartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  pieChartColor: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  pieChartLabel: {
+    fontSize: 14,
+    color: '#4b5563',
+    flex: 1,
+    fontWeight: '600',
+  },
+  pieChartValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A2540',
+  },
+  progressChartContainer: {
+    paddingVertical: 10,
+  },
+  progressChartRow: {
+    marginBottom: 16,
+  },
+  progressChartLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4b5563',
+    marginBottom: 6,
+  },
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  progressBarBackground: {
+    flex: 1,
+    height: 24,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 12,
+    ...Platform.select({
+      web: {
+        transition: 'width 0.3s ease',
+      },
+    }),
+  },
+  progressBarValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A2540',
+    minWidth: 45,
+    textAlign: 'right',
+  },
+  chartsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  insightsContainer: {
+    marginTop: 8,
+  },
+  insightsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  insightCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 18,
+    flex: 1,
+    minWidth: 140,
+    maxWidth: '48%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e6edf5',
+    ...Platform.select({
+      web: { boxShadow: '0 8px 20px rgba(10,37,64,0.06)' },
+      default: {
+        shadowColor: '#0A2540',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
+  },
+  insightIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  insightValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#0A2540',
+    marginBottom: 4,
+  },
+  insightLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   modalContent: {
@@ -810,6 +1426,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pillText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  fab: {
+    position: 'absolute',
+    right: 22,
+    bottom: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0A66FF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    gap: 8,
+    ...Platform.select({
+      web: { boxShadow: '0 16px 32px rgba(10,102,255,0.28)', cursor: 'pointer' },
+      default: {
+        shadowColor: '#0A2540',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.2,
+        shadowRadius: 18,
+        elevation: 8,
+      },
+    }),
+  },
+  fabText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -823,7 +1471,66 @@ const styles = StyleSheet.create({
       web: { boxShadow: '0 10px 20px rgba(10,102,255,0.25)' },
     }),
   },
+  actionButtonSuccess: { backgroundColor: '#1E7A39' },
+  actionButtonDanger: { backgroundColor: '#C12C48' },
   actionButtonText: { color: '#fff', fontSize: 13, fontWeight: '700', marginLeft: 6 },
+  qrModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  qrModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 420,
+    gap: 16,
+    ...Platform.select({
+      web: { boxShadow: '0 20px 45px rgba(0,0,0,0.18)' },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+    }),
+  },
+  qrModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  qrModalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0A2540',
+  },
+  qrMockCamera: {
+    height: 200,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#d7e6ff',
+    backgroundColor: '#f3f6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  qrMockText: {
+    textAlign: 'center',
+    color: '#4b5563',
+    lineHeight: 20,
+  },
+  qrPrimaryButton: {
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyText: { fontSize: 16, color: '#888', marginTop: 10 },
 });

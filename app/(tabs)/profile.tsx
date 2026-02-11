@@ -1,12 +1,14 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import {
     Animated,
     Alert,
     Easing,
     Image,
+    KeyboardAvoidingView,
     Platform,
     RefreshControl,
     ScrollView,
@@ -26,8 +28,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface UserProfile {
   nombre: string;
+  apellidos: string;
   email: string;
-  role: string;
+  telefono: string;
+  ubicacion: string;
+  matricula: string;
   avatar?: string;
 }
 
@@ -37,6 +42,7 @@ const ProfileScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [draftProfile, setDraftProfile] = useState<UserProfile | null>(null);
+  const [locating, setLocating] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
@@ -79,8 +85,11 @@ const ProfileScreen = () => {
       // Por ahora usaremos datos simulados para Marlon
       const profile = {
         nombre: 'Marlon',
+        apellidos: 'Gómez',
         email: 'marlon@gmail.com',
-        role: 'usuario',
+        telefono: '+52 55 1234 5678',
+        ubicacion: 'CDMX, México',
+        matricula: 'A01234567',
         avatar: 'https://ui-avatars.com/api/?name=Marlon&background=1a3a6b&color=fff',
       };
       setUserProfile(profile);
@@ -110,6 +119,36 @@ const ProfileScreen = () => {
     Alert.alert('Perfil actualizado', 'Tus datos se han guardado.');
   };
 
+  const handleUpdateLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitamos permiso de ubicación para guardar tu posición.');
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const geo = await Location.reverseGeocodeAsync({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+
+      const first = geo[0];
+      const humanReadable = first
+        ? `${first.street || ''} ${first.streetNumber || ''}, ${first.city || first.subregion || ''}, ${first.region || ''}`.trim()
+        : `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+
+      setDraftProfile(prev => prev ? { ...prev, ubicacion: humanReadable } : prev);
+      Alert.alert('Ubicación actualizada', 'Se registró tu ubicación actual.');
+    } catch (error) {
+      console.error('Location error', error);
+      Alert.alert('Error', 'No pudimos obtener tu ubicación. Intenta de nuevo.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Header onMenuPress={toggleMenu}>
@@ -129,15 +168,22 @@ const ProfileScreen = () => {
         slideAnim={slideAnim}
         fadeAnim={fadeAnim}
       />
-      <ScrollView
-        contentContainerStyle={{
-          alignItems: 'center',
-          paddingBottom: 40,
-        }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
-        <View style={{ width: '100%', maxWidth: contentMaxWidth }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={isMobile ? 80 : 40}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="always"
+          contentContainerStyle={{
+            alignItems: 'center',
+            paddingBottom: 120,
+          }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }>
+          <View style={{ width: '100%', maxWidth: contentMaxWidth }}>
           {/* Header con información del usuario */}
           <View style={[styles.header, { padding: headerPadding }]}>
             <Image
@@ -152,7 +198,9 @@ const ProfileScreen = () => {
                   onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, nombre: text } : prev)}
                 />
               ) : (
-                <Text style={[styles.userName, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}>{userProfile?.nombre}</Text>
+                <Text style={[styles.userName, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}>
+                  {userProfile ? `${userProfile.nombre} ${userProfile.apellidos}` : ''}
+                </Text>
               )}
               {isEditing ? (
                 <TextInput
@@ -183,7 +231,19 @@ const ProfileScreen = () => {
               )}
             </View>
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Email</Text>
+              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Apellidos</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
+                  value={draftProfile?.apellidos}
+                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, apellidos: text } : prev)}
+                />
+              ) : (
+                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.apellidos}</Text>
+              )}
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Correo</Text>
               {isEditing ? (
                 <TextInput
                   style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
@@ -195,38 +255,53 @@ const ProfileScreen = () => {
                 <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.email}</Text>
               )}
             </View>
-          </View>
-
-          {/* Direcciones */}
-          <View style={[styles.section, { paddingHorizontal: sectionPadding }]}>
-            <Text style={[styles.sectionTitle, { fontSize: isMobile ? 18 : 20 }]}>Direcciones</Text>
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Casa</Text>
+              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Teléfono</Text>
               {isEditing ? (
                 <TextInput
                   style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.role || '123 Calle Falsa, Springfield'}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, role: text } : prev)}
+                  value={draftProfile?.telefono}
+                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, telefono: text } : prev)}
+                  keyboardType="phone-pad"
                 />
               ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>123 Calle Falsa, Springfield</Text>
+                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.telefono}</Text>
               )}
             </View>
-          </View>
-
-          {/* Información de Pago */}
-          <View style={[styles.section, { paddingHorizontal: sectionPadding }]}>
-            <Text style={[styles.sectionTitle, { fontSize: isMobile ? 18 : 20 }]}>Información de Pago</Text>
             <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Tarjeta de Crédito</Text>
+              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Ubicación</Text>
               {isEditing ? (
                 <TextInput
                   style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.avatar || '**** **** **** 1234'}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, avatar: text } : prev)}
+                  value={draftProfile?.ubicacion}
+                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, ubicacion: text } : prev)}
                 />
               ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>**** **** **** 1234</Text>
+                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.ubicacion}</Text>
+              )}
+            </View>
+            {isEditing && (
+              <TouchableOpacity
+                style={[styles.locationButton, locating && styles.locationButtonDisabled]}
+                onPress={handleUpdateLocation}
+                disabled={locating}
+              >
+                <Ionicons name="location" size={18} color={Colors.light.secondary} />
+                <Text style={styles.locationButtonText}>
+                  {locating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.infoRow}>
+              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Matrícula escolar</Text>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
+                  value={draftProfile?.matricula}
+                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, matricula: text } : prev)}
+                />
+              ) : (
+                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.matricula}</Text>
               )}
             </View>
           </View>
@@ -254,7 +329,8 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -337,8 +413,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
-    alignItems: 'flex-start',
-    gap: 16,
+    alignItems: 'center',
+    gap: 12,
   },
   infoLabel: {
     color: Colors.light.gray,
@@ -347,11 +423,11 @@ const styles = StyleSheet.create({
   infoValue: {
     color: Colors.light.textDark,
     fontWeight: '600',
-    flex: 2,
+    flex: 1,
     textAlign: 'right',
   },
   infoValueInput: {
-    flex: 2,
+    flex: 1,
     color: Colors.light.textDark,
     fontWeight: '600',
     textAlign: 'right',
@@ -408,6 +484,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
     backgroundColor: Colors.light.backgroundAlt,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: -4,
+    borderRadius: 10,
+    backgroundColor: '#eef4ff',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
+  },
+  locationButtonText: {
+    color: Colors.light.secondary,
+    fontWeight: '700',
+  },
+  locationButtonDisabled: {
+    opacity: 0.7,
   },
 });
 

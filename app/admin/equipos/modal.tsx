@@ -26,6 +26,14 @@ const EquipoModalScreen = () => {
   const [estado, setEstado] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   
+  // Nuevos campos según RF-2
+  const [cantidad, setCantidad] = useState('1');
+  const [ubicacion, setUbicacion] = useState('');
+  const [especificaciones, setEspecificaciones] = useState('');
+  const [numeroSerie, setNumeroSerie] = useState('');
+  const [imagenArchivo, setImagenArchivo] = useState<string | null>(null);
+  const [tipoImagen, setTipoImagen] = useState<'url' | 'archivo'>('url');
+  
   // Estados para los dropdowns
   const [showTipoModal, setShowTipoModal] = useState(false);
   const [showSubcategoriaModal, setShowSubcategoriaModal] = useState(false);
@@ -221,6 +229,12 @@ const EquipoModalScreen = () => {
           
           setEstado(data.estado !== undefined ? data.estado : true);
           setImagen(data.imagen || '');
+          
+          // Cargar nuevos campos RF-2
+          setCantidad(data.cantidad?.toString() || '1');
+          setUbicacion(data.ubicacion || '');
+          setEspecificaciones(data.especificaciones || '');
+          setNumeroSerie(data.numeroSerie || '');
         }
       };
       fetchEquipo();
@@ -232,13 +246,24 @@ const EquipoModalScreen = () => {
       Alert.alert('Error', 'Por favor, completa los campos nombre y tipo.');
       return;
     }
+    
+    // Validar cantidad
+    const cantidadNum = parseInt(cantidad);
+    if (isNaN(cantidadNum) || cantidadNum < 1) {
+      Alert.alert('Error', 'La cantidad debe ser un número mayor a 0.');
+      return;
+    }
 
     const equipoData = {
       nombre,
       tipo,
       subcategoria: subcategoriaList,
       estado,
-      imagen,
+      imagen: imagenArchivo || imagen,
+      cantidad: cantidadNum,
+      ubicacion,
+      especificaciones,
+      numeroSerie,
     };
 
     try {
@@ -416,8 +441,104 @@ const EquipoModalScreen = () => {
             </View>
 
             <View style={styles.formField}>
-              <Text style={styles.label}>URL de la Imagen</Text>
-              <TextInput style={styles.input} value={imagen} onChangeText={setImagen} placeholder="https://ejemplo.com/imagen.jpg" />
+              <Text style={styles.label}>Cantidad (Stock) *</Text>
+              <TextInput 
+                style={styles.input} 
+                value={cantidad} 
+                onChangeText={setCantidad} 
+                placeholder="Ej. 5"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.label}>Ubicación</Text>
+              <TextInput 
+                style={styles.input} 
+                value={ubicacion} 
+                onChangeText={setUbicacion} 
+                placeholder="Ej. Laboratorio 1, Estante B"
+              />
+            </View>
+
+            <View style={styles.formField}>
+              <Text style={styles.label}>Número de Serie / ID Físico</Text>
+              <TextInput 
+                style={styles.input} 
+                value={numeroSerie} 
+                onChangeText={setNumeroSerie} 
+                placeholder="Ej. SN-2024-0001"
+              />
+            </View>
+
+            <View style={[styles.formField, styles.formFieldFull]}>
+              <Text style={styles.label}>Especificaciones Técnicas</Text>
+              <TextInput 
+                style={[styles.input, styles.textArea]} 
+                value={especificaciones} 
+                onChangeText={setEspecificaciones} 
+                placeholder="Ej. Procesador Intel Core i7, 16GB RAM, SSD 512GB..."
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={[styles.formField, styles.formFieldFull]}>
+              <Text style={styles.label}>Imagen del Equipo</Text>
+              
+              {/* Selector de tipo de imagen */}
+              <View style={styles.imageTypeSelector}>
+                <TouchableOpacity 
+                  style={[styles.imageTypeButton, tipoImagen === 'url' && styles.imageTypeButtonActive]}
+                  onPress={() => setTipoImagen('url')}
+                >
+                  <Ionicons name="link" size={18} color={tipoImagen === 'url' ? '#0A66FF' : '#6b7280'} />
+                  <Text style={[styles.imageTypeText, tipoImagen === 'url' && styles.imageTypeTextActive]}>URL</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.imageTypeButton, tipoImagen === 'archivo' && styles.imageTypeButtonActive]}
+                  onPress={() => setTipoImagen('archivo')}
+                >
+                  <Ionicons name="cloud-upload" size={18} color={tipoImagen === 'archivo' ? '#0A66FF' : '#6b7280'} />
+                  <Text style={[styles.imageTypeText, tipoImagen === 'archivo' && styles.imageTypeTextActive]}>Subir Archivo</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {tipoImagen === 'url' ? (
+                <TextInput 
+                  style={styles.input} 
+                  value={imagen} 
+                  onChangeText={setImagen} 
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                />
+              ) : (
+                <TouchableOpacity 
+                  style={styles.uploadButton}
+                  onPress={() => {
+                    // Mock function - En producción usarías expo-image-picker
+                    Alert.alert(
+                      'Seleccionar Imagen',
+                      'Funcionalidad de subida de archivo (Mock)',
+                      [
+                        {
+                          text: 'Simular Imagen',
+                          onPress: () => {
+                            setImagenArchivo('https://via.placeholder.com/300');
+                            Alert.alert('Éxito', 'Imagen cargada correctamente');
+                          }
+                        },
+                        { text: 'Cancelar', style: 'cancel' }
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="cloud-upload-outline" size={24} color="#0A66FF" />
+                  <Text style={styles.uploadButtonText}>
+                    {imagenArchivo ? 'Cambiar imagen' : 'Seleccionar imagen del dispositivo'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.formField}>
@@ -431,12 +552,14 @@ const EquipoModalScreen = () => {
             <View style={[styles.formField, styles.formFieldFull]}>
               <Text style={styles.label}>Previsualización</Text>
               <View style={styles.previewWrapper}>
-                {imagen ? (
-                  <Image source={{ uri: imagen }} style={styles.previewImage} resizeMode="cover" />
+                {(imagen || imagenArchivo) ? (
+                  <Image source={{ uri: imagenArchivo || imagen }} style={styles.previewImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.previewPlaceholder}>
                     <Ionicons name="image" size={40} color="#9aa4b5" />
-                    <Text style={styles.previewPlaceholderText}>Pega una URL para ver la imagen</Text>
+                    <Text style={styles.previewPlaceholderText}>
+                      {tipoImagen === 'url' ? 'Pega una URL para ver la imagen' : 'Sube una imagen para ver la previsualización'}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -731,6 +854,59 @@ const styles = StyleSheet.create({
   previewPlaceholderText: {
     color: '#6b7280',
     fontSize: 14,
+  },
+  textArea: {
+    height: 100,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  imageTypeSelector: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  imageTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#e4e9f2',
+    backgroundColor: '#fff',
+    gap: 8,
+  },
+  imageTypeButtonActive: {
+    borderColor: '#0A66FF',
+    backgroundColor: '#e8f1ff',
+  },
+  imageTypeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  imageTypeTextActive: {
+    color: '#0A66FF',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#d7e6ff',
+    borderStyle: 'dashed',
+    backgroundColor: '#f7f9fc',
+    gap: 10,
+    minHeight: 80,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0A66FF',
   },
   actionsRow: {
     flexDirection: 'row',

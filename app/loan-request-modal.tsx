@@ -162,16 +162,16 @@ const LoanRequestModal = () => {
       );
     } catch (error: any) {
       setIsSubmitting(false);
-      console.error('Error al crear solicitud:', error);
-      
+
+      const message = typeof error?.message === 'string' ? error.message : '';
       // Manejo de errores específicos
-      if (error.message.includes('disponible')) {
+      if (message.includes('disponible')) {
         Alert.alert(
           'Equipo No Disponible',
           'Este equipo ya ha sido reservado por otro usuario. Por favor, selecciona otro equipo.',
           [{ text: 'Entendido', onPress: () => router.back() }]
         );
-      } else if (error.message.includes('límite')) {
+      } else if (message.includes('límite')) {
         Alert.alert(
           '⚠️ Límite alcanzado',
           'Has alcanzado el límite de 3 préstamos activos. Devuelve un equipo antes de solicitar más.',

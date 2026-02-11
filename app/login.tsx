@@ -4,7 +4,6 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
 import { 
   Alert, 
-  Image, 
   StyleSheet, 
   Text, 
   TextInput, 
@@ -166,6 +165,17 @@ const LoginScreen = () => {
             </View>
           </View>
 
+          <View style={styles.forgotContainer}>
+            <TouchableOpacity 
+              onPress={() => router.push('/forgot-password')}
+              disabled={loading}
+            >
+              <Text style={[styles.forgotText, loading && styles.forgotTextDisabled]}>
+                ¿Olvidaste tu contraseña?
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity 
             style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
             onPress={handleLogin}
@@ -179,21 +189,6 @@ const LoginScreen = () => {
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
               </>
             )}
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity 
-            onPress={() => router.push('/register')}
-            style={styles.registerButton}
-          >
-            <Text style={styles.registerText}>
-              ¿No tienes cuenta? <Text style={styles.registerLink}>Regístrate</Text>
-            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -389,6 +384,21 @@ const styles = StyleSheet.create({
     right: 8,
   },
 
+  // Recuperar contraseña
+  forgotContainer: {
+    alignItems: 'flex-end',
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  forgotText: {
+    fontSize: 14,
+    color: Colors.light.secondary,
+    fontWeight: '600',
+  },
+  forgotTextDisabled: {
+    opacity: 0.7,
+  },
+
   // Botón principal
   loginButton: {
     flexDirection: 'row',
@@ -420,35 +430,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 
-  // Divisor
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 32,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e0e0e0',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#888',
-  },
-
-  // Registro
-  registerButton: {
-    alignItems: 'center',
-  },
-  registerText: {
-    fontSize: 15,
-    color: Colors.light.gray,
-  },
-  registerLink: {
-    color: Colors.light.secondary,
-    fontWeight: '600',
-  },
+  
 });
 
 export default LoginScreen;

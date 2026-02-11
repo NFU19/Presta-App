@@ -61,8 +61,12 @@ export const crearSolicitudPrestamo = async (
 
     return docRef.id;
   } catch (error) {
-    console.error('Error al crear solicitud de préstamo:', error);
-    throw error;
+    // Evita log ruidoso en producción, pero conserva el detalle en desarrollo
+    if (__DEV__) {
+      console.warn('Error al crear solicitud de préstamo:', error);
+    }
+    const message = error instanceof Error ? error.message : 'No pudimos crear tu solicitud';
+    throw new Error(message);
   }
 };
 
@@ -245,6 +249,47 @@ export const registrarDevolucionEquipo = async (
 };
 
 /**
+ * Registrar devolución de equipo por ID (flujo usuario desde historial)
+ */
+export const devolverPrestamoUsuario = async (prestamoId: string): Promise<void> => {
+  try {
+    const prestamoRef = doc(db, 'prestamos', prestamoId);
+    const prestamoDoc = await getDoc(prestamoRef);
+
+    if (!prestamoDoc.exists()) {
+      throw new Error('Préstamo no encontrado');
+    }
+
+    const prestamoData = prestamoDoc.data();
+    const estadoActual = prestamoData.estado as EstadoPrestamo;
+
+    if (estadoActual === 'devuelto') {
+      return; // Ya procesado
+    }
+
+    if (!['activo', 'aprobado'].includes(estadoActual)) {
+      throw new Error('El préstamo no está activo');
+    }
+
+    await updateDoc(prestamoRef, {
+      estado: 'devuelto',
+      fechaDevolucionReal: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    if (prestamoData.equipoId) {
+      await updateDoc(doc(db, 'equipos', prestamoData.equipoId), {
+        estado: true,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    console.error('Error al devolver préstamo:', error);
+    throw error instanceof Error ? error : new Error('No pudimos registrar la devolución');
+  }
+};
+
+/**
  * Obtener préstamos de un usuario
  */
 export const obtenerPrestamosUsuario = async (
@@ -277,8 +322,11 @@ export const obtenerPrestamosUsuario = async (
       return dateB - dateA;
     });
   } catch (error) {
-    console.error('Error al obtener préstamos del usuario:', error);
-    throw error;
+    // En móviles un console.error dispara pantalla roja; registramos solo en desarrollo
+    if (__DEV__) {
+      console.warn('Error al obtener préstamos del usuario (fallback a lista vacía):', error);
+    }
+    return [];
   }
 };
 

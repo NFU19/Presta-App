@@ -2,7 +2,7 @@ import { GridProductCard } from '@/components/shared/grid-product-card';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, onSnapshot as onDocSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +21,7 @@ import {
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
 import { db } from '../../firebaseConfig';
+import { auth } from '../../firebaseConfig';
 import { useResponsive } from '@/hooks/use-responsive';
 
 // Define the structure of an Equipo
@@ -35,7 +36,9 @@ interface Equipo {
 
 const CatalogScreen = () => {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -45,7 +48,7 @@ const CatalogScreen = () => {
   const { width, isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
+    const unsubscribeEquipos = onSnapshot(
       collection(db, 'equipos'),
       snapshot => {
         const data = snapshot.docs.map(doc => ({
@@ -62,7 +65,27 @@ const CatalogScreen = () => {
       }
     );
 
-    return () => unsubscribe();
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, 'usuarios', user.uid);
+      const unsubscribeUser = onDocSnapshot(
+        userRef,
+        snap => {
+          const favs = (snap.data()?.favoritos as string[] | undefined) || [];
+          setFavoriteIds(favs);
+          setFavoritesLoaded(true);
+        },
+        () => setFavoritesLoaded(true)
+      );
+
+      return () => {
+        unsubscribeEquipos();
+        unsubscribeUser();
+      };
+    }
+
+    setFavoritesLoaded(true);
+    return () => unsubscribeEquipos();
   }, []);
 
   // Calcular número de columnas basado en el ancho de pantalla
@@ -99,6 +122,31 @@ const CatalogScreen = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
+  const handleToggleFavorite = async (item: Equipo) => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar favoritos.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Ir a login', onPress: () => router.replace('/login') },
+      ]);
+      return;
+    }
+
+    const userRef = doc(db, 'usuarios', user.uid);
+    try {
+      await setDoc(userRef, { favoritos: [] }, { merge: true });
+      const alreadyFav = favoriteIds.includes(item.id);
+      if (alreadyFav) {
+        await updateDoc(userRef, { favoritos: arrayRemove(item.id) });
+      } else {
+        await updateDoc(userRef, { favoritos: arrayUnion(item.id) });
+      }
+    } catch (error) {
+      console.error('Error al actualizar favoritos', error);
+      Alert.alert('Error', 'No pudimos actualizar tus favoritos.');
+    }
+  };
+
   const handleProductPress = (item: Equipo) => {
     router.push({
       pathname: '../product-details' as any,
@@ -112,11 +160,23 @@ const CatalogScreen = () => {
     });
   };
 
-  const displayedEquipos = equipos.filter(equipo =>
-    searchQuery === '' || 
-    equipo.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    equipo.tipo?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalize = (text?: string) =>
+    (text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+  const displayedEquipos = equipos.filter((equipo) => {
+    if (!searchQuery) return true;
+    const q = normalize(searchQuery);
+    return (
+      normalize(equipo.nombre).includes(q) ||
+      normalize(equipo.tipo).includes(q) ||
+      normalize((equipo as any).categoria).includes(q) ||
+      normalize((equipo as any).codigo)?.includes?.(q)
+    );
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,6 +200,14 @@ const CatalogScreen = () => {
             onBlur={() => setIsSearchFocused(false)}
             placeholderTextColor={Colors.light.gray}
             returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            blurOnSubmit={false}
+            inputMode="search"
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              setIsSearchFocused(true);
+            }}
           />
         </View>
       </Header>
@@ -161,7 +229,12 @@ const CatalogScreen = () => {
           key={numColumns} // Importante: forzar re-render cuando cambian las columnas
           data={displayedEquipos}
           renderItem={({ item }) => (
-            <GridProductCard item={item} onPress={() => handleProductPress(item)} />
+            <GridProductCard
+              item={item}
+              onPress={() => handleProductPress(item)}
+              onToggleFavorite={() => handleToggleFavorite(item)}
+              isFavorite={favoriteIds.includes(item.id)}
+            />
           )}
           keyExtractor={(item) => item.id}
           numColumns={numColumns}

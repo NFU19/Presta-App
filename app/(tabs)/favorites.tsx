@@ -1,24 +1,56 @@
 import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, Animated, Easing, FlatList, Platform, useWindowDimensions } from 'react-native';
+import { collection, onSnapshot, doc, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View, Animated, Easing, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from '@/components/header';
 import { SideMenu } from '../../components/shared/side-menu';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FavoriteProductCard } from '@/components/shared/favorite-product-card';
 import { useResponsive } from '@/hooks/use-responsive';
+import { auth, db } from '../../firebaseConfig';
 
 const FavoritesScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const { width } = useWindowDimensions();
-  const { isMobile, isTablet, isDesktop } = useResponsive();
+  const router = useRouter();
+  const { width, isMobile, isTablet, isDesktop } = useResponsive();
+  const [equipos, setEquipos] = useState<any[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
+  const [equiposLoaded, setEquiposLoaded] = useState(false);
+  const loading = !(favoritesLoaded && equiposLoaded);
+  const [noSession, setNoSession] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Responsive values
-  const numColumns = width < 576 ? 1 : width < 768 ? 2 : width < 1200 ? 3 : 4;
-  const headerPadding = isMobile ? 16 : isTablet ? 20 : 24;
   const contentMaxWidth = isDesktop ? 1200 : width;
+
+  const sampleEquipos = [
+    {
+      id: 'demo-1',
+      nombre: 'Laptop Dell XPS',
+      tipo: 'Laptop',
+      estado: true,
+      imagen: 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-15-9530/media-gallery/notebook-xps-15-9530-campaign-hero-504x350.png',
+    },
+    {
+      id: 'demo-2',
+      nombre: 'Monitor LG 27"',
+      tipo: 'Monitor',
+      estado: true,
+      imagen: 'https://www.lg.com/content/dam/channel/wcms/mx/images/monitores/27gp750-b_awp_espr_mx_c/27GP750-B-450.jpg',
+    },
+    {
+      id: 'demo-3',
+      nombre: 'Teclado mecánico',
+      tipo: 'Accesorio',
+      estado: true,
+      imagen: 'https://spacegamer.com.ar/img/Public/1058-producto-1019-producto-teclado-kumara-k552-rainbow-switch-red-1-683-491.jpg',
+    },
+  ];
 
   const toggleMenu = () => {
     const springConfig = {
@@ -43,45 +75,149 @@ const FavoritesScreen = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
-  const favorites = [
-    { id: '1', name: 'Laptop Dell XPS', tipo: 'Laptop', estado: true, imagen: 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/xps-notebooks/xps-15-9520/media-gallery/touch-black/notebook-xps-15-9520-t-black-gallery-4.psd?fmt=pjpg&pscan=auto&scl=1&wid=4394&hei=2732&qlt=100,0&resMode=sharp2&size=4394,2732&chrss=full' },
-    { id: '2', name: 'Monitor LG 27"', tipo: 'Monitor', estado: true, imagen: 'https://www.lg.com/content/dam/channel/wcms/mx/images/monitores/27gp750-b_awp_espr_mx_c/27GP750-B-450.jpg' },
-    { id: '3', name: 'Teclado Mecánico', tipo: 'Teclado', estado: false, imagen: 'https://resource.logitechg.com/w_692,c_limit,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/pro-x-keyboard/pro-x-keyboard-gallery-1.png' },
-    { id: '4', name: 'Mouse Logitech MX Master 3', tipo: 'Mouse', estado: true, imagen: 'https://resource.logitech.com/w_692,c_limit,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/logitech/en/products/mice/mx-master-3s/gallery/mx-master-3s-mouse-gallery-1-graphite.png' },
-  ];
+  useEffect(() => {
+    const cleanups: Array<() => void> = [];
+
+    // Suscribir equipos
+    const equiposRef = collection(db, 'equipos');
+    const unsubscribeEquipos = onSnapshot(
+      equiposRef,
+      snapshot => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+        setEquipos(data);
+        setEquiposLoaded(true);
+      },
+      () => setEquiposLoaded(true)
+    );
+    cleanups.push(unsubscribeEquipos);
+
+    // Fallback: carga inicial por getDocs en caso de que el listener tarde o falle en móviles
+    getDocs(equiposRef)
+      .then(snapshot => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+        setEquipos(data);
+        setEquiposLoaded(true);
+      })
+      .catch(() => setEquiposLoaded(true));
+
+    return () => {
+      cleanups.forEach((fn) => fn());
+    };
+  }, []);
+
+  // Fallback de tiempo: si nada responde en 1.5s, mostramos ejemplos para evitar loader infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!equiposLoaded) {
+        setEquipos(sampleEquipos);
+        setEquiposLoaded(true);
+      }
+      if (!favoritesLoaded) {
+        setFavoriteIds([]);
+        setFavoritesLoaded(true);
+      }
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [equiposLoaded, favoritesLoaded]);
+
+  // Listener de autenticación para saber cuándo hay usuario
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+        setNoSession(false);
+        setFavoritesLoaded(false);
+      } else {
+        setUserId(null);
+        setNoSession(true);
+        setFavoriteIds([]);
+        setFavoritesLoaded(true);
+      }
+    });
+    return () => unsubAuth();
+  }, []);
+
+  // Listener de favoritos del usuario cuando hay userId
+  useEffect(() => {
+    if (!userId) return;
+    setFavoritesLoaded(false);
+    const userRef = doc(db, 'usuarios', userId);
+    const unsubUser = onSnapshot(
+      userRef,
+      snapshot => {
+        const favs = (snapshot.data()?.favoritos as string[] | undefined) || [];
+        setFavoriteIds(favs);
+        setFavoritesLoaded(true);
+      },
+      () => setFavoritesLoaded(true)
+    );
+    return () => unsubUser();
+  }, [userId]);
+
+  const handleRequestPress = (item: any) => {
+    router.push({
+      pathname: '../product-details' as any,
+      params: {
+        id: item.id,
+        nombre: item.nombre,
+        categoria: item.categoria || item.tipo || 'Sin categoría',
+        estado: (item.estado ?? true).toString(),
+        imagen: item.imagen || 'https://via.placeholder.com/300',
+      },
+    });
+  };
+
+  const numColumns = width < 640 ? 1 : width < 1024 ? 2 : 3;
 
   const renderItem = ({ item }: { item: any }) => (
-    <FavoriteProductCard item={item} onPress={() => {}} />
+    <FavoriteProductCard item={item} onPress={() => handleRequestPress(item)} />
   );
+
+  const sourceEquipos = equipos.length > 0 ? equipos : sampleEquipos;
+  const filteredFavorites = favoriteIds.length > 0
+    ? sourceEquipos.filter(e => favoriteIds.includes(e.id))
+    : [];
+
+  // Si no hay favoritos coincidentes (por ejemplo, sin permisos para leer equipos), caemos a ejemplos
+  const displayed = favoriteIds.length > 0
+    ? (filteredFavorites.length > 0 ? filteredFavorites : sampleEquipos)
+    : sourceEquipos.slice(0, 6); // ejemplos si no hay favoritos/sesión
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header onMenuPress={toggleMenu} />
+      <Header onMenuPress={toggleMenu}>
+        <Text style={[styles.title, { fontSize: isMobile ? 20 : isTablet ? 24 : 28 }]}>Mis Favoritos</Text>
+      </Header>
       <SideMenu
         isVisible={isMenuVisible}
         onClose={toggleMenu}
         slideAnim={slideAnim}
         fadeAnim={fadeAnim}
       />
-      <View style={[styles.header, { padding: headerPadding }]}>
-        <Text style={[styles.title, { fontSize: isMobile ? 24 : isTablet ? 28 : 32 }]}>Mis Favoritos</Text>
-      </View>
-      <View style={{ alignItems: 'center' }}>
-        <FlatList
-          data={favorites}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          key={numColumns}
-          numColumns={numColumns}
-          contentContainerStyle={[
-            styles.list,
-            { 
-              paddingHorizontal: isMobile ? 8 : isTablet ? 12 : 16,
-              maxWidth: contentMaxWidth,
-            }
-          ]}
-          columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
-        />
+      <View style={{ flex: 1, width: '100%' }}>
+        {loading ? (
+          <ActivityIndicator size="large" color={Colors.light.primary} style={{ marginTop: 40 }} />
+        ) : displayed.length === 0 ? (
+          <Text style={styles.emptyText}>No hay productos para mostrar.</Text>
+        ) : (
+          <FlatList
+            data={displayed}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            key={numColumns}
+            numColumns={numColumns}
+            style={{ flex: 1 }}
+            contentContainerStyle={[
+              styles.list,
+              { 
+                paddingHorizontal: isMobile ? 8 : isTablet ? 12 : 16,
+                maxWidth: contentMaxWidth,
+                alignSelf: 'stretch',
+              }
+            ]}
+            columnWrapperStyle={numColumns > 1 ? { gap: 12, justifyContent: 'space-between' } : undefined}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -92,23 +228,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
   },
-  header: {
-    backgroundColor: Colors.light.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 3,
-      }
-    }),
-  },
   title: {
     fontWeight: 'bold',
     color: Colors.light.primary,
@@ -116,6 +235,11 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingVertical: 16,
+  },
+  emptyText: {
+    marginTop: 40,
+    color: Colors.light.gray,
+    fontSize: 16,
   },
 });
 

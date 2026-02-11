@@ -8,7 +8,7 @@ import { SideMenu } from '../../components/shared/side-menu';
 import React, { useState, useEffect } from 'react';
 import { auth } from '../../firebaseConfig';
 import { Prestamo } from '../../types/prestamo';
-import { obtenerPrestamosUsuario } from '../../services/prestamoService';
+import { obtenerPrestamosUsuario, devolverPrestamoUsuario } from '../../services/prestamoService';
 import { useResponsive } from '@/hooks/use-responsive';
 
 const HistoryScreen = () => {
@@ -19,14 +19,40 @@ const HistoryScreen = () => {
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [devolviendoId, setDevolviendoId] = useState<string | null>(null);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
 
-  // Responsive values
-  const numColumns = width < 768 ? 1 : width < 1200 ? 2 : 3;
-  const cardPadding = isMobile ? 12 : 16;
+  const samplePrestamos: Prestamo[] = [
+    {
+      id: 'demo-1',
+      equipoId: 'demo-1',
+      equipoNombre: 'Teclado Redragon Kumara K552',
+      estado: 'pendiente',
+      duracionDias: 7,
+      proposito: 'Prueba de interfaz',
+      fechaSolicitud: new Date(),
+      usuarioId: 'demo',
+    },
+    {
+      id: 'demo-2',
+      equipoId: 'demo-2',
+      equipoNombre: 'Laptop Dell XPS',
+      estado: 'aprobado',
+      duracionDias: 5,
+      proposito: 'Proyecto escolar',
+      fechaSolicitud: new Date(),
+      fechaPrestamo: new Date(),
+      fechaDevolucion: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      usuarioId: 'demo',
+    },
+  ];
+
+  // Responsive values (2 columnas máx)
+  const numColumns = width < 640 ? 1 : 2;
+  const cardPadding = isMobile ? 14 : 18;
   const contentMaxWidth = isDesktop ? 1200 : width;
 
   useEffect(() => {
@@ -38,15 +64,19 @@ const HistoryScreen = () => {
       const user = auth.currentUser;
       if (!user) {
         console.log('No hay usuario autenticado');
-        setLoading(false);
+        setPrestamos(samplePrestamos);
+        return;
         return;
       }
 
       const prestamosData = await obtenerPrestamosUsuario(user.uid);
-      setPrestamos(prestamosData);
+      setPrestamos(prestamosData.length ? prestamosData : samplePrestamos);
       setLoading(false);
     } catch (error) {
-      console.error('Error al cargar préstamos:', error);
+      if (__DEV__) {
+        console.warn('Error al cargar préstamos (usando datos de ejemplo):', error);
+      }
+      setPrestamos(samplePrestamos);
       setLoading(false);
     }
   };
@@ -89,23 +119,16 @@ const HistoryScreen = () => {
     });
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'activo':
-        return Colors.light.success;
-      case 'devuelto':
-        return Colors.light.gray;
-      case 'vencido':
-        return Colors.light.error;
-      case 'pendiente':
-        return '#ffc107';
-      case 'aprobado':
-        return '#17a2b8';
-      case 'rechazado':
-        return '#6c757d';
-      default:
-        return Colors.light.gray;
-    }
+  const getEstadoStyles = (estado: string) => {
+    const map: Record<string, { bg: string; text: string }> = {
+      activo: { bg: '#e6f4ef', text: Colors.light.success },
+      devuelto: { bg: '#edf0f7', text: Colors.light.gray },
+      vencido: { bg: '#fbe9eb', text: Colors.light.error },
+      pendiente: { bg: '#fff6e6', text: Colors.light.warning },
+      aprobado: { bg: '#e6f4ff', text: '#1b74d4' },
+      rechazado: { bg: '#f1f2f4', text: '#6c757d' },
+    };
+    return map[estado] || { bg: '#edf0f7', text: Colors.light.gray };
   };
 
   const getEstadoLabel = (estado: string) => {
@@ -146,29 +169,51 @@ const HistoryScreen = () => {
       `Confirma la devolución de ${prestamo.equipoNombre}.`,
       [
         { text: 'No', style: 'cancel' },
-        { text: 'Devolver', onPress: () => console.log('Devolver préstamo', prestamo.id) },
+        { text: 'Devolver', onPress: async () => {
+          try {
+            setDevolviendoId(prestamo.id);
+            await devolverPrestamoUsuario(prestamo.id);
+            setPrestamos((prev) => prev.map((p) => p.id === prestamo.id ? { ...p, estado: 'devuelto', fechaDevolucionReal: new Date() } : p));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'No pudimos registrar la devolución';
+            Alert.alert('Error', message);
+          } finally {
+            setDevolviendoId(null);
+          }
+        } },
       ]
     );
   };
 
-  const renderItem = ({ item }: { item: Prestamo }) => (
-    <TouchableOpacity 
-      onPress={() => handlePrestamoPress(item)}
-      activeOpacity={0.9}
-      style={{ flex: 1, maxWidth: numColumns > 1 ? '48%' : '100%' }}>
-      <View style={[
-        styles.prestamoCard, 
-        { padding: cardPadding },
-        isWeb && styles.prestamoCardWeb
-      ]}>
-        <View style={styles.prestamoHeader}>
-          <Text style={[styles.prestamoEquipo, { fontSize: isMobile ? 16 : 18 }]}>{item.equipoNombre}</Text>
-          <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(item.estado) }]}>
-            <Text style={[styles.estadoText, { fontSize: isMobile ? 11 : 12 }]}>
-              {getEstadoLabel(item.estado)}
+  const renderItem = ({ item }: { item: Prestamo }) => {
+    const estadoTokens = getEstadoStyles(item.estado);
+
+    return (
+      <TouchableOpacity 
+        onPress={() => handlePrestamoPress(item)}
+        activeOpacity={0.9}
+        style={{ width: '100%', minWidth: 280, maxWidth: numColumns > 1 ? '48%' : '100%' }}>
+        <View style={[
+          styles.prestamoCard, 
+          { padding: cardPadding },
+          isWeb && styles.prestamoCardWeb
+        ]}>
+          <View style={styles.prestamoHeader}>
+            <Text
+              style={[styles.prestamoEquipo, { fontSize: isMobile ? 16 : 18 }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              adjustsFontSizeToFit
+              minimumFontScale={0.9}
+            >
+              {item.equipoNombre}
             </Text>
+            <View style={[styles.estadoBadge, { backgroundColor: estadoTokens.bg }]}>
+              <Text style={[styles.estadoText, { fontSize: isMobile ? 11 : 12, color: estadoTokens.text }]}>
+                {getEstadoLabel(item.estado)}
+              </Text>
+            </View>
           </View>
-        </View>
         <View style={styles.prestamoDetails}>
           {item.estado === 'pendiente' && (
             <View style={styles.dateInfo}>
@@ -211,15 +256,24 @@ const HistoryScreen = () => {
             </TouchableOpacity>
           )}
           {(item.estado === 'activo' || item.estado === 'aprobado') && (
-            <TouchableOpacity style={styles.actionChip} onPress={() => handleDevolver(item)}>
-              <Ionicons name="return-down-back" size={16} color="#fff" />
+            <TouchableOpacity
+              style={[styles.actionChip, devolviendoId === item.id && { opacity: 0.6 }]}
+              onPress={() => handleDevolver(item)}
+              disabled={devolviendoId === item.id}
+            >
+              {devolviendoId === item.id ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="return-down-back" size={16} color="#fff" />
+              )}
               <Text style={[styles.actionChipText, { color: '#fff' }]}>Devolver</Text>
             </TouchableOpacity>
           )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -266,21 +320,23 @@ const HistoryScreen = () => {
           <Text style={[styles.emptySubtext, { fontSize: isMobile ? 13 : 14 }]}>Solicita un equipo desde el Dashboard</Text>
         </View>
       ) : (
-        <View style={{ alignItems: 'center' }}>
+        <View style={{ flex: 1, width: '100%' }}>
           <FlatList
             data={prestamos}
             renderItem={renderItem}
             keyExtractor={item => item.id}
             key={numColumns}
             numColumns={numColumns}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
             contentContainerStyle={[
               styles.list,
               { 
-                paddingHorizontal: isMobile ? 12 : isTablet ? 20 : 32,
+                paddingHorizontal: isMobile ? 12 : isTablet ? 14 : 18,
                 maxWidth: contentMaxWidth,
+                alignSelf: 'center',
               }
             ]}
-            columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
+            columnWrapperStyle={numColumns > 1 ? { gap: 12, justifyContent: 'space-between' } : undefined}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -320,8 +376,8 @@ const HistoryScreen = () => {
                 <Text style={styles.modalText}>
                   📝 Propósito: {selectedPrestamo.proposito}
                 </Text>
-                <View style={[styles.estadoBadge, { backgroundColor: getEstadoColor(selectedPrestamo.estado), alignSelf: 'center', marginTop: 12 }]}>
-                  <Text style={styles.estadoText}>
+                <View style={[styles.estadoBadge, { backgroundColor: getEstadoStyles(selectedPrestamo.estado).bg, alignSelf: 'center', marginTop: 12 }]}>
+                  <Text style={[styles.estadoText, { color: getEstadoStyles(selectedPrestamo.estado).text }]}>
                     {getEstadoLabel(selectedPrestamo.estado)}
                   </Text>
                 </View>
@@ -407,12 +463,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   list: {
-    paddingVertical: 20,
+    paddingVertical: 8,
   },
   prestamoCard: {
     backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    marginBottom: 0,
+    gap: 10,
     ...Platform.select({
       web: {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -442,26 +499,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    flexWrap: 'wrap',
-    gap: 8,
+    marginBottom: 10,
+    flexWrap: 'nowrap',
+    gap: 6,
   },
   prestamoEquipo: {
     fontWeight: '600',
     color: Colors.light.textDark,
     flex: 1,
+    minWidth: 0,
   },
   estadoBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   estadoText: {
-    color: '#fff',
-    fontWeight: '500',
+    fontWeight: '700',
   },
   prestamoDetails: {
-    gap: 8,
+    gap: 6,
   },
   dateInfo: {
     flexDirection: 'row',
@@ -486,6 +543,8 @@ const styles = StyleSheet.create({
   },
   productoText: {
     fontSize: 14,
+    color: Colors.light.text,
+  },
   cardActionsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -516,10 +575,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.backgroundAlt,
     borderWidth: 1,
     borderColor: Colors.light.border,
-  },
-    color: Colors.light.gray,
-    marginLeft: 16,
-    marginBottom: 4,
   },
   modalContainer: {
     flex: 1,

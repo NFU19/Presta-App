@@ -28,7 +28,7 @@ const AdminLayout = () => {
     }
   };
 
-  const navigateTo = (path: '/admin' | '/admin/equipos' | '/admin/prestamos') => {
+  const navigateTo = (path: '/admin' | '/admin/equipos' | '/admin/prestamos' | '/admin/usuarios' | '/admin/historial') => {
     router.replace(path);
     if (isMobile || isTablet) {
       setIsMenuOpen(false);
@@ -57,6 +57,14 @@ const AdminLayout = () => {
         <TouchableOpacity style={styles.sidebarLink} onPress={() => navigateTo('/admin/prestamos')}>
           <Ionicons name="cube" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.sidebarLinkText}>Gestión de Préstamos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sidebarLink} onPress={() => navigateTo('/admin/usuarios')}>
+          <Ionicons name="people" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.sidebarLinkText}>Gestión de Usuarios</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sidebarLink} onPress={() => navigateTo('/admin/historial')}>
+          <Ionicons name="time" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.sidebarLinkText}>Historial</Text>
         </TouchableOpacity>
       </ScrollView>
       <TouchableOpacity style={[styles.sidebarLink, styles.logoutButton]} onPress={handleLogout}>

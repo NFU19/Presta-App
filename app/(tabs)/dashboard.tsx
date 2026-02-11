@@ -145,12 +145,24 @@ const DashboardScreen = () => {
     });
   };
 
-  // Filtrar productos por búsqueda
-  const displayedEquipos = equipos.filter(equipo =>
-    searchQuery === '' || 
-    equipo.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    equipo.tipo?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtrar productos por búsqueda (sin acentos)
+  const normalize = (text?: string) =>
+    (text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+  const displayedEquipos = equipos.filter((equipo) => {
+    if (!searchQuery) return true;
+    const q = normalize(searchQuery);
+    return (
+      normalize(equipo.nombre).includes(q) ||
+      normalize(equipo.tipo).includes(q) ||
+      normalize((equipo as any).categoria).includes(q) ||
+      normalize((equipo as any).codigo)?.includes?.(q)
+    );
+  });
 
   if (loading) {
     return (
@@ -183,6 +195,15 @@ const DashboardScreen = () => {
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
             placeholderTextColor={Colors.light.gray}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            blurOnSubmit={false}
+            inputMode="search"
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              setIsSearchFocused(true);
+            }}
           />
         </View>
       </Header>
@@ -199,8 +220,8 @@ const DashboardScreen = () => {
       <ScrollView 
         style={styles.mainContent} 
         showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        keyboardShouldPersistTaps="always"
         contentContainerStyle={{
           paddingBottom: isMobile ? 20 : 30,
         }}

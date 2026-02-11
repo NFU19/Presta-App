@@ -3,12 +3,12 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
-  Platform,
 } from 'react-native';
 
 // Interfaces
@@ -21,61 +21,93 @@ interface Equipo {
 }
 
 // Componente de Tarjeta de Producto para Grilla
-export const GridProductCard = ({ item, onPress }: { item: Equipo; onPress: () => void }) => {
+export const GridProductCard = ({ item, onPress, onToggleFavorite, isFavorite }: { item: Equipo; onPress: () => void; onToggleFavorite?: () => void; isFavorite?: boolean; }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
+  const cardHeight = isMobile ? 230 : isTablet ? 250 : 260;
+  const imageBlock = isMobile ? 120 : isTablet ? 140 : 150;
   
   return (
     <TouchableOpacity 
       style={[
         styles.productCard,
         {
-          height: isMobile ? 260 : isTablet ? 280 : 300,
+          height: cardHeight,
           margin: isMobile ? 6 : 8,
         }
       ]} 
       onPress={onPress}
     >
       <View style={styles.cardContent}>
-        <View style={[
-          styles.imageContainer,
-          { height: isMobile ? 140 : isTablet ? 160 : 180 }
-        ]}>
+        <View
+          style={[
+            styles.imageContainer,
+            {
+              height: imageBlock,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: Colors.light.border,
+            },
+          ]}
+        >
           <Image
             source={{ uri: item.imagen || 'https://via.placeholder.com/150' }}
             style={styles.productImage}
           />
+          {onToggleFavorite && (
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={18} color={Colors.light.error} />
+            </TouchableOpacity>
+          )}
         </View>
         <View style={[styles.productInfo, { padding: isMobile ? 10 : 12 }]}>
-          <Text 
+          <Text
             style={[
               styles.productName,
-              { fontSize: isMobile ? 14 : 16 }
-            ]} 
-            numberOfLines={1}
+              {
+                fontSize: isMobile ? 14 : 16,
+                lineHeight: isMobile ? 18 : 20,
+              },
+            ]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            adjustsFontSizeToFit
+            minimumFontScale={0.9}
           >
             {item.nombre}
           </Text>
-          <Text 
+          <Text
             style={[
               styles.productType,
               { fontSize: isMobile ? 12 : 13 }
             ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {item.tipo || 'Sin tipo'}
           </Text>
           <View style={[
             styles.statusBadge, 
             { 
-              backgroundColor: item.estado ? Colors.light.success : Colors.light.error,
+              backgroundColor: item.estado ? '#e6f4ef' : '#fbe9eb',
               paddingVertical: isMobile ? 4 : 6,
               paddingHorizontal: isMobile ? 8 : 10,
             }
           ]}>
             <Text style={[
               styles.statusText,
-              { fontSize: isMobile ? 11 : 12 }
+              {
+                fontSize: isMobile ? 11 : 12,
+                color: item.estado ? Colors.light.success : Colors.light.error,
+              }
             ]}>
               {item.estado ? 'Disponible' : 'No disponible'}
             </Text>
@@ -105,25 +137,29 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
     flexDirection: 'column',
+    overflow: 'hidden',
   },
   imageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
+    padding: 10,
+    position: 'relative',
   },
   productImage: {
-    width: '90%',
-    height: '90%',
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
   productInfo: {
     flex: 1,
     justifyContent: 'space-between',
+    gap: 6,
   },
   productName: {
     fontWeight: '600',
     color: Colors.light.textDark,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   productType: {
     fontSize: 14,
@@ -137,8 +173,20 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   statusText: {
-    color: Colors.light.background,
     fontSize: 12,
     fontWeight: '500',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
 });

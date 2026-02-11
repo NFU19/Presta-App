@@ -3,6 +3,8 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { auth, db } from '../firebaseConfig';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import {
     Image,
     Modal,
@@ -13,6 +15,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Alert,
     useWindowDimensions
 } from 'react-native';
 import { useResponsive } from '@/hooks/use-responsive';
@@ -50,8 +53,45 @@ const ProductDetailsScreen = () => {
     });
   };
 
-  const handleAddToFavorites = () => {
-    setIsFavorite(!isFavorite);
+  const syncFavoriteState = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const userRef = doc(db, 'usuarios', user.uid);
+    const snapshot = await getDoc(userRef);
+    const favs = (snapshot.data()?.favoritos as string[] | undefined) || [];
+    setIsFavorite(favs.includes(product.id));
+  };
+
+  React.useEffect(() => {
+    syncFavoriteState();
+  }, [product.id]);
+
+  const handleAddToFavorites = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar favoritos.', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Ir a login', onPress: () => router.replace('/login') },
+      ]);
+      return;
+    }
+
+    const userRef = doc(db, 'usuarios', user.uid);
+    try {
+      // Asegurar que exista el documento
+      await setDoc(userRef, { favoritos: [] }, { merge: true });
+
+      if (isFavorite) {
+        await updateDoc(userRef, { favoritos: arrayRemove(product.id) });
+        setIsFavorite(false);
+      } else {
+        await updateDoc(userRef, { favoritos: arrayUnion(product.id) });
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error('Error al actualizar favoritos', error);
+      Alert.alert('Error', 'No pudimos actualizar tus favoritos.');
+    }
   };
 
   const handleViewHistory = () => {

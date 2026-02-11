@@ -36,7 +36,7 @@ export const Header = ({ onMenuPress, showBackButton, onBackPress, children }: H
           color={Colors.light.primary} 
         />
       </TouchableOpacity>
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.content, { marginLeft: isMobile ? 12 : 16 }]}>{children}</View>
     </View>
   );
 };
