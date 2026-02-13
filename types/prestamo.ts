@@ -22,7 +22,7 @@ export interface Prestamo {
   proposito: string;
   
   // Estados
-  estado: EstadoPrestamo;
+  Estado: EstadoPrestamo;
   
   // QR
   codigoQR?: string;
@@ -39,7 +39,7 @@ export interface Prestamo {
 
 export type EstadoPrestamo = 
   | 'pendiente'      // Usuario solicitó, esperando aprobación admin
-  | 'aprobado'       // Admin aprobó, esperando QR de entrega
+  | 'aceptado'       // Admin aprobó, esperando QR de entrega
   | 'activo'         // Equipo prestado (QR escaneado en entrega)
   | 'devuelto'       // Equipo devuelto (QR escaneado en devolución)
   | 'vencido'        // Fecha de devolución pasada y no devuelto

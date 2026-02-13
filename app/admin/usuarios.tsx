@@ -44,33 +44,22 @@ const UsuariosAdminScreen = () => {
   const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, 'usuarios'), 
-      (snapshot) => {
-        const usuariosData: Usuario[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          nombre: doc.data().nombre || '',
-          apellido: doc.data().apellido || '',
-          telefono: doc.data().telefono || '',
-          correo: doc.data().correo || '',
-          matricula: doc.data().matricula || '',
-          rol: doc.data().rol || 'Estudiante', // RF-1
-          activo: doc.data().activo !== undefined ? doc.data().activo : true,
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-        }));
-        setUsuarios(usuariosData);
-        setLoading(false);
-      }, 
-      (error) => {
-        console.error("Error fetching usuarios: ", error);
-        Alert.alert("Error", "No se pudieron cargar los usuarios.");
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+    fetchUsuarios();
   }, []);
+
+  const fetchUsuarios = () => {
+    fetch('http://217.182.64.251:8002/usuarios')
+      .then(response => response.json())
+      .then(data => {
+        setUsuarios(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        Alert.alert('Error', 'No se pudieron cargar los usuarios.');
+        console.error("Error fetching users: ", error);
+        setLoading(false);
+      });
+  };
 
   const handleAdd = () => {
     setEditingUser(null);
@@ -231,7 +220,7 @@ const UsuariosAdminScreen = () => {
       <View style={styles.userCardHeader}>
         <View style={styles.userAvatar}>
           <Text style={styles.userAvatarText}>
-            {user.nombre.charAt(0)}{user.apellido.charAt(0)}
+            {user.email.charAt(0)}
           </Text>
         </View>
         <View style={styles.userCardInfo}>
