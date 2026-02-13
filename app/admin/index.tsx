@@ -145,27 +145,73 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://217.182.64.251:8002/prestamos")
-      .then((response) => {
-        console.log("Response status:", response.status);
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Data recibida:", data);
+    // Hacer todas las peticiones en paralelo
+    Promise.all([
+      fetch("http://217.182.64.251:8002/prestamos").then((res) => res.json()),
+      fetch("http://217.182.64.251:8002/usuarios").then((res) => res.json()),
+      fetch("http://217.182.64.251:8002/articulos").then((res) => res.json()),
+    ])
+      .then(([prestamosData, usuariosData, articulosData]) => {
+        console.log("Préstamos recibidos:", prestamosData);
+        console.log("Usuarios recibidos:", usuariosData);
+        console.log("Artículos recibidos:", articulosData);
 
-        // La API devuelve un array directo de préstamos
-        if (Array.isArray(data)) {
-          // Mapear los datos de la API a nuestro formato
-          const prestamosMapeados = data.map((p: any) => ({
-            id: p.ID?.toString() || "",
-            equipoNombre: `Equipo #${p["ID Articulo"] || "?"}`,
-            usuarioNombre: `Usuario #${p["ID Usuario"] || "?"}`,
-            estado: (p.Estado || "").toLowerCase(),
-            fechaSolicitud: p["Fecha Solicitud"] || null,
-            fechaAprobacion: p["Fecha Inicio"] || null,
-            fechaDevolucionEsperada: p["Fecha Fin"] || null,
-            proposito: p.Proposito || p.Nota || "",
-          }));
+        // Crear mapas para búsqueda rápida
+        const usuariosMap = new Map();
+        const articulosMap = new Map();
+
+        // Mapear usuarios
+        if (Array.isArray(usuariosData)) {
+          usuariosData.forEach((u: any) => {
+            usuariosMap.set(u.ID, {
+              id: u.ID?.toString() || "",
+              nombre: u.Nombre || `Usuario #${u.ID}`,
+              email: u.Email || "",
+              telefono: u.Telefono || "",
+              carrera: u.Carrera || "",
+              matricula: u.Matricula || "",
+              activo: u.Activo !== false,
+              fechaRegistro: u["Fecha Registro"] || null,
+            });
+          });
+
+          setUsuarios(Array.from(usuariosMap.values()));
+        }
+
+        // Mapear artículos/equipos
+        if (Array.isArray(articulosData)) {
+          articulosData.forEach((a: any) => {
+            articulosMap.set(a.ID, {
+              id: a.ID?.toString() || "",
+              nombre: a.Nombre || `Artículo #${a.ID}`,
+              categoria: a.Categoria || "",
+              tipo: a.Tipo || "",
+              estado: a.Disponible !== false,
+            });
+          });
+
+          setEquipos(Array.from(articulosMap.values()));
+        }
+
+        // Mapear préstamos con nombres reales
+        if (Array.isArray(prestamosData)) {
+          const prestamosMapeados = prestamosData.map((p: any) => {
+            const usuario = usuariosMap.get(p["ID Usuario"]);
+            const articulo = articulosMap.get(p["ID Articulo"]);
+
+            return {
+              id: p.ID?.toString() || "",
+              equipoNombre:
+                articulo?.nombre || `Equipo #${p["ID Articulo"] || "?"}`,
+              usuarioNombre:
+                usuario?.nombre || `Usuario #${p["ID Usuario"] || "?"}`,
+              estado: (p.Estado || "").toLowerCase(),
+              fechaSolicitud: p["Fecha Solicitud"] || null,
+              fechaAprobacion: p["Fecha Inicio"] || null,
+              fechaDevolucionEsperada: p["Fecha Fin"] || null,
+              proposito: p.Proposito || p.Nota || "",
+            };
+          });
 
           console.log("Préstamos mapeados:", prestamosMapeados);
 
@@ -177,21 +223,8 @@ const AdminDashboard = () => {
               p.estado === "pendiente",
           );
 
-          // Filtrar préstamos de hoy (todos en este caso)
-          const hoy = prestamosMapeados;
-
           setPrestamosActivos(activos);
-          setPrestamosHoy(hoy);
-
-          // Por ahora, datos mock para equipos y usuarios
-          setEquipos([]);
-          setUsuarios([]);
-        } else {
-          // Formato anterior (por si cambia la API)
-          setPrestamosActivos(data.prestamosActivos || []);
-          setEquipos(data.equipos || []);
-          setUsuarios(data.usuarios || []);
-          setPrestamosHoy(data.prestamosHoy || []);
+          setPrestamosHoy(prestamosMapeados);
         }
 
         setLoading(false);

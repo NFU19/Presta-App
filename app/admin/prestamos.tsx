@@ -34,9 +34,17 @@ const PrestamosAdminScreen = () => {
   const [actionType, setActionType] = useState<'aprobar' | 'rechazar'>('aprobar');
   const [processing, setProcessing] = useState(false);
   const { isMobile, isTablet } = useResponsive();
+  const [usuarios, setUsuarios] = useState<any[]>([]); // Para mostrar nombre/email en lugar de ID
+  const [articulos, setArticulos] = useState<any[]>([]); // Para mostrar nombre/email en lugar de ID
 
   useEffect(() => {
-  fetch('http://217.182.64.251:8002/prestamos')
+    fetchPrestamos();
+    fetchUsuarios();
+    fetchArticulos();
+  }, []);
+
+  const fetchPrestamos = () => {
+    fetch('http://217.182.64.251:8002/prestamos')
     .then(response => response.json())
     .then(data => {
       console.log("API RESPONSE:", data);
@@ -57,8 +65,55 @@ const PrestamosAdminScreen = () => {
       setSolicitudes([]); // evita undefined
       setLoading(false);
     });
-}, []);
+  }
 
+  const fetchUsuarios = () => {
+    fetch('http://217.182.64.251:8002/usuarios')
+      .then(response => response.json())
+      .then(data => {
+        console.log("API RESPONSE:", data);
+
+        // Asegura que siempre sea array
+        if (Array.isArray(data)) {
+          setUsuarios(data);
+        } else if (Array.isArray(data.usuarios)) {
+          setUsuarios(data.usuarios);
+        } else {
+          setUsuarios([]);
+        }
+
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error al cargar usuarios:', error);
+        setUsuarios([]); // evita undefined
+        setLoading(false);
+      });
+  }
+
+  const fetchArticulos = () => {
+    fetch('http://217.182.64.251:8002/articulos')
+      .then(response => response.json())
+      .then(data => {
+        console.log("API RESPONSE:", data);
+
+        // Asegura que siempre sea array
+        if (Array.isArray(data)) {
+          setArticulos(data);
+        } else if (Array.isArray(data.Articulos)) {
+          setArticulos(data.Articulos);
+        } else {
+          setArticulos([]);
+        }
+
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error al cargar Articulos:', error);
+        setArticulos([]); // evita undefined
+        setLoading(false);
+      });
+  }
 
   const handleAprobar = (solicitud: Prestamo) => {
     setSelectedSolicitud(solicitud);
