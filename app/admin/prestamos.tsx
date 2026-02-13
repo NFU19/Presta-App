@@ -36,44 +36,29 @@ const PrestamosAdminScreen = () => {
   const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'prestamos'),
-      where('estado', 'in', ['pendiente', 'aprobado', 'activo'])
-    );
+  fetch('http://217.182.64.251:8002/prestamos')
+    .then(response => response.json())
+    .then(data => {
+      console.log("API RESPONSE:", data);
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const prestamosData: Prestamo[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          fechaSolicitud: doc.data().fechaSolicitud?.toDate(),
-          fechaAprobacion: doc.data().fechaAprobacion?.toDate(),
-          fechaPrestamo: doc.data().fechaPrestamo?.toDate(),
-          fechaDevolucion: doc.data().fechaDevolucion?.toDate(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-        })) as Prestamo[];
-        
-        // Ordenar por fecha de solicitud (más reciente primero)
-        const sorted = prestamosData.sort((a, b) => {
-          const dateA = a.fechaSolicitud?.getTime() || 0;
-          const dateB = b.fechaSolicitud?.getTime() || 0;
-          return dateB - dateA;
-        });
-        
-        setSolicitudes(sorted);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error fetching solicitudes: ', error);
-        Alert.alert('Error', 'No se pudieron cargar las solicitudes.');
-        setLoading(false);
+      // Asegura que siempre sea array
+      if (Array.isArray(data)) {
+        setSolicitudes(data);
+      } else if (Array.isArray(data.prestamos)) {
+        setSolicitudes(data.prestamos);
+      } else {
+        setSolicitudes([]);
       }
-    );
 
-    return () => unsubscribe();
-  }, []);
+      setLoading(false);
+    })
+    .catch(error => {
+      console.error('Error al cargar solicitudes:', error);
+      setSolicitudes([]); // evita undefined
+      setLoading(false);
+    });
+}, []);
+
 
   const handleAprobar = (solicitud: Prestamo) => {
     setSelectedSolicitud(solicitud);
@@ -239,7 +224,9 @@ const PrestamosAdminScreen = () => {
         <View>
           <Text style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}>Gestión de Préstamos</Text>
           <Text style={[styles.subtitle, (isMobile || isTablet) && styles.subtitleMobile]}>
-            {solicitudes.filter(s => s.estado === 'pendiente').length} solicitudes pendientes
+            {Array.isArray(solicitudes)
+              ? solicitudes.filter(s => s.estado === 'pendiente').length.toString()
+              : '0'} solicitudes pendientes
           </Text>
         </View>
       </View>
