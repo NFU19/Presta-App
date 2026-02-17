@@ -220,12 +220,12 @@ const UsuariosAdminScreen = () => {
       <View style={styles.userCardHeader}>
         <View style={styles.userAvatar}>
           <Text style={styles.userAvatarText}>
-            {user.email.charAt(0)}
+            {user.Email.charAt(0)}
           </Text>
         </View>
         <View style={styles.userCardInfo}>
           <Text style={styles.userCardName}>{user.nombre} {user.apellido}</Text>
-          <Text style={styles.userCardEmail}>{user.correo}</Text>
+          <Text style={styles.userCardEmail}>{user.Email}</Text>
         </View>
         <StatusBadge active={user.activo} />
       </View>
@@ -234,18 +234,18 @@ const UsuariosAdminScreen = () => {
         <View style={styles.userCardRow}>
           <Ionicons name="call-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Teléfono:</Text>
-          <Text style={styles.userCardValue}>{user.telefono}</Text>
+          <Text style={styles.userCardValue}>{user.Telefono}</Text>
         </View>
         <View style={styles.userCardRow}>
           <Ionicons name="school-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Matrícula:</Text>
-          <Text style={styles.userCardValue}>{user.matricula}</Text>
+          <Text style={styles.userCardValue}>{user.Matricula}</Text>
         </View>
         <View style={styles.userCardRow}>
           <Ionicons name="shield-checkmark-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Rol:</Text>
           <View style={styles.rolBadge}>
-            <Text style={styles.rolBadgeText}>{user.rol || 'Sin asignar'}</Text>
+            <Text style={styles.rolBadgeText}>{user.Rol || 'Sin asignar'}</Text>
           </View>
         </View>
       </View>

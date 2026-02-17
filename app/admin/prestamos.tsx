@@ -237,11 +237,7 @@ const PrestamosAdminScreen = () => {
               size={18}
               color={Colors.light.gray}
             />
-            <Text style={styles.infoText}>{solicitud.usuarioNombre}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={18} color={Colors.light.gray} />
-            <Text style={styles.infoText}>{solicitud.usuarioEmail}</Text>
+            <Text style={styles.infoText}>{solicitud.Email_Usuario}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons
@@ -250,7 +246,7 @@ const PrestamosAdminScreen = () => {
               color={Colors.light.secondary}
             />
             <Text style={[styles.infoText, styles.equipoText]}>
-              {solicitud.equipoNombre}
+              {solicitud.Articulo_Nombre}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -267,7 +263,7 @@ const PrestamosAdminScreen = () => {
               size={18}
               color={Colors.light.gray}
             />
-            <Text style={styles.infoText}>{solicitud.proposito}</Text>
+            <Text style={styles.infoText}>{solicitud.Proposito}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={18} color={Colors.light.gray} />
