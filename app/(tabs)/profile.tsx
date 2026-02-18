@@ -1,11 +1,13 @@
-import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { usePathname, useRouter } from 'expo-router';
-import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { Header } from "@/components/header";
+import { Colors } from "@/constants/theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import { usePathname, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    Animated,
     Alert,
+    Animated,
     Easing,
     Image,
     KeyboardAvoidingView,
@@ -18,13 +20,11 @@ import {
     TouchableOpacity,
     View,
     useWindowDimensions,
-} from 'react-native';
-import { Header } from '@/components/header';
-import { SideMenu } from '../../components/shared/side-menu';
-import { auth } from '../../firebaseConfig';
-import { useResponsive } from '@/hooks/use-responsive';
+} from "react-native";
+import { SideMenu } from "../../components/shared/side-menu";
+import { auth } from "../../firebaseConfig";
 
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface UserProfile {
   nombre: string;
@@ -74,7 +74,7 @@ const ProfileScreen = () => {
         duration: 500,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
-      })
+      }),
     ]).start();
     setIsMenuVisible(!isMenuVisible);
   };
@@ -84,13 +84,14 @@ const ProfileScreen = () => {
     if (user) {
       // Por ahora usaremos datos simulados para Marlon
       const profile = {
-        nombre: 'Marlon',
-        apellidos: 'Gómez',
-        email: 'marlon@gmail.com',
-        telefono: '+52 55 1234 5678',
-        ubicacion: 'CDMX, México',
-        matricula: 'A01234567',
-        avatar: 'https://ui-avatars.com/api/?name=Marlon&background=1a3a6b&color=fff',
+        nombre: "Marlon",
+        apellidos: "Gómez",
+        email: "marlon@gmail.com",
+        telefono: "+52 55 1234 5678",
+        ubicacion: "CDMX, México",
+        matricula: "A01234567",
+        avatar:
+          "https://ui-avatars.com/api/?name=Marlon&background=1a3a6b&color=fff",
       };
       setUserProfile(profile);
       setDraftProfile(profile);
@@ -109,26 +110,31 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     auth.signOut();
-    router.replace('/login');
+    router.replace("/login");
   };
 
   const handleSaveProfile = () => {
     if (!draftProfile) return;
     setUserProfile(draftProfile);
     setIsEditing(false);
-    Alert.alert('Perfil actualizado', 'Tus datos se han guardado.');
+    Alert.alert("Perfil actualizado", "Tus datos se han guardado.");
   };
 
   const handleUpdateLocation = async () => {
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitamos permiso de ubicación para guardar tu posición.');
+      if (status !== "granted") {
+        Alert.alert(
+          "Permiso denegado",
+          "Necesitamos permiso de ubicación para guardar tu posición.",
+        );
         return;
       }
 
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       const geo = await Location.reverseGeocodeAsync({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -136,14 +142,19 @@ const ProfileScreen = () => {
 
       const first = geo[0];
       const humanReadable = first
-        ? `${first.street || ''} ${first.streetNumber || ''}, ${first.city || first.subregion || ''}, ${first.region || ''}`.trim()
+        ? `${first.street || ""} ${first.streetNumber || ""}, ${first.city || first.subregion || ""}, ${first.region || ""}`.trim()
         : `${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
 
-      setDraftProfile(prev => prev ? { ...prev, ubicacion: humanReadable } : prev);
-      Alert.alert('Ubicación actualizada', 'Se registró tu ubicación actual.');
+      setDraftProfile((prev) =>
+        prev ? { ...prev, ubicacion: humanReadable } : prev,
+      );
+      Alert.alert("Ubicación actualizada", "Se registró tu ubicación actual.");
     } catch (error) {
-      console.error('Location error', error);
-      Alert.alert('Error', 'No pudimos obtener tu ubicación. Intenta de nuevo.');
+      console.error("Location error", error);
+      Alert.alert(
+        "Error",
+        "No pudimos obtener tu ubicación. Intenta de nuevo.",
+      );
     } finally {
       setLocating(false);
     }
@@ -155,10 +166,17 @@ const ProfileScreen = () => {
         <View style={styles.headerRow}>
           <Text style={styles.screenTitle}>Mi Perfil</Text>
           <TouchableOpacity
-            style={[styles.iconButton, isEditing && { backgroundColor: Colors.light.primary }]}
+            style={[
+              styles.iconButton,
+              isEditing && { backgroundColor: Colors.light.primary },
+            ]}
             onPress={() => setIsEditing(!isEditing)}
           >
-            <Ionicons name={isEditing ? 'close' : 'pencil'} size={20} color={isEditing ? '#fff' : Colors.light.primary} />
+            <Ionicons
+              name={isEditing ? "close" : "pencil"}
+              size={20}
+              color={isEditing ? "#fff" : Colors.light.primary}
+            />
           </TouchableOpacity>
         </View>
       </Header>
@@ -170,165 +188,336 @@ const ProfileScreen = () => {
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={isMobile ? 80 : 40}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentInsetAdjustmentBehavior="always"
           contentContainerStyle={{
-            alignItems: 'center',
+            alignItems: "center",
             paddingBottom: 120,
           }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
-          <View style={{ width: '100%', maxWidth: contentMaxWidth }}>
-          {/* Header con información del usuario */}
-          <View style={[styles.header, { padding: headerPadding }]}>
-            <Image
-              source={{ uri: userProfile?.avatar }}
-              style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-            />
-            <View style={styles.userInfo}>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.userName, styles.inputInline, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}
-                  value={draftProfile?.nombre}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, nombre: text } : prev)}
-                />
-              ) : (
-                <Text style={[styles.userName, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}>
-                  {userProfile ? `${userProfile.nombre} ${userProfile.apellidos}` : ''}
-                </Text>
-              )}
-              {isEditing ? (
-                <TextInput
-                  style={[styles.userEmail, styles.inputInline, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.email}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, email: text } : prev)}
-                  keyboardType="email-address"
-                />
-              ) : (
-                <Text style={[styles.userEmail, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.email}</Text>
-              )}
+          }
+        >
+          <View style={{ width: "100%", maxWidth: contentMaxWidth }}>
+            {/* Header con información del usuario */}
+            <View style={[styles.header, { padding: headerPadding }]}>
+              <Image
+                source={{ uri: userProfile?.avatar }}
+                style={[
+                  styles.avatar,
+                  {
+                    width: avatarSize,
+                    height: avatarSize,
+                    borderRadius: avatarSize / 2,
+                  },
+                ]}
+              />
+              <View style={styles.userInfo}>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.userName,
+                      styles.inputInline,
+                      { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
+                    ]}
+                    value={draftProfile?.nombre}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, nombre: text } : prev,
+                      )
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.userName,
+                      { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
+                    ]}
+                  >
+                    {userProfile
+                      ? `${userProfile.nombre} ${userProfile.apellidos}`
+                      : ""}
+                  </Text>
+                )}
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.userEmail,
+                      styles.inputInline,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.email}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, email: text } : prev,
+                      )
+                    }
+                    keyboardType="email-address"
+                  />
+                ) : (
+                  <Text
+                    style={[styles.userEmail, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.email}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
 
-          {/* Información Personal */}
-          <View style={[styles.section, { paddingHorizontal: sectionPadding }]}>
-            <Text style={[styles.sectionTitle, { fontSize: isMobile ? 18 : 20 }]}>Información Personal</Text>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Nombre</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.nombre}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, nombre: text } : prev)}
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.nombre}</Text>
-              )}
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Apellidos</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.apellidos}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, apellidos: text } : prev)}
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.apellidos}</Text>
-              )}
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Correo</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.email}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, email: text } : prev)}
-                  keyboardType="email-address"
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.email}</Text>
-              )}
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Teléfono</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.telefono}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, telefono: text } : prev)}
-                  keyboardType="phone-pad"
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.telefono}</Text>
-              )}
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Ubicación</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.ubicacion}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, ubicacion: text } : prev)}
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.ubicacion}</Text>
-              )}
-            </View>
-            {isEditing && (
-              <TouchableOpacity
-                style={[styles.locationButton, locating && styles.locationButtonDisabled]}
-                onPress={handleUpdateLocation}
-                disabled={locating}
+            {/* Información Personal */}
+            <View
+              style={[styles.section, { paddingHorizontal: sectionPadding }]}
+            >
+              <Text
+                style={[styles.sectionTitle, { fontSize: isMobile ? 18 : 20 }]}
               >
-                <Ionicons name="location" size={18} color={Colors.light.secondary} />
-                <Text style={styles.locationButtonText}>
-                  {locating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+                Información Personal
+              </Text>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Nombre
                 </Text>
-              </TouchableOpacity>
-            )}
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}>Matrícula escolar</Text>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.infoValueInput, { fontSize: isMobile ? 14 : 16 }]}
-                  value={draftProfile?.matricula}
-                  onChangeText={(text) => setDraftProfile(prev => prev ? { ...prev, matricula: text } : prev)}
-                />
-              ) : (
-                <Text style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}>{userProfile?.matricula}</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.nombre}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, nombre: text } : prev,
+                      )
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.nombre}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Apellidos
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.apellidos}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, apellidos: text } : prev,
+                      )
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.apellidos}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Correo
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.email}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, email: text } : prev,
+                      )
+                    }
+                    keyboardType="email-address"
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.email}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Teléfono
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.telefono}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, telefono: text } : prev,
+                      )
+                    }
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.telefono}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Ubicación
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.ubicacion}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, ubicacion: text } : prev,
+                      )
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.ubicacion}
+                  </Text>
+                )}
+              </View>
+              {isEditing && (
+                <TouchableOpacity
+                  style={[
+                    styles.locationButton,
+                    locating && styles.locationButtonDisabled,
+                  ]}
+                  onPress={handleUpdateLocation}
+                  disabled={locating}
+                >
+                  <Ionicons
+                    name="location"
+                    size={18}
+                    color={Colors.light.secondary}
+                  />
+                  <Text style={styles.locationButtonText}>
+                    {locating
+                      ? "Obteniendo ubicación..."
+                      : "Usar mi ubicación actual"}
+                  </Text>
+                </TouchableOpacity>
               )}
+              <View style={styles.infoRow}>
+                <Text
+                  style={[styles.infoLabel, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  Matrícula escolar
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[
+                      styles.infoValueInput,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                    value={draftProfile?.matricula}
+                    onChangeText={(text) =>
+                      setDraftProfile((prev) =>
+                        prev ? { ...prev, matricula: text } : prev,
+                      )
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                  >
+                    {userProfile?.matricula}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
 
-          {/* Botones de Acción */}
-          <View style={[styles.actionButtons, { padding: sectionPadding, flexDirection: isDesktop ? 'row' : 'column' }]}>
-            {isEditing && (
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors.light.primary }, isWeb && styles.actionButtonWeb]}
-                onPress={handleSaveProfile}
-              >
-                <Ionicons name="save-outline" size={isMobile ? 20 : 24} color="#fff" />
-                <Text style={[styles.actionButtonText, { fontSize: isMobile ? 14 : 16 }]}>Guardar Perfil</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
+            {/* Botones de Acción */}
+            <View
               style={[
-                styles.actionButton, 
-                { backgroundColor: Colors.light.error },
-                isWeb && styles.actionButtonWeb
+                styles.actionButtons,
+                {
+                  padding: sectionPadding,
+                  flexDirection: isDesktop ? "row" : "column",
+                },
               ]}
-              onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={isMobile ? 20 : 24} color="#fff" />
-              <Text style={[styles.actionButtonText, { fontSize: isMobile ? 14 : 16 }]}>Cerrar Sesión</Text>
-            </TouchableOpacity>
+            >
+              {isEditing && (
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: Colors.light.primary },
+                    isWeb && styles.actionButtonWeb,
+                  ]}
+                  onPress={handleSaveProfile}
+                >
+                  <Ionicons
+                    name="save-outline"
+                    size={isMobile ? 20 : 24}
+                    color="#fff"
+                  />
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      { fontSize: isMobile ? 14 : 16 },
+                    ]}
+                  >
+                    Guardar Perfil
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.logoutButton, isWeb && styles.actionButtonWeb]}
+                onPress={handleLogout}
+              >
+                <Ionicons
+                  name="log-out-outline"
+                  size={isMobile ? 18 : 20}
+                  color={Colors.light.error}
+                />
+                <Text
+                  style={[
+                    styles.logoutButtonText,
+                    { fontSize: isMobile ? 14 : 15 },
+                  ]}
+                >
+                  Cerrar Sesión
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -341,29 +530,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.backgroundAlt,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
-      }
+      },
     }),
   },
   avatar: {
     marginRight: 16,
     ...Platform.select({
       web: {
-        transition: 'transform 0.2s ease',
+        transition: "transform 0.2s ease",
       },
     }),
   },
@@ -371,7 +560,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.textDark,
     marginBottom: 4,
   },
@@ -391,29 +580,29 @@ const styles = StyleSheet.create({
     padding: 16,
     ...Platform.select({
       web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 2,
-      }
+      },
     }),
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.textDark,
     marginBottom: 16,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 12,
   },
   infoLabel: {
@@ -422,15 +611,15 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     color: Colors.light.textDark,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   infoValueInput: {
     flex: 1,
     color: Colors.light.textDark,
-    fontWeight: '600',
-    textAlign: 'right',
+    fontWeight: "600",
+    textAlign: "right",
     borderBottomWidth: 1,
     borderColor: Colors.light.border,
     paddingVertical: 4,
@@ -440,42 +629,61 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
     borderRadius: 12,
     gap: 8,
     ...Platform.select({
       web: {
-        cursor: 'pointer',
+        cursor: "pointer",
       },
     }),
   },
   actionButtonWeb: {
     ...Platform.select({
       web: {
-        transition: 'transform 0.2s ease, opacity 0.2s ease',
-        ':hover': {
+        transition: "transform 0.2s ease, opacity 0.2s ease",
+        ":hover": {
           opacity: 0.9,
-          transform: 'translateY(-2px)',
+          transform: "translateY(-2px)",
         },
       },
     }),
   },
   actionButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: "#fff",
+    fontWeight: "600",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.light.error,
+    backgroundColor: "transparent",
+    ...Platform.select({
+      web: { cursor: "pointer" },
+    }),
+  },
+  logoutButtonText: {
+    color: Colors.light.error,
+    fontWeight: "600",
   },
   headerRow: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   screenTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.light.primary,
   },
   iconButton: {
@@ -486,26 +694,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.backgroundAlt,
   },
   locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: -4,
     borderRadius: 10,
-    backgroundColor: '#eef4ff',
+    backgroundColor: "#eef4ff",
     borderWidth: 1,
     borderColor: Colors.light.border,
     ...Platform.select({
       web: {
-        cursor: 'pointer',
+        cursor: "pointer",
       },
     }),
   },
   locationButtonText: {
     color: Colors.light.secondary,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   locationButtonDisabled: {
     opacity: 0.7,

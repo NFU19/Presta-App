@@ -1,27 +1,33 @@
-import { ProductCard } from '@/components/shared/product-card';
-import { Header } from '@/components/header';
-import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { collection, DocumentData, onSnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import { Header } from "@/components/header";
+import { ProductCard } from "@/components/shared/product-card";
+import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper";
+import { Colors } from "@/constants/theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  FlatList,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-  Platform,
-} from 'react-native';
-import { SideMenu } from '../../components/shared/side-menu';
-import { db } from '../../firebaseConfig';
-import { useResponsive } from '@/hooks/use-responsive';
+    collection,
+    DocumentData,
+    onSnapshot,
+    QueryDocumentSnapshot,
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Animated,
+    Easing,
+    FlatList,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
+import { SideMenu } from "../../components/shared/side-menu";
+import { db } from "../../firebaseConfig";
 
 // Interfaces
 interface Equipo {
@@ -33,32 +39,36 @@ interface Equipo {
 }
 
 // Componente de Carrusel Horizontal
-const HorizontalCarousel = ({ 
-  title, 
-  data, 
-  onItemPress 
-}: { 
-  title: string; 
-  data: Equipo[]; 
-  onItemPress: (item: Equipo) => void 
+const HorizontalCarousel = ({
+  title,
+  data,
+  onItemPress,
+}: {
+  title: string;
+  data: Equipo[];
+  onItemPress: (item: Equipo) => void;
 }) => {
   const { isMobile, isTablet } = useResponsive();
-  
+
   return (
-    <View style={[
-      styles.carouselContainer,
-      { 
-        paddingHorizontal: isMobile ? 12 : isTablet ? 16 : 20,
-        marginBottom: isMobile ? 16 : 20,
-      }
-    ]}>
-      <Text style={[
-        styles.sectionTitle,
-        { 
-          fontSize: isMobile ? 18 : isTablet ? 20 : 22,
-          marginBottom: isMobile ? 12 : 16,
-        }
-      ]}>
+    <View
+      style={[
+        styles.carouselContainer,
+        {
+          paddingHorizontal: isMobile ? 12 : isTablet ? 16 : 20,
+          marginBottom: isMobile ? 16 : 20,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.sectionTitle,
+          {
+            fontSize: isMobile ? 18 : isTablet ? 20 : 22,
+            marginBottom: isMobile ? 12 : 16,
+          },
+        ]}
+      >
         {title}
       </Text>
       <FlatList
@@ -71,7 +81,7 @@ const HorizontalCarousel = ({
         )}
         contentContainerStyle={[
           styles.carouselContent,
-          { paddingHorizontal: isMobile ? 4 : 8 }
+          { paddingHorizontal: isMobile ? 4 : 8 },
         ]}
       />
     </View>
@@ -83,7 +93,7 @@ const DashboardScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const router = useRouter();
   const { isMobile, isTablet, isDesktop } = useResponsive();
@@ -110,21 +120,23 @@ const DashboardScreen = () => {
         duration: 500,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
-      })
+      }),
     ]).start();
     setIsMenuVisible(!isMenuVisible);
   };
 
   // Cargar datos de Firebase
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'equipos'), (snapshot) => {
-      const equiposData: Equipo[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-        id: doc.id,
-        nombre: doc.data().nombre || 'Nombre no disponible',
-        tipo: doc.data().tipo || 'Sin tipo',
-        estado: doc.data().estado !== undefined ? doc.data().estado : true,
-        imagen: doc.data().imagen,
-      }));
+    const unsubscribe = onSnapshot(collection(db, "equipos"), (snapshot) => {
+      const equiposData: Equipo[] = snapshot.docs.map(
+        (doc: QueryDocumentSnapshot<DocumentData>) => ({
+          id: doc.id,
+          nombre: doc.data().nombre || "Nombre no disponible",
+          tipo: doc.data().tipo || "Sin tipo",
+          estado: doc.data().estado !== undefined ? doc.data().estado : true,
+          imagen: doc.data().imagen,
+        }),
+      );
       setEquipos(equiposData);
       setLoading(false);
     });
@@ -134,23 +146,23 @@ const DashboardScreen = () => {
 
   const handleProductPress = (item: Equipo) => {
     router.push({
-      pathname: '/product-details',
+      pathname: "/product-details",
       params: {
         id: item.id,
         nombre: item.nombre,
-        categoria: item.tipo || 'Sin tipo',
-        estado: item.estado?.toString() || 'false',
-        imagen: item.imagen || 'https://via.placeholder.com/300',
+        categoria: item.tipo || "Sin tipo",
+        estado: item.estado?.toString() || "false",
+        imagen: item.imagen || "https://via.placeholder.com/300",
       },
     });
   };
 
   // Filtrar productos por búsqueda (sin acentos)
   const normalize = (text?: string) =>
-    (text || '')
+    (text || "")
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .trim();
 
   const displayedEquipos = equipos.filter((equipo) => {
@@ -174,78 +186,98 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <Header onMenuPress={toggleMenu}>
-        <View style={[
-          styles.searchContainer,
-          isSearchFocused && styles.searchContainerFocused,
-          { marginLeft: isMobile ? 8 : 12 }
-        ]}>
-          <Ionicons 
-            name="search-outline" 
-            size={isMobile ? 18 : 20} 
-            color={isSearchFocused ? Colors.light.primary : Colors.light.gray} 
-            style={styles.searchIcon} 
+      <KeyboardDismissWrapper>
+        {/* Header */}
+        <Header onMenuPress={toggleMenu}>
+          <View style={styles.headerRow}>
+            <View
+              style={[
+                styles.searchContainer,
+                isSearchFocused && styles.searchContainerFocused,
+              ]}
+            >
+              <Ionicons
+                name="search-outline"
+                size={isMobile ? 18 : 20}
+                color={
+                  isSearchFocused ? Colors.light.primary : Colors.light.gray
+                }
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={[styles.searchInput, { fontSize: isMobile ? 14 : 16 }]}
+                placeholder="Buscar equipos..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                placeholderTextColor={Colors.light.gray}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                inputMode="search"
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setIsSearchFocused(true);
+                }}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.iconButton, { marginLeft: isMobile ? 10 : 14 }]}
+              onPress={() => router.push("/notifications")}
+              accessibilityLabel="Abrir notificaciones"
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={isMobile ? 18 : 20}
+                color={Colors.light.primary}
+              />
+            </TouchableOpacity>
+          </View>
+        </Header>
+
+        {/* Menú Lateral */}
+        <SideMenu
+          isVisible={isMenuVisible}
+          onClose={toggleMenu}
+          slideAnim={slideAnim}
+          fadeAnim={fadeAnim}
+        />
+
+        {/* Contenido Principal */}
+        <ScrollView
+          style={styles.mainContent}
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingBottom: isMobile ? 20 : 30,
+          }}
+        >
+          {/* Los más Reservados */}
+          <HorizontalCarousel
+            title="Los más Reservados"
+            data={displayedEquipos.slice(0, 5)}
+            onItemPress={handleProductPress}
           />
-          <TextInput
-            style={[styles.searchInput, { fontSize: isMobile ? 14 : 16 }]}
-            placeholder="Buscar equipos..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            placeholderTextColor={Colors.light.gray}
-            returnKeyType="search"
-            autoCapitalize="none"
-            autoCorrect={false}
-            blurOnSubmit={false}
-            inputMode="search"
-            onTouchStart={(e) => {
-              e.stopPropagation();
-              setIsSearchFocused(true);
-            }}
+
+          <HorizontalCarousel
+            title="Recomendados para Ti"
+            data={displayedEquipos.slice(5, 11)}
+            onItemPress={handleProductPress}
           />
-        </View>
-      </Header>
 
-      {/* Menú Lateral */}
-      <SideMenu
-        isVisible={isMenuVisible}
-        onClose={toggleMenu}
-        slideAnim={slideAnim}
-        fadeAnim={fadeAnim}
-      />
-
-      {/* Contenido Principal */}
-      <ScrollView 
-        style={styles.mainContent} 
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="none"
-        keyboardShouldPersistTaps="always"
-        contentContainerStyle={{
-          paddingBottom: isMobile ? 20 : 30,
-        }}
-      >
-        {/* Los más Reservados */}
-        <HorizontalCarousel
-          title="Los más Reservados"
-          data={displayedEquipos.slice(0, 5)}
-          onItemPress={handleProductPress}
-        />
-
-        <HorizontalCarousel
-          title="Recomendados para Ti"
-          data={displayedEquipos.slice(5, 11)}
-          onItemPress={handleProductPress}
-        />
-
-        {/* Seguir Reservando */}
-        <HorizontalCarousel
-          title="Seguir Reservando"
-          data={displayedEquipos.slice(0, 5).reverse()}
-          onItemPress={handleProductPress}
-        />
-      </ScrollView>
+          {/* Seguir Reservando */}
+          <HorizontalCarousel
+            title="Seguir Reservando"
+            data={displayedEquipos.slice(0, 5).reverse()}
+            onItemPress={handleProductPress}
+          />
+        </ScrollView>
+      </KeyboardDismissWrapper>
     </SafeAreaView>
   );
 };
@@ -255,28 +287,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingRight: 6,
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.light.backgroundAlt,
   },
   mainContent: {
     flex: 1,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
     backgroundColor: Colors.light.backgroundAlt,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...(Platform.OS === 'web' ? {
-      transition: 'all 0.2s ease',
-    } : {}),
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 44,
+    borderWidth: 1,
+    borderColor: "transparent",
+    ...(Platform.OS === "web"
+      ? {
+          transition: "all 0.2s ease",
+        }
+      : {}),
   },
   searchContainerFocused: {
     backgroundColor: Colors.light.background,
@@ -299,15 +340,18 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: Colors.light.textDark,
-    ...(Platform.OS === 'web' ? {
-      outlineStyle: 'none' as any,
-    } : {}),
+    paddingRight: 4,
+    ...(Platform.OS === "web"
+      ? {
+          outlineStyle: "none" as any,
+        }
+      : {}),
   },
   carouselContainer: {
     marginTop: 8,
   },
   sectionTitle: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.textDark,
   },
   carouselContent: {

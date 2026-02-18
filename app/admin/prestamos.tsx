@@ -6,20 +6,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-  aprobarSolicitudPrestamo,
-  rechazarSolicitudPrestamo,
+    aprobarSolicitudPrestamo,
+    rechazarSolicitudPrestamo,
 } from "../../services/prestamoService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -156,7 +156,7 @@ const PrestamosAdminScreen = () => {
           notas,
         );
         Alert.alert(
-          "✅ Solicitud Aprobada",
+          "Solicitud Aprobada",
           `Se ha aprobado la solicitud y se generó el código QR:\n\n${codigoQR}\n\nEl usuario recibirá una notificación.`,
         );
       } else {
@@ -166,7 +166,7 @@ const PrestamosAdminScreen = () => {
           motivoRechazo,
         );
         Alert.alert(
-          "❌ Solicitud Rechazada",
+          "Solicitud Rechazada",
           "La solicitud ha sido rechazada y el equipo está nuevamente disponible.",
         );
       }

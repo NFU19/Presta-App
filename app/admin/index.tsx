@@ -3,20 +3,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  DimensionValue,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    DimensionValue,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -1130,7 +1130,7 @@ const AdminDashboard = () => {
                   { fontSize: isMobile ? 16 : 18, marginBottom: 12 },
                 ]}
               >
-                💡 Insights Rápidos
+                Insights Rápidos
               </Text>
               <View style={[styles.insightsGrid, isMobile && { gap: 10 }]}>
                 <View style={styles.insightCard}>

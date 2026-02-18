@@ -1,28 +1,36 @@
-import { GridProductCard } from '@/components/shared/grid-product-card';
-import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { collection, onSnapshot, doc, onSnapshot as onDocSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { GridProductCard } from "@/components/shared/grid-product-card";
+import { Colors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import {
+  arrayRemove,
+  arrayUnion,
+  collection,
+  doc,
+  onSnapshot as onDocSnapshot,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Easing,
   FlatList,
+  Platform,
   SafeAreaView,
   StyleSheet,
-  Text,
   TextInput,
-  TouchableOpacity,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { Header } from '@/components/header';
-import { SideMenu } from '../../components/shared/side-menu';
-import { db } from '../../firebaseConfig';
-import { auth } from '../../firebaseConfig';
-import { useResponsive } from '@/hooks/use-responsive';
+import { Header } from "@/components/header";
+import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper";
+import { useResponsive } from "@/hooks/use-responsive";
+import { SideMenu } from "../../components/shared/side-menu";
+import { auth, db } from "../../firebaseConfig";
 
 // Define the structure of an Equipo
 interface Equipo {
@@ -38,44 +46,42 @@ const CatalogScreen = () => {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [favoritesLoaded, setFavoritesLoaded] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const slideAnim = useState(new Animated.Value(-300))[0];
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useRef(new Animated.Value(-300)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
-  const { width, isMobile, isTablet } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
     const unsubscribeEquipos = onSnapshot(
-      collection(db, 'equipos'),
-      snapshot => {
-        const data = snapshot.docs.map(doc => ({
-          id: doc.id,
+      collection(db, "equipos"),
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
           ...(doc.data() as Equipo),
+          id: doc.id,
         }));
         setEquipos(data);
         setLoading(false);
       },
-      error => {
-        console.error('Error al obtener equipos', error);
-        Alert.alert('Error', 'No se pudieron cargar los equipos.');
+      (error) => {
+        console.error("Error al obtener equipos", error);
+        Alert.alert("Error", "No se pudieron cargar los equipos.");
         setLoading(false);
-      }
+      },
     );
 
     const user = auth.currentUser;
     if (user) {
-      const userRef = doc(db, 'usuarios', user.uid);
+      const userRef = doc(db, "usuarios", user.uid);
       const unsubscribeUser = onDocSnapshot(
         userRef,
-        snap => {
+        (snap) => {
           const favs = (snap.data()?.favoritos as string[] | undefined) || [];
           setFavoriteIds(favs);
-          setFavoritesLoaded(true);
         },
-        () => setFavoritesLoaded(true)
+        () => undefined,
       );
 
       return () => {
@@ -84,20 +90,10 @@ const CatalogScreen = () => {
       };
     }
 
-    setFavoritesLoaded(true);
     return () => unsubscribeEquipos();
   }, []);
 
-  // Calcular número de columnas basado en el ancho de pantalla
-  const getNumColumns = () => {
-    if (width >= 1400) return 5; // XL screens
-    if (width >= 1200) return 4; // Large desktop
-    if (width >= 992) return 3;  // Desktop
-    if (width >= 768) return 2;  // Tablet
-    return 2; // Mobile ahora muestra grid de 2 columnas
-  };
-
-  const numColumns = getNumColumns();
+  const numColumns = 2;
 
   const toggleMenu = () => {
     const springConfig = {
@@ -117,7 +113,7 @@ const CatalogScreen = () => {
         duration: 500,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
-      })
+      }),
     ]).start();
     setIsMenuVisible(!isMenuVisible);
   };
@@ -125,14 +121,18 @@ const CatalogScreen = () => {
   const handleToggleFavorite = async (item: Equipo) => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar favoritos.', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Ir a login', onPress: () => router.replace('/login') },
-      ]);
+      Alert.alert(
+        "Inicia sesión",
+        "Debes iniciar sesión para guardar favoritos.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Ir a login", onPress: () => router.replace("/login") },
+        ],
+      );
       return;
     }
 
-    const userRef = doc(db, 'usuarios', user.uid);
+    const userRef = doc(db, "usuarios", user.uid);
     try {
       await setDoc(userRef, { favoritos: [] }, { merge: true });
       const alreadyFav = favoriteIds.includes(item.id);
@@ -142,29 +142,29 @@ const CatalogScreen = () => {
         await updateDoc(userRef, { favoritos: arrayUnion(item.id) });
       }
     } catch (error) {
-      console.error('Error al actualizar favoritos', error);
-      Alert.alert('Error', 'No pudimos actualizar tus favoritos.');
+      console.error("Error al actualizar favoritos", error);
+      Alert.alert("Error", "No pudimos actualizar tus favoritos.");
     }
   };
 
   const handleProductPress = (item: Equipo) => {
     router.push({
-      pathname: '../product-details' as any,
+      pathname: "../product-details" as any,
       params: {
         id: item.id,
         nombre: item.nombre,
-        categoria: item.categoria || 'Sin categoría',
-        estado: item.estado?.toString() || 'false',
-        imagen: item.imagen || 'https://via.placeholder.com/300',
+        categoria: item.categoria || "Sin categoría",
+        estado: item.estado?.toString() || "false",
+        imagen: item.imagen || "https://via.placeholder.com/300",
       },
     });
   };
 
   const normalize = (text?: string) =>
-    (text || '')
+    (text || "")
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .trim();
 
   const displayedEquipos = equipos.filter((equipo) => {
@@ -180,75 +180,81 @@ const CatalogScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header onMenuPress={toggleMenu}>
-        <View style={[
-          styles.searchContainer,
-          isSearchFocused && styles.searchContainerFocused
-        ]}>
-          <Ionicons 
-            name="search-outline" 
-            size={20} 
-            color={isSearchFocused ? Colors.light.primary : Colors.light.gray} 
-            style={styles.searchIcon} 
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar equipos..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-            placeholderTextColor={Colors.light.gray}
-            returnKeyType="search"
-            autoCapitalize="none"
-            autoCorrect={false}
-            blurOnSubmit={false}
-            inputMode="search"
-            onTouchStart={(e) => {
-              e.stopPropagation();
-              setIsSearchFocused(true);
-            }}
-          />
-        </View>
-      </Header>
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Catálogo</Text>
-      </View>
+      <KeyboardDismissWrapper>
+        <Header onMenuPress={toggleMenu}>
+          <View style={styles.headerSearchRow}>
+            <Animated.View
+              style={[
+                styles.searchContainer,
+                isSearchFocused && styles.searchContainerFocused,
+                { flex: 1 },
+              ]}
+            >
+              <Ionicons
+                name="search-outline"
+                size={20}
+                color={
+                  isSearchFocused ? Colors.light.primary : Colors.light.gray
+                }
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar equipos..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                placeholderTextColor={Colors.light.gray}
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                inputMode="search"
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setIsSearchFocused(true);
+                }}
+              />
+            </Animated.View>
+          </View>
+        </Header>
 
-      <SideMenu
-        isVisible={isMenuVisible}
-        onClose={toggleMenu}
-        slideAnim={slideAnim}
-        fadeAnim={fadeAnim}
-      />
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007bff" style={{ flex: 1 }} />
-      ) : (
-        <FlatList
-          key={numColumns} // Importante: forzar re-render cuando cambian las columnas
-          data={displayedEquipos}
-          renderItem={({ item }) => (
-            <GridProductCard
-              item={item}
-              onPress={() => handleProductPress(item)}
-              onToggleFavorite={() => handleToggleFavorite(item)}
-              isFavorite={favoriteIds.includes(item.id)}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-          numColumns={numColumns}
-          contentContainerStyle={[
-            styles.list,
-            {
-              paddingHorizontal: isMobile ? 12 : isTablet ? 20 : 32,
-            }
-          ]}
-          columnWrapperStyle={numColumns > 1 ? { gap: isMobile ? 12 : 16 } : undefined}
-          keyboardDismissMode="none"
-          keyboardShouldPersistTaps="always"
+        <SideMenu
+          isVisible={isMenuVisible}
+          onClose={toggleMenu}
+          slideAnim={slideAnim}
+          fadeAnim={fadeAnim}
         />
-      )}
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#007bff" style={{ flex: 1 }} />
+        ) : (
+          <FlatList
+            key={numColumns}
+            data={displayedEquipos}
+            renderItem={({ item }) => (
+              <GridProductCard
+                item={item}
+                onPress={() => handleProductPress(item)}
+                onToggleFavorite={() => handleToggleFavorite(item)}
+                isFavorite={favoriteIds.includes(item.id)}
+              />
+            )}
+            keyExtractor={(item) => item.id}
+            numColumns={numColumns}
+            contentContainerStyle={[
+              styles.list,
+              { paddingHorizontal: 20, paddingVertical: 12 },
+            ]}
+            columnWrapperStyle={{ gap: isMobile ? 12 : 16 }}
+            keyboardDismissMode={
+              Platform.OS === "ios" ? "interactive" : "on-drag"
+            }
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
+      </KeyboardDismissWrapper>
     </SafeAreaView>
   );
 };
@@ -260,20 +266,20 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
-  headerRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  headerSearchRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   iconButton: {
@@ -284,15 +290,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.border,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.light.backgroundAlt,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    height: 44,
     borderWidth: 1,
-    borderColor: 'transparent',
-    minWidth: 180,
+    borderColor: "transparent",
+    minWidth: 200,
   },
   searchContainerFocused: {
     backgroundColor: Colors.light.background,
@@ -314,32 +320,32 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 16,
     color: Colors.light.secondary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   // Menu styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   sideMenu: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     bottom: 0,
-    width: '70%',
+    width: "70%",
     backgroundColor: Colors.light.background,
     paddingVertical: 20,
     paddingHorizontal: 15,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
     paddingBottom: 10,
     borderBottomWidth: 1,
@@ -347,12 +353,12 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.text,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
@@ -363,18 +369,19 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
   },
   list: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
+    paddingBottom: 16,
   },
   toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 14,
@@ -382,8 +389,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   filterButtonText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
   },
 });
 

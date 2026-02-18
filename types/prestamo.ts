@@ -4,46 +4,49 @@
 export interface Prestamo {
   id: string;
   usuarioId: string;
-  usuarioNombre: string;
-  usuarioEmail: string;
+  usuarioNombre?: string;
+  usuarioEmail?: string;
   equipoId: string;
   equipoNombre: string;
   equipoImagen?: string;
-  
+
   // Fechas
   fechaSolicitud: Date;
   fechaAprobacion?: Date;
   fechaPrestamo?: Date;
   fechaDevolucion?: Date;
   fechaDevolucionReal?: Date;
-  
+
   // Duración y detalles
   duracionDias: number;
   proposito: string;
-  
+
   // Estados
-  Estado: EstadoPrestamo;
-  
+  estado: EstadoPrestamo;
+  // Alias para compatibilidad hacia atrás (si backend manda "Estado")
+  Estado?: EstadoPrestamo;
+
   // QR
   codigoQR?: string;
-  
+
   // Campos administrativos
   aprobadoPor?: string; // UID del admin
   notas?: string;
   motivoRechazo?: string;
-  
+
   // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export type EstadoPrestamo = 
-  | 'pendiente'      // Usuario solicitó, esperando aprobación admin
-  | 'aceptado'       // Admin aprobó, esperando QR de entrega
-  | 'activo'         // Equipo prestado (QR escaneado en entrega)
-  | 'devuelto'       // Equipo devuelto (QR escaneado en devolución)
-  | 'vencido'        // Fecha de devolución pasada y no devuelto
-  | 'rechazado';     // Admin rechazó la solicitud
+export type EstadoPrestamo =
+  | "pendiente" // Usuario solicitó, esperando aprobación admin
+  | "aprobado" // Admin aprobó, esperando entrega
+  | "aceptado" // Alias legacy si backend usa "aceptado"
+  | "activo" // Equipo prestado (QR escaneado en entrega)
+  | "devuelto" // Equipo devuelto (QR escaneado en devolución)
+  | "vencido" // Fecha de devolución pasada y no devuelto
+  | "rechazado"; // Admin rechazó la solicitud
 
 export interface SolicitudPrestamoData {
   usuarioId: string;

@@ -1,19 +1,17 @@
 import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { addDoc, collection, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { db } from "../../../firebaseConfig";
 
 const EquipoModalScreen = () => {
   const [nombre, setNombre] = useState("");
@@ -39,11 +37,11 @@ const EquipoModalScreen = () => {
   }, [id]);
 
   const fetchArticulo = async () => {
-    try{
+    try {
       fetch(`http://217.182.64.251:8002/articulos/id/${id}`)
         .then((response) => response.json())
         .then((data) => {
-          setNombre(data.nombre || ""); 
+          setNombre(data.nombre || "");
           setCategoria(data.categoria || "");
           setMarca(data.marca || "");
           setModelo(data.modelo || "");
@@ -58,8 +56,7 @@ const EquipoModalScreen = () => {
           Alert.alert("Error", "No se pudo cargar el equipo.");
           console.error("Error fetching equipo: ", error);
         });
-    }
-    catch(error){
+    } catch (error) {
       Alert.alert("Error", "No se pudo cargar el equipo.");
       console.error("Error fetching equipo: ", error);
     }
@@ -95,7 +92,8 @@ const EquipoModalScreen = () => {
     };
 
     try {
-      if (isEditMode) { // make a post request to create articulo
+      if (isEditMode) {
+        // make a post request to create articulo
         await fetch(`http://217.182.64.251:8002/articulos/crear`, {
           method: "POST",
           headers: {
@@ -121,8 +119,11 @@ const EquipoModalScreen = () => {
   };
 
   return (
-    <KeyboardDismissWrapper disabled={true}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardDismissWrapper>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.formWrapper}>
           <Text style={styles.title}>
             {isEditMode ? "Editar Equipo" : "Añadir Equipo"}

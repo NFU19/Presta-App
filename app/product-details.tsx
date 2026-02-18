@@ -1,11 +1,19 @@
-import { Header } from '@/components/header';
-import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { auth, db } from '../firebaseConfig';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { Header } from "@/components/header";
+import { Colors } from "@/constants/theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+    arrayRemove,
+    arrayUnion,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+} from "firebase/firestore";
+import React, { useState } from "react";
+import {
+    Alert,
     Image,
     Modal,
     Platform,
@@ -14,11 +22,10 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
-    Alert,
-    useWindowDimensions
-} from 'react-native';
-import { useResponsive } from '@/hooks/use-responsive';
+} from "react-native";
+import { auth, db } from "../firebaseConfig";
 
 const ProductDetailsScreen = () => {
   const router = useRouter();
@@ -27,24 +34,24 @@ const ProductDetailsScreen = () => {
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
-  
+
   // Responsive values
   const imageHeight = isMobile ? 250 : isTablet ? 350 : 450;
   const contentPadding = isMobile ? 16 : isTablet ? 24 : 32;
   const modalMaxWidth = isDesktop ? 600 : width * 0.9;
-  
+
   // Datos del producto que vendrían de los parámetros
   const product = {
     id: params.id as string,
     nombre: params.nombre as string,
     categoria: params.categoria as string,
-    estado: params.estado === 'true',
+    estado: params.estado === "true",
     imagen: params.imagen as string,
   };
 
   const handleRequestLoan = () => {
     router.push({
-      pathname: '/loan-request-modal' as any,
+      pathname: "/loan-request-modal" as any,
       params: {
         id: product.id,
         nombre: product.nombre,
@@ -56,7 +63,7 @@ const ProductDetailsScreen = () => {
   const syncFavoriteState = async () => {
     const user = auth.currentUser;
     if (!user) return;
-    const userRef = doc(db, 'usuarios', user.uid);
+    const userRef = doc(db, "usuarios", user.uid);
     const snapshot = await getDoc(userRef);
     const favs = (snapshot.data()?.favoritos as string[] | undefined) || [];
     setIsFavorite(favs.includes(product.id));
@@ -69,14 +76,18 @@ const ProductDetailsScreen = () => {
   const handleAddToFavorites = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar favoritos.', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Ir a login', onPress: () => router.replace('/login') },
-      ]);
+      Alert.alert(
+        "Inicia sesión",
+        "Debes iniciar sesión para guardar favoritos.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Ir a login", onPress: () => router.replace("/login") },
+        ],
+      );
       return;
     }
 
-    const userRef = doc(db, 'usuarios', user.uid);
+    const userRef = doc(db, "usuarios", user.uid);
     try {
       // Asegurar que exista el documento
       await setDoc(userRef, { favoritos: [] }, { merge: true });
@@ -89,8 +100,8 @@ const ProductDetailsScreen = () => {
         setIsFavorite(true);
       }
     } catch (error) {
-      console.error('Error al actualizar favoritos', error);
-      Alert.alert('Error', 'No pudimos actualizar tus favoritos.');
+      console.error("Error al actualizar favoritos", error);
+      Alert.alert("Error", "No pudimos actualizar tus favoritos.");
     }
   };
 
@@ -100,56 +111,114 @@ const ProductDetailsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content} contentContainerStyle={{ alignItems: 'center', paddingHorizontal: contentPadding }}>
-        <View style={{ width: '100%', maxWidth: isDesktop ? 1000 : width }}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{
+          alignItems: "center",
+          paddingHorizontal: contentPadding,
+        }}
+      >
+        <View style={{ width: "100%", maxWidth: isDesktop ? 1000 : width }}>
           {/* Header */}
           <Header showBackButton onBackPress={() => router.back()}>
             <View style={styles.headerRow}>
-              <Text style={[styles.headerTitle, { fontSize: isMobile ? 20 : isTablet ? 24 : 28 }]}>Detalles del Producto</Text>
+              <Text
+                style={[
+                  styles.headerTitle,
+                  { fontSize: isMobile ? 20 : isTablet ? 24 : 28 },
+                ]}
+              >
+                Detalles del Producto
+              </Text>
               <View style={styles.headerActions}>
-                <TouchableOpacity onPress={handleAddToFavorites} style={styles.favoriteButton}>
-                  <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={isMobile ? 22 : 24} color={Colors.light.error} />
+                <TouchableOpacity
+                  onPress={handleAddToFavorites}
+                  style={styles.favoriteButton}
+                >
+                  <Ionicons
+                    name={isFavorite ? "heart" : "heart-outline"}
+                    size={isMobile ? 22 : 24}
+                    color={Colors.light.error}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
           </Header>
 
-          {/* Product Image */}
-          <View style={[styles.imageContainer, { paddingHorizontal: contentPadding }]}>
-            <Image
-              source={{ uri: product.imagen || 'https://via.placeholder.com/300' }}
-              style={[styles.productImage, { height: imageHeight }]}
-            />
-            <View style={[
-              styles.availabilityBadge,
-              { backgroundColor: product.estado ? '#28a745' : '#dc3545' }
-            ]}>
-              <Text style={[styles.availabilityText, { fontSize: isMobile ? 12 : 14 }]}>
-                {product.estado ? 'Disponible' : 'No Disponible'}
+          {/* Product Card: Image + Info unified */}
+          <View style={styles.productCard}>
+            <View
+              style={[
+                styles.imageContainer,
+                { paddingHorizontal: contentPadding },
+              ]}
+            >
+              <Image
+                source={{
+                  uri: product.imagen || "https://via.placeholder.com/300",
+                }}
+                style={[styles.productImage, { height: imageHeight }]}
+              />
+              <View
+                style={[
+                  styles.availabilityBadge,
+                  { backgroundColor: product.estado ? "#28a745" : "#dc3545" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.availabilityText,
+                    { fontSize: isMobile ? 12 : 14 },
+                  ]}
+                >
+                  {product.estado ? "Disponible" : "No Disponible"}
+                </Text>
+              </View>
+            </View>
+            <View style={[styles.productInfo, { padding: contentPadding }]}>
+              <Text
+                style={[
+                  styles.productName,
+                  { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
+                ]}
+              >
+                {product.nombre}
+              </Text>
+              <Text
+                style={[
+                  styles.productCategory,
+                  { fontSize: isMobile ? 14 : 16 },
+                ]}
+              >
+                {product.categoria}
               </Text>
             </View>
           </View>
 
-          {/* Product Info */}
-          <View style={[styles.productInfo, { padding: contentPadding }]}>
-            <Text style={[styles.productName, { fontSize: isMobile ? 22 : isTablet ? 26 : 30 }]}>{product.nombre}</Text>
-            <Text style={[styles.productCategory, { fontSize: isMobile ? 14 : 16 }]}>{product.categoria}</Text>
-          </View>
-          
           {/* Product Details */}
           <View style={styles.detailsSection}>
             <Text style={styles.sectionTitle}>Información del Equipo</Text>
             <View style={styles.detailRow}>
-              <Ionicons name="information-circle-outline" size={20} color="#525f7f" />
-              <Text style={styles.detailText}>Código: {product.id?.substring(0, 8).toUpperCase()}</Text>
+              <Ionicons
+                name="information-circle-outline"
+                size={20}
+                color="#525f7f"
+              />
+              <Text style={styles.detailText}>
+                Código: {product.id?.substring(0, 8).toUpperCase()}
+              </Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="pricetag-outline" size={20} color="#525f7f" />
-              <Text style={styles.detailText}>Categoría: {product.categoria}</Text>
+              <Text style={styles.detailText}>
+                Categoría: {product.categoria}
+              </Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="time-outline" size={20} color="#525f7f" />
-              <Text style={styles.detailText}>Tiempo máximo de préstamo: 7 días</Text>
+              <Text style={styles.detailText}>
+                Tiempo máximo de préstamo: 7 días
+              </Text>
             </View>
           </View>
 
@@ -157,20 +226,52 @@ const ProductDetailsScreen = () => {
           <View style={styles.detailsSection}>
             <Text style={styles.sectionTitle}>Especificaciones</Text>
             <View style={styles.specsContainer}>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Estado:</Text>
+              <View style={styles.specRowAlt}>
+                <View style={styles.specLabelGroup}>
+                  <Ionicons
+                    name="pulse-outline"
+                    size={16}
+                    color={Colors.light.gray}
+                    style={styles.specIcon}
+                  />
+                  <Text style={styles.specLabel}>Estado</Text>
+                </View>
                 <Text style={styles.specValue}>Excelente</Text>
               </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Último mantenimiento:</Text>
+              <View style={styles.specRowAlt}>
+                <View style={styles.specLabelGroup}>
+                  <Ionicons
+                    name="build-outline"
+                    size={16}
+                    color={Colors.light.gray}
+                    style={styles.specIcon}
+                  />
+                  <Text style={styles.specLabel}>Último mantenimiento</Text>
+                </View>
                 <Text style={styles.specValue}>15/10/2024</Text>
               </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Ubicación:</Text>
+              <View style={styles.specRowAlt}>
+                <View style={styles.specLabelGroup}>
+                  <Ionicons
+                    name="location-outline"
+                    size={16}
+                    color={Colors.light.gray}
+                    style={styles.specIcon}
+                  />
+                  <Text style={styles.specLabel}>Ubicación</Text>
+                </View>
                 <Text style={styles.specValue}>Laboratorio A-201</Text>
               </View>
-              <View style={styles.specRow}>
-                <Text style={styles.specLabel}>Responsable:</Text>
+              <View style={styles.specRowAlt}>
+                <View style={styles.specLabelGroup}>
+                  <Ionicons
+                    name="person-outline"
+                    size={16}
+                    color={Colors.light.gray}
+                    style={styles.specIcon}
+                  />
+                  <Text style={styles.specLabel}>Responsable</Text>
+                </View>
                 <Text style={styles.specValue}>Administrador</Text>
               </View>
             </View>
@@ -194,7 +295,9 @@ const ProductDetailsScreen = () => {
               </View>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>Manual de usuario disponible</Text>
+                <Text style={styles.featureText}>
+                  Manual de usuario disponible
+                </Text>
               </View>
             </View>
           </View>
@@ -204,19 +307,22 @@ const ProductDetailsScreen = () => {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: product.estado ? '#007bff' : '#6c757d' }
+                { backgroundColor: product.estado ? "#007bff" : "#6c757d" },
               ]}
               onPress={handleRequestLoan}
               disabled={!product.estado}
             >
               <Ionicons name="calendar-outline" size={20} color="#fff" />
               <Text style={styles.primaryButtonText}>
-                {product.estado ? 'Solicitar Préstamo' : 'No Disponible'}
+                {product.estado ? "Solicitar Préstamo" : "No Disponible"}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.secondaryActions}>
-              <TouchableOpacity style={styles.secondaryButton} onPress={handleViewHistory}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={handleViewHistory}
+              >
                 <Ionicons name="time-outline" size={18} color="#007bff" />
                 <Text style={styles.secondaryButtonText}>Ver Historial</Text>
               </TouchableOpacity>
@@ -227,14 +333,16 @@ const ProductDetailsScreen = () => {
           <View style={styles.infoSection}>
             <Text style={styles.sectionTitle}>Información Adicional</Text>
             <Text style={styles.infoText}>
-              Para solicitar el préstamo de este equipo, presiona el botón &quot;Solicitar Préstamo&quot;. 
-              Tu solicitud será revisada por el administrador y recibirás una notificación con la respuesta.
+              Para solicitar el préstamo de este equipo, presiona el botón
+              &quot;Solicitar Préstamo&quot;. Tu solicitud será revisada por el
+              administrador y recibirás una notificación con la respuesta.
             </Text>
             <Text style={styles.infoText}>
-              Recuerda que debes devolver el equipo en las mismas condiciones en que lo recibiste 
-              y dentro del plazo establecido.
+              Recuerda que debes devolver el equipo en las mismas condiciones en
+              que lo recibiste y dentro del plazo establecido.
             </Text>
           </View>
+          <View style={{ height: 24 }} />
         </View>
       </ScrollView>
       <Modal
@@ -243,35 +351,60 @@ const ProductDetailsScreen = () => {
         visible={isHistoryModalVisible}
         onRequestClose={() => {
           setIsHistoryModalVisible(!isHistoryModalVisible);
-        }}>
+        }}
+      >
         <View style={styles.modalContainer}>
-          <View style={[
-            styles.modalContent, 
-            { 
-              maxWidth: modalMaxWidth,
-              padding: isMobile ? 20 : 24,
-            }
-          ]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: modalMaxWidth,
+                padding: isMobile ? 20 : 24,
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: isMobile ? 18 : 20 }]}>Historial del Equipo</Text>
+              <Text
+                style={[styles.modalTitle, { fontSize: isMobile ? 18 : 20 }]}
+              >
+                Historial del Equipo
+              </Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
-                onPress={() => setIsHistoryModalVisible(false)}>
-                <Ionicons name="close" size={isMobile ? 22 : 24} color={Colors.light.gray} />
+                onPress={() => setIsHistoryModalVisible(false)}
+              >
+                <Ionicons
+                  name="close"
+                  size={isMobile ? 22 : 24}
+                  color={Colors.light.gray}
+                />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView style={styles.historyScrollContainer} showsVerticalScrollIndicator={false}>
+
+            <ScrollView
+              style={styles.historyScrollContainer}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.historyItem}>
                 <View style={styles.historyItemIcon}>
-                  <Ionicons name="person-outline" size={20} color={Colors.light.secondary} />
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={Colors.light.secondary}
+                  />
                 </View>
                 <View style={styles.historyItemContent}>
-                  <Text style={styles.historyItemTitle}>Préstamo académico</Text>
-                  <Text style={styles.historyItemDate}>15/10/2024 - 22/10/2024</Text>
+                  <Text style={styles.historyItemTitle}>
+                    Préstamo académico
+                  </Text>
+                  <Text style={styles.historyItemDate}>
+                    15/10/2024 - 22/10/2024
+                  </Text>
                 </View>
                 <View style={styles.historyItemStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: '#28a745' }]}>
+                  <View
+                    style={[styles.statusBadge, { backgroundColor: "#28a745" }]}
+                  >
                     <Text style={styles.statusText}>Devuelto</Text>
                   </View>
                 </View>
@@ -279,15 +412,28 @@ const ProductDetailsScreen = () => {
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemIcon}>
-                  <Ionicons name="construct-outline" size={20} color={Colors.light.warning} />
+                  <Ionicons
+                    name="construct-outline"
+                    size={20}
+                    color={Colors.light.warning}
+                  />
                 </View>
                 <View style={styles.historyItemContent}>
-                  <Text style={styles.historyItemTitle}>Mantenimiento Preventivo</Text>
-                  <Text style={styles.historyItemSubtitle}>Revisión general y limpieza</Text>
+                  <Text style={styles.historyItemTitle}>
+                    Mantenimiento Preventivo
+                  </Text>
+                  <Text style={styles.historyItemSubtitle}>
+                    Revisión general y limpieza
+                  </Text>
                   <Text style={styles.historyItemDate}>10/10/2024</Text>
                 </View>
                 <View style={styles.historyItemStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: Colors.light.secondary }]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: Colors.light.secondary },
+                    ]}
+                  >
                     <Text style={styles.statusText}>Completado</Text>
                   </View>
                 </View>
@@ -295,14 +441,24 @@ const ProductDetailsScreen = () => {
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemIcon}>
-                  <Ionicons name="person-outline" size={20} color={Colors.light.secondary} />
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={Colors.light.secondary}
+                  />
                 </View>
                 <View style={styles.historyItemContent}>
-                  <Text style={styles.historyItemTitle}>Proyecto de investigación</Text>
-                  <Text style={styles.historyItemDate}>01/10/2024 - 05/10/2024</Text>
+                  <Text style={styles.historyItemTitle}>
+                    Proyecto de investigación
+                  </Text>
+                  <Text style={styles.historyItemDate}>
+                    01/10/2024 - 05/10/2024
+                  </Text>
                 </View>
                 <View style={styles.historyItemStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: '#28a745' }]}>
+                  <View
+                    style={[styles.statusBadge, { backgroundColor: "#28a745" }]}
+                  >
                     <Text style={styles.statusText}>Devuelto</Text>
                   </View>
                 </View>
@@ -310,15 +466,26 @@ const ProductDetailsScreen = () => {
 
               <View style={styles.historyItem}>
                 <View style={styles.historyItemIcon}>
-                  <Ionicons name="add-circle-outline" size={20} color={Colors.light.success} />
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={20}
+                    color={Colors.light.success}
+                  />
                 </View>
                 <View style={styles.historyItemContent}>
                   <Text style={styles.historyItemTitle}>Equipo Registrado</Text>
-                  <Text style={styles.historyItemSubtitle}>Ingreso al inventario</Text>
+                  <Text style={styles.historyItemSubtitle}>
+                    Ingreso al inventario
+                  </Text>
                   <Text style={styles.historyItemDate}>15/09/2024</Text>
                 </View>
                 <View style={styles.historyItemStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: Colors.light.success }]}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: Colors.light.success },
+                    ]}
+                  >
                     <Text style={styles.statusText}>Inicial</Text>
                   </View>
                 </View>
@@ -327,7 +494,8 @@ const ProductDetailsScreen = () => {
 
             <TouchableOpacity
               style={styles.modalButton}
-              onPress={() => setIsHistoryModalVisible(false)}>
+              onPress={() => setIsHistoryModalVisible(false)}
+            >
               <Text style={styles.modalButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -346,9 +514,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 16,
     backgroundColor: Colors.light.background,
     borderBottomWidth: 1,
@@ -356,18 +524,18 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
   },
   headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   headerTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
@@ -377,41 +545,41 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.backgroundAlt,
     ...Platform.select({
       web: {
-        cursor: 'pointer',
-        transition: 'transform 0.2s ease',
-        ':hover': {
-          transform: 'scale(1.1)',
+        cursor: "pointer",
+        transition: "transform 0.2s ease",
+        ":hover": {
+          transform: "scale(1.1)",
         },
       },
     }),
+  },
+  productCard: {
+    backgroundColor: Colors.light.background,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   imageContainer: {
     backgroundColor: Colors.light.background,
     paddingVertical: 24,
     paddingHorizontal: 16,
-    alignItems: 'center',
-    position: 'relative',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
-      }
-    }),
+    alignItems: "center",
+    position: "relative",
   },
   productImage: {
-    width: '90%',
+    width: "90%",
     maxWidth: 400,
-    resizeMode: 'contain',
+    resizeMode: "contain",
     borderRadius: 16,
   },
   availabilityBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 30,
     right: 30,
     paddingHorizontal: 14,
@@ -419,38 +587,32 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
-      }
+      },
     }),
   },
   availabilityText: {
     color: Colors.light.background,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 13,
     letterSpacing: 0.5,
   },
   productInfo: {
     backgroundColor: Colors.light.background,
-    marginHorizontal: 16,
-    marginVertical: 16,
-    borderRadius: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
   productName: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.primary,
     marginBottom: 8,
     letterSpacing: -0.5,
@@ -459,21 +621,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.gray,
     marginBottom: 24,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   detailsSection: {
     marginBottom: 28,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.light.primary,
     marginBottom: 16,
     letterSpacing: -0.5,
   },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   detailText: {
@@ -486,8 +648,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.light.backgroundAlt,
     padding: 12,
     borderRadius: 10,
@@ -496,15 +658,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.textDark,
     marginLeft: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   actionsSection: {
     marginBottom: 28,
+    paddingBottom: 32,
   },
   primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.light.secondary,
     paddingVertical: 16,
     borderRadius: 12,
@@ -519,20 +682,20 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: Colors.light.background,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
   secondaryActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   secondaryButton: {
     flex: 1,
     minWidth: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.light.backgroundAlt,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -544,7 +707,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     color: Colors.light.textDark,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   infoSection: {
     borderTopWidth: 1.5,
@@ -558,66 +721,72 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   specsContainer: {
-    gap: 0,
-    backgroundColor: Colors.light.backgroundAlt,
-    borderRadius: 12,
-    overflow: 'hidden',
+    gap: 12,
+    backgroundColor: "transparent",
   },
-  specRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-    minHeight: 50,
+  specRowAlt: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.light.background,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    gap: 10,
+  },
+  specLabelGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  specIcon: {
+    marginRight: 2,
   },
   specLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.light.gray,
-    flex: 1,
-    fontWeight: '500',
+    fontWeight: "600",
+    letterSpacing: -0.1,
   },
   specValue: {
     fontSize: 14,
-    color: Colors.light.primary,
-    fontWeight: '600',
-    textAlign: 'right',
-    flex: 1,
-    flexWrap: 'wrap',
+    color: Colors.light.textDark,
+    fontWeight: "700",
+    letterSpacing: -0.1,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     paddingHorizontal: 20,
   },
   modalContent: {
     backgroundColor: Colors.light.background,
     borderRadius: 16,
     padding: 0,
-    width: '100%',
+    width: "100%",
     maxWidth: 500,
-    maxHeight: '80%',
-    shadowColor: '#000',
+    maxHeight: "80%",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 10,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.light.primary,
     letterSpacing: -0.5,
   },
@@ -631,8 +800,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   historyItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
@@ -642,8 +811,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.light.backgroundAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   historyItemContent: {
@@ -652,7 +821,7 @@ const styles = StyleSheet.create({
   },
   historyItemTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.primary,
     marginBottom: 4,
     lineHeight: 20,
@@ -666,21 +835,21 @@ const styles = StyleSheet.create({
   historyItemDate: {
     fontSize: 12,
     color: Colors.light.gray,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   historyItemStatus: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     minWidth: 70,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.background,
     letterSpacing: 0.5,
   },
@@ -689,7 +858,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
     paddingVertical: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -699,7 +868,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     color: Colors.light.background,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
   },
 });
