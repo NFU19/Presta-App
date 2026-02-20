@@ -25,9 +25,18 @@ const EquipoModalScreen = () => {
   const [foto, setFoto] = useState("");
   const [especificaciones, setEspecificaciones] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showEstadoOptions, setShowEstadoOptions] = useState(false);
+  const [hoveredOption, setHoveredOption] = useState<string | null>(null);
 
   const router = useRouter();
   const { id } = useLocalSearchParams();
+
+  const estadoOptions = ['disponible', 'agotado'];
+
+  const handleEstadoSelect = (selectedEstado: string) => {
+    setEstado(selectedEstado);
+    setShowEstadoOptions(false);
+  };
 
   useEffect(() => {
     if (id) {
@@ -182,12 +191,32 @@ const EquipoModalScreen = () => {
 
             <View style={styles.formField}>
               <Text style={styles.label}>Estado</Text>
-              <TextInput
-                style={styles.input}
-                value={estado}
-                onChangeText={setEstado}
-                placeholder="Ej. Agotado, Disponible"
-              />
+              <TouchableOpacity
+                style={[styles.input, { justifyContent: "center" }]}
+                onPress={() => setShowEstadoOptions(!showEstadoOptions)}
+              >
+                <Text style={{ fontSize: 16, color: estado ? "#000" : "#999" }}>
+                  {estado || "Selecciona el estado"}
+                </Text>
+              </TouchableOpacity>
+              {showEstadoOptions && (
+                <View style={styles.dropdownContainer}>
+                  {estadoOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.dropdownOption,
+                        hoveredOption === option && styles.dropdownOptionHovered
+                      ]}
+                      onPress={() => handleEstadoSelect(option)}
+                      onMouseEnter={() => setHoveredOption(option)}
+                      onMouseLeave={() => setHoveredOption(null)}
+                    >
+                      <Text style={styles.dropdownText}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.formField}>
@@ -388,6 +417,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   buttonGhostText: { color: "#4b5563" },
+  dropdownContainer: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e4e9f2",
+    borderRadius: 12,
+    marginTop: 4,
+    ...Platform.select({
+      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+    }),
+  },
+  dropdownOption: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f5f5f5",
+    backgroundColor: "#fff",
+    ...Platform.select({
+      web: {
+        transition: "all 1s ease-in-out",
+      },
+    }),
+  },
+  dropdownOptionHovered: {
+    backgroundColor: "#b8b8b8",
+    transform: "scale(1.02)",
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: "#333",
+  },
 });
 
 export default EquipoModalScreen;
