@@ -1,32 +1,98 @@
 import { Header } from "@/components/header";
 import { Colors } from "@/constants/theme";
+import { useVpsUser } from "@/contexts/VpsUserContext";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Easing,
-    FlatList,
-    Image,
-    Modal,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SideMenu } from "../../components/shared/side-menu";
 import { auth } from "../../firebaseConfig";
-import {
-    devolverPrestamoUsuario,
-    obtenerPrestamosUsuario,
-} from "../../services/prestamoService";
-import { Prestamo } from "../../types/prestamo";
+import { devolverPrestamoUsuario } from "../../services/prestamoService";
+import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
+
+// Datos de muestra
+const samplePrestamos: Prestamo[] = [
+  {
+    id: "demo-1",
+    equipoId: "demo-1",
+    equipoNombre: "Teclado Redragon Kumara K552",
+    estado: "espera",
+    duracionDias: 7,
+    proposito: "Prueba de interfaz",
+    fechaSolicitud: new Date(),
+    codigoQR: "demo-qr-demo-1",
+    usuarioId: "demo",
+    usuarioNombre: "Demo",
+    usuarioEmail: "demo@demo.com",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "demo-2",
+    equipoId: "demo-2",
+    equipoNombre: "Laptop Dell XPS",
+    estado: "aprobado",
+    duracionDias: 5,
+    proposito: "Proyecto escolar",
+    fechaSolicitud: new Date(),
+    fechaPrestamo: new Date(),
+    fechaDevolucion: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    codigoQR: "demo-qr-demo-2",
+    usuarioId: "demo",
+    usuarioNombre: "Demo",
+    usuarioEmail: "demo@demo.com",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "demo-3",
+    equipoId: "demo-3",
+    equipoNombre: 'Monitor LG 27"',
+    estado: "devuelto",
+    duracionDias: 10,
+    proposito: "Proyecto final",
+    fechaSolicitud: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+    fechaPrestamo: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000),
+    fechaDevolucion: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+    fechaDevolucionReal: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+    usuarioId: "demo",
+    usuarioNombre: "Demo",
+    usuarioEmail: "demo@demo.com",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "demo-4",
+    equipoId: "demo-4",
+    equipoNombre: "Cámara Canon EOS",
+    estado: "rechazado",
+    duracionDias: 3,
+    proposito: "Evento escolar",
+    fechaSolicitud: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    usuarioId: "demo",
+    usuarioNombre: "Demo",
+    usuarioEmail: "demo@demo.com",
+    motivoRechazo: "Equipo no disponible en la fecha",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 const HistoryScreen = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -45,85 +111,15 @@ const HistoryScreen = () => {
   const [devolviendoId, setDevolviendoId] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { vpsUserId } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
-
-  const samplePrestamos: Prestamo[] = [
-    {
-      id: "demo-1",
-      equipoId: "demo-1",
-      equipoNombre: "Teclado Redragon Kumara K552",
-      estado: "pendiente",
-      duracionDias: 7,
-      proposito: "Prueba de interfaz",
-      fechaSolicitud: new Date(),
-      codigoQR: "demo-qr-demo-1",
-      usuarioId: "demo",
-      usuarioNombre: "Demo",
-      usuarioEmail: "demo@demo.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "demo-2",
-      equipoId: "demo-2",
-      equipoNombre: "Laptop Dell XPS",
-      estado: "aprobado",
-      duracionDias: 5,
-      proposito: "Proyecto escolar",
-      fechaSolicitud: new Date(),
-      fechaPrestamo: new Date(),
-      fechaDevolucion: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      codigoQR: "demo-qr-demo-2",
-      usuarioId: "demo",
-      usuarioNombre: "Demo",
-      usuarioEmail: "demo@demo.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "demo-3",
-      equipoId: "demo-3",
-      equipoNombre: 'Monitor LG 27"',
-      estado: "devuelto",
-      duracionDias: 10,
-      proposito: "Proyecto final",
-      fechaSolicitud: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-      fechaPrestamo: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000),
-      fechaDevolucion: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
-      fechaDevolucionReal: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
-      usuarioId: "demo",
-      usuarioNombre: "Demo",
-      usuarioEmail: "demo@demo.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "demo-4",
-      equipoId: "demo-4",
-      equipoNombre: "Cámara Canon EOS",
-      estado: "rechazado",
-      duracionDias: 3,
-      proposito: "Evento escolar",
-      fechaSolicitud: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      usuarioId: "demo",
-      usuarioNombre: "Demo",
-      usuarioEmail: "demo@demo.com",
-      motivoRechazo: "Equipo no disponible en la fecha",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ];
 
   const numColumns = width < 640 ? 1 : 2;
   const cardPadding = isMobile ? 14 : 18;
   const contentMaxWidth = isDesktop ? 1200 : width;
 
-  useEffect(() => {
-    loadPrestamos();
-  }, []);
-
-  const loadPrestamos = async () => {
+  const loadPrestamos = useCallback(async () => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -131,18 +127,79 @@ const HistoryScreen = () => {
         setLoading(false);
         return;
       }
-      const prestamosData = await obtenerPrestamosUsuario(user.uid);
-      const normalizados = prestamosData.map((p) => ({
-        ...p,
-        estado: (p as any).estado || (p as any).Estado || "pendiente",
-      }));
-      setPrestamos(normalizados.length ? normalizados : samplePrestamos);
+
+      // Si no hay ID del VPS, usar los préstamos de muestra
+      if (!vpsUserId) {
+        console.log("No hay ID de usuario VPS, usando datos de muestra");
+        setPrestamos(samplePrestamos);
+        setLoading(false);
+        return;
+      }
+
+      // Obtener préstamos del VPS
+      console.log("Obteniendo préstamos del usuario VPS:", vpsUserId);
+      const response = await fetch(
+        `http://217.182.64.251:8002/prestamos/usuario/${vpsUserId}`,
+      );
+
+      if (!response.ok) {
+        console.log("Error al obtener préstamos del VPS:", response.status);
+        throw new Error("No se pudieron obtener los préstamos");
+      }
+
+      const data = await response.json();
+      console.log("Préstamos obtenidos del VPS:", data);
+
+      // Mapear los datos del VPS a la estructura de Prestamo
+      const prestamosData: Prestamo[] = Array.isArray(data)
+        ? data.map((p: any, index: number) => ({
+            id:
+              p.ID?.toString() ||
+              `prestamo-${vpsUserId}-${index}-${Date.now()}`,
+            usuarioId: p.ID_Usuario?.toString() || vpsUserId,
+            usuarioNombre: "",
+            usuarioEmail: "",
+            equipoId: p.ID_Articulo?.toString() || "",
+            equipoNombre: "Artículo",
+            equipoImagen: "",
+            fechaSolicitud: p.Fecha_Solicitud
+              ? new Date(p.Fecha_Solicitud)
+              : new Date(),
+            fechaAprobacion: p.Fecha_Aprobacion
+              ? new Date(p.Fecha_Aprobacion)
+              : undefined,
+            fechaPrestamo: p.Fecha_Inicio
+              ? new Date(p.Fecha_Inicio)
+              : undefined,
+            fechaDevolucion: p.Fecha_Fin ? new Date(p.Fecha_Fin) : undefined,
+            duracionDias: 7,
+            proposito: p.Proposito || "",
+            estado: (p.Estado?.toLowerCase() || "pendiente") as EstadoPrestamo,
+            codigoQR: p.QR || "",
+            notas: p.Nota || "",
+            createdAt: new Date().toISOString().split("T")[0],
+            updatedAt: new Date().toISOString().split("T")[0],
+          }))
+        : [];
+
+      console.log("Préstamos mapeados:", prestamosData);
+      console.log(
+        "Estados de préstamos:",
+        prestamosData.map((p) => ({ id: p.id, estado: p.estado })),
+      );
+
+      setPrestamos(prestamosData.length ? prestamosData : samplePrestamos);
     } catch (error) {
+      console.error("Error al cargar préstamos:", error);
       setPrestamos(samplePrestamos);
     } finally {
       setLoading(false);
     }
-  };
+  }, [vpsUserId]);
+
+  useEffect(() => {
+    loadPrestamos();
+  }, [loadPrestamos]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -187,8 +244,10 @@ const HistoryScreen = () => {
       activo: { bg: "#e6f4ef", text: Colors.light.success },
       devuelto: { bg: "#edf0f7", text: Colors.light.gray },
       vencido: { bg: "#fbe9eb", text: Colors.light.error },
+      espera: { bg: "#fff6e6", text: Colors.light.warning },
       pendiente: { bg: "#fff6e6", text: Colors.light.warning },
       aprobado: { bg: "#e6f4ff", text: "#1b74d4" },
+      aceptado: { bg: "#e6f4ff", text: "#1b74d4" },
       rechazado: { bg: "#f1f2f4", text: "#6c757d" },
     };
     return map[estado] || { bg: "#edf0f7", text: Colors.light.gray };
@@ -196,8 +255,10 @@ const HistoryScreen = () => {
 
   const getEstadoLabel = (estado: string) => {
     const labels: Record<string, string> = {
+      espera: "Pendiente",
       pendiente: "Pendiente",
       aprobado: "Aprobado",
+      aceptado: "Aprobado",
       activo: "Activo",
       devuelto: "Devuelto",
       vencido: "Vencido",
@@ -270,7 +331,14 @@ const HistoryScreen = () => {
   };
 
   const prestamosActivos = prestamos.filter((p) =>
-    ["pendiente", "aprobado", "activo", "vencido"].includes(p.estado),
+    [
+      "espera",
+      "pendiente",
+      "aprobado",
+      "aceptado",
+      "activo",
+      "vencido",
+    ].includes(p.estado),
   );
   const prestamosHistoricos = prestamos.filter((p) =>
     ["devuelto", "rechazado"].includes(p.estado),
@@ -314,7 +382,7 @@ const HistoryScreen = () => {
             </View>
           </View>
           <View style={styles.prestamoDetails}>
-            {item.estado === "pendiente" && (
+            {item.estado === "espera" && (
               <View style={styles.dateInfo}>
                 <Ionicons
                   name="hourglass-outline"
@@ -392,7 +460,7 @@ const HistoryScreen = () => {
           </View>
           <View style={styles.cardActionsRow}>
             {/* PENDIENTE: solo Cancelar discreto */}
-            {item.estado === "pendiente" && (
+            {item.estado === "espera" && (
               <TouchableOpacity
                 style={styles.cancelChip}
                 onPress={() => handleCancelar(item)}
@@ -560,9 +628,9 @@ const HistoryScreen = () => {
         ) : (
           <View style={{ flex: 1, width: "100%" }}>
             <FlatList
-              data={listData}
+              data={prestamos}
               renderItem={renderItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
               key={numColumns + selectedTab}
               numColumns={numColumns}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -654,7 +722,7 @@ const HistoryScreen = () => {
                 {(() => {
                   const estadoSafe = (selectedPrestamo.estado ||
                     (selectedPrestamo as any).Estado ||
-                    "pendiente") as string;
+                    "espera") as string;
                   const tokens = getEstadoStyles(estadoSafe);
                   return (
                     <View
@@ -712,7 +780,7 @@ const HistoryScreen = () => {
                       color={Colors.light.primary}
                     />
                     <Text style={styles.qrPlaceholderText}>
-                      QR pendiente de generar
+                      QR espera de generar
                     </Text>
                   </View>
                 )}

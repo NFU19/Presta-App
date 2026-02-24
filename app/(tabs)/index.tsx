@@ -5,12 +5,9 @@ import { useRouter } from "expo-router";
 import {
   arrayRemove,
   arrayUnion,
-  collection,
   doc,
-  onSnapshot as onDocSnapshot,
-  onSnapshot,
   setDoc,
-  updateDoc,
+  updateDoc
 } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -36,10 +33,18 @@ import { auth, db } from "../../firebaseConfig";
 interface Equipo {
   id: string;
   nombre: string;
-  categoria?: string;
   tipo?: string;
+  categoria?: string;
+  marca?: string;
+  modelo?: string;
+  serie?: string;
   estado?: boolean;
+  ubicacion?: string;
+  cantidad?: number;
+  foto?: string;
   imagen?: string;
+  especificaciones?: string;
+  codigo?: string;
 }
 
 const CatalogScreen = () => {
@@ -55,43 +60,34 @@ const CatalogScreen = () => {
   const { isMobile, isTablet } = useResponsive();
 
   useEffect(() => {
-    const unsubscribeEquipos = onSnapshot(
-      collection(db, "equipos"),
-      (snapshot) => {
-        const data = snapshot.docs.map((doc) => ({
-          ...(doc.data() as Equipo),
-          id: doc.id,
-        }));
-        setEquipos(data);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error al obtener equipos", error);
-        Alert.alert("Error", "No se pudieron cargar los equipos.");
-        setLoading(false);
-      },
-    );
+    fetchEquipos();
+  }, []);
 
-    const user = auth.currentUser;
-    if (user) {
-      const userRef = doc(db, "usuarios", user.uid);
-      const unsubscribeUser = onDocSnapshot(
-        userRef,
-        (snap) => {
-          const favs = (snap.data()?.favoritos as string[] | undefined) || [];
-          setFavoriteIds(favs);
-        },
-        () => undefined,
+  const fetchEquipos = async () => {
+    try {
+      const response = await fetch("http://217.182.64.251:8002/articulos");
+      const data = await response.json();
+
+      const mapped: Equipo[] = data.map((item: any, index: number) => ({
+        id: item.ID,
+        nombre: item.Nombre ?? "",
+        categoria: item.Categoria ?? "",
+        estado: item.Estado ?? false,
+        imagen: item.Foto ?? "",
+      }));
+
+      // 🔥 eliminar duplicados por id
+      const unique = Array.from(
+        new Map(mapped.map((item) => [item.id, item])).values(),
       );
 
-      return () => {
-        unsubscribeEquipos();
-        unsubscribeUser();
-      };
+      setEquipos(unique);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching equipos:", error);
+      setLoading(false);
     }
-
-    return () => unsubscribeEquipos();
-  }, []);
+  };
 
   const numColumns = 2;
 
@@ -151,11 +147,11 @@ const CatalogScreen = () => {
     router.push({
       pathname: "../product-details" as any,
       params: {
-        id: item.id,
-        nombre: item.nombre,
-        categoria: item.categoria || "Sin categoría",
-        estado: item.estado?.toString() || "false",
-        imagen: item.imagen || "https://via.placeholder.com/300",
+        id: item.id as string,
+        nombre: item.Nombre,
+        categoria: item.Categoria || "Sin categoría",
+        estado: item.Estado?.toString() || "false",
+        imagen: item.Foto || "https://via.placeholder.com/300",
       },
     });
   };
@@ -231,7 +227,6 @@ const CatalogScreen = () => {
           <ActivityIndicator size="large" color="#007bff" style={{ flex: 1 }} />
         ) : (
           <FlatList
-            key={numColumns}
             data={displayedEquipos}
             renderItem={({ item }) => (
               <GridProductCard
