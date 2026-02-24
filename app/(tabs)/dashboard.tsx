@@ -5,37 +5,39 @@ import { Colors } from "@/constants/theme";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import {
-    collection,
-    DocumentData,
-    onSnapshot,
-    QueryDocumentSnapshot,
-} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Easing,
-    FlatList,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SideMenu } from "../../components/shared/side-menu";
-import { db } from "../../firebaseConfig";
 
 // Interfaces
 interface Equipo {
   id: string;
   nombre: string;
   tipo?: string;
+  categoria?: string;
+  marca?: string;
+  modelo?: string;
+  serie?: string;
   estado?: boolean;
+  ubicacion?: string;
+  cantidad?: number;
+  foto?: string;
   imagen?: string;
+  especificaciones?: string;
+  codigo?: string;
 }
 
 // Componente de Carrusel Horizontal
@@ -125,34 +127,55 @@ const DashboardScreen = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
-  // Cargar datos de Firebase
+  // Cargar datos del vps
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "equipos"), (snapshot) => {
-      const equiposData: Equipo[] = snapshot.docs.map(
-        (doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id,
-          nombre: doc.data().nombre || "Nombre no disponible",
-          tipo: doc.data().tipo || "Sin tipo",
-          estado: doc.data().estado !== undefined ? doc.data().estado : true,
-          imagen: doc.data().imagen,
-        }),
-      );
-      setEquipos(equiposData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    fetchEquipos();
   }, []);
+
+  const fetchEquipos = () => {
+    try {
+      fetch("http://217.182.64.251:8002/articulos")
+        .then((response) => response.json())
+        .then((data) => {
+          const articulos = data.map((item: any) => ({
+            id: String(item.ID),
+            nombre: item.Nombre,
+            tipo: item.Categoria,
+            categoria: item.Categoria,
+            marca: item.Marca,
+            modelo: item.Modelo,
+            serie: item.Serie,
+            estado: item.Estado,
+            ubicacion: item.Ubicacion,
+            cantidad: item.Cantidad,
+            imagen: item.Foto,
+            foto: item.Foto,
+            especificaciones: item.Especificaciones,
+          }));
+          setEquipos(articulos);
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error("Error al cargar equipos:", error);
+          setEquipos([]);
+          setLoading(false);
+        });
+    } catch (error) {
+      console.error("Error al cargar equipos:", error);
+      setEquipos([]);
+      setLoading(false);
+    }
+  };
 
   const handleProductPress = (item: Equipo) => {
     router.push({
       pathname: "/product-details",
       params: {
         id: item.id,
-        nombre: item.nombre,
-        categoria: item.tipo || "Sin tipo",
-        estado: item.estado?.toString() || "false",
-        imagen: item.imagen || "https://via.placeholder.com/300",
+        nombre: item.Nombre,
+        categoria: item.Categoria || "Sin tipo",
+        estado: item.Estado?.toString() || "false",
+        imagen: item.Foto || "https://via.placeholder.com/300",
       },
     });
   };

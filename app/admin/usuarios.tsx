@@ -40,6 +40,7 @@ const UsuariosAdminScreen = () => {
   const [rol, setRol] = useState<'Estudiante' | 'Docente' | 'Administrador'>('Estudiante'); // RF-1
   const [showRolModal, setShowRolModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [password, setPassword] = useState(''); // Campo para password (RF-1)
 
   const { isMobile, isTablet } = useResponsive();
 
@@ -125,6 +126,54 @@ const UsuariosAdminScreen = () => {
     setRol('Estudiante'); // RF-1
   };
 
+  const actualizarUsuario =async () => {
+    try {
+      fetch(`https://217.182.64.251/usuarios/modificar/${editingUser?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+          telefono: telefono.trim(),
+          correo: correo.trim(),
+          matricula: matricula.trim(),
+          rol, // RF-1
+        }),
+      })
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error al actualizar el usuario.');
+      console.error("Error updating user: ", error);
+    }
+  }
+
+  const crearUsuario = async () => {
+    try {
+      fetch('http://217.182.64.251:8002/usuarios/crear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+          matricula: matricula.trim(),
+          telefono: telefono.trim(),
+          email: correo.trim(),
+          rol: 'user',
+          carrera: 'Sin asignar',
+          password: password.trim(), // RF-1
+          created_at: new Date().toISOString().split('T')[0], // Solo fecha en formato YYYY-MM-DD
+
+        }),
+      })
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error al registrar el usuario.');
+      console.error("Error creating user: ", error);
+    }
+  }
+
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
@@ -164,25 +213,11 @@ const UsuariosAdminScreen = () => {
     try {
       if (editingUser) {
         // Actualizar usuario existente
-        await actualizarUsuario(editingUser.id, {
-          nombre: nombre.trim(),
-          apellido: apellido.trim(),
-          telefono: telefono.trim(),
-          correo: correo.trim(),
-          matricula: matricula.trim(),
-          rol, // RF-1
-        });
+        actualizarUsuario();
         Alert.alert('Éxito', 'Usuario actualizado correctamente.');
       } else {
         // Crear nuevo usuario
-        await registrarUsuario({
-          nombre: nombre.trim(),
-          apellido: apellido.trim(),
-          telefono: telefono.trim(),
-          correo: correo.trim(),
-          matricula: matricula.trim(),
-          rol, // RF-1
-        });
+        crearUsuario();
         Alert.alert('Éxito', 'Usuario registrado correctamente.');
       }
       setModalVisible(false);
@@ -354,6 +389,18 @@ const UsuariosAdminScreen = () => {
                   onChangeText={setNombre}
                   placeholder="Ingrese el nombre"
                   placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Password *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Ingrese el password"
+                  placeholderTextColor="#9ca3af"
+                  secureTextEntry={true}
                 />
               </View>
 

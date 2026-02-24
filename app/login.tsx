@@ -1,48 +1,69 @@
-
-import { useRouter } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useState } from 'react';
-import { 
-  Alert, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View, 
-  KeyboardAvoidingView, 
-  ScrollView,
-  Platform,
+import { Colors } from "@/constants/theme";
+import { useVpsUser } from "@/contexts/VpsUserContext";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
-  ActivityIndicator
-} from 'react-native';
-import { auth } from '../firebaseConfig';
-import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { auth } from "../firebaseConfig";
+import { obtenerUsuarioPorCorreo } from "../services/usuarioService";
 
-const { width } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
+const { width } = Dimensions.get("window");
+const isWeb = Platform.OS === "web";
 const isMobile = width < 768;
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { setVpsUserId } = useVpsUser();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor, ingresa tu email y contraseña.');
+      Alert.alert("Error", "Por favor, ingresa tu email y contraseña.");
       return;
     }
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/handle-redirect');
+
+      // Obtener el ID del usuario del VPS
+      const usuarioVPS = await obtenerUsuarioPorCorreo(email);
+      console.log("Usuario VPS obtenido:", usuarioVPS);
+
+      if (usuarioVPS) {
+        await setVpsUserId(usuarioVPS.id.toString());
+        console.log("ID guardado en contexto:", usuarioVPS.id);
+      } else {
+        console.warn("No se encontró el usuario en VPS, continuando sin ID");
+        Alert.alert(
+          "Advertencia",
+          "No se encontró tu cuenta en el sistema. Por favor contacta al administrador.",
+        );
+      }
+
+      router.replace("/handle-redirect");
     } catch (error: any) {
       console.error("Login Error: ", error);
-      Alert.alert('Error de Inicio de Sesión', 'Credenciales incorrectas. Verifica tu email y contraseña.');
+      Alert.alert(
+        "Error de Inicio de Sesión",
+        "Credenciales incorrectas. Verifica tu email y contraseña.",
+      );
     } finally {
       setLoading(false);
     }
@@ -56,7 +77,7 @@ const LoginScreen = () => {
         </View>
         <Text style={styles.brandTitle}>SG-PRÉSTAMOS</Text>
         <Text style={styles.brandSubtitle}>
-          Gestión inteligente de equipos{'\n'}tecnológicos para tu institución
+          Gestión inteligente de equipos{"\n"}tecnológicos para tu institución
         </Text>
         <View style={styles.featuresContainer}>
           <View style={styles.featureItem}>
@@ -78,11 +99,11 @@ const LoginScreen = () => {
 
   const renderForm = () => (
     <View style={styles.formPanel}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.formContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -96,19 +117,25 @@ const LoginScreen = () => {
 
           <View style={styles.formHeader}>
             <Text style={styles.welcomeTitle}>¡Bienvenido de nuevo!</Text>
-            <Text style={styles.welcomeSubtitle}>Inicia sesión en tu cuenta</Text>
+            <Text style={styles.welcomeSubtitle}>
+              Inicia sesión en tu cuenta
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Correo Electrónico</Text>
-            <View style={[
-              styles.inputWrapper,
-              focusedInput === 'email' && styles.inputWrapperFocused
-            ]}>
-              <Ionicons 
-                name="mail-outline" 
-                size={20} 
-                color={focusedInput === 'email' ? Colors.light.secondary : '#888'} 
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedInput === "email" && styles.inputWrapperFocused,
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={20}
+                color={
+                  focusedInput === "email" ? Colors.light.secondary : "#888"
+                }
                 style={styles.inputIcon}
               />
               <TextInput
@@ -117,7 +144,7 @@ const LoginScreen = () => {
                 placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={setEmail}
-                onFocus={() => setFocusedInput('email')}
+                onFocus={() => setFocusedInput("email")}
                 onBlur={() => setFocusedInput(null)}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -129,14 +156,18 @@ const LoginScreen = () => {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Contraseña</Text>
-            <View style={[
-              styles.inputWrapper,
-              focusedInput === 'password' && styles.inputWrapperFocused
-            ]}>
-              <Ionicons 
-                name="lock-closed-outline" 
-                size={20} 
-                color={focusedInput === 'password' ? Colors.light.secondary : '#888'} 
+            <View
+              style={[
+                styles.inputWrapper,
+                focusedInput === "password" && styles.inputWrapperFocused,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={20}
+                color={
+                  focusedInput === "password" ? Colors.light.secondary : "#888"
+                }
                 style={styles.inputIcon}
               />
               <TextInput
@@ -145,39 +176,44 @@ const LoginScreen = () => {
                 placeholderTextColor="#aaa"
                 value={password}
                 onChangeText={setPassword}
-                onFocus={() => setFocusedInput('password')}
+                onFocus={() => setFocusedInput("password")}
                 onBlur={() => setFocusedInput(null)}
                 secureTextEntry={!showPassword}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
                 editable={!loading}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               >
-                <Ionicons 
-                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                  size={20} 
-                  color="#888" 
+                <Ionicons
+                  name={showPassword ? "eye-outline" : "eye-off-outline"}
+                  size={20}
+                  color="#888"
                 />
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.forgotContainer}>
-            <TouchableOpacity 
-              onPress={() => router.push('/forgot-password')}
+            <TouchableOpacity
+              onPress={() => router.push("/forgot-password")}
               disabled={loading}
             >
-              <Text style={[styles.forgotText, loading && styles.forgotTextDisabled]}>
+              <Text
+                style={[
+                  styles.forgotText,
+                  loading && styles.forgotTextDisabled,
+                ]}
+              >
                 ¿Olvidaste tu contraseña?
               </Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]} 
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -204,24 +240,19 @@ const LoginScreen = () => {
     );
   }
 
-  return (
-    <View style={styles.mobileContainer}>
-      {renderForm()}
-    </View>
-  );
+  return <View style={styles.mobileContainer}>{renderForm()}</View>;
 };
-
 
 const styles = StyleSheet.create({
   // Layout principal
   container: {
     flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
   },
   mobileContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 
   // Panel de marca (izquierda en web)
@@ -229,10 +260,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.light.primary,
     padding: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
   },
   brandContent: {
     maxWidth: 500,
@@ -242,21 +273,21 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 30,
   },
   brandTitle: {
     fontSize: 42,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 20,
     letterSpacing: -1,
   },
   brandSubtitle: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: "rgba(255, 255, 255, 0.9)",
     lineHeight: 28,
     marginBottom: 40,
   },
@@ -264,43 +295,45 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 15,
   },
   featureText: {
     fontSize: 16,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 12,
   },
 
   // Panel de formulario (derecha en web, todo en móvil)
   formPanel: {
     flex: 1,
-    backgroundColor: '#fff',
-    ...(isWeb && !isMobile ? {
-      maxWidth: 600,
-      minWidth: 500,
-    } : {}),
+    backgroundColor: "#fff",
+    ...(isWeb && !isMobile
+      ? {
+          maxWidth: 600,
+          minWidth: 500,
+        }
+      : {}),
   },
   formContainer: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: isWeb && !isMobile ? 60 : 24,
     paddingTop: isMobile ? 40 : 60,
   },
 
   // Header móvil
   mobileHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   mobileTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.primary,
     marginTop: 12,
   },
@@ -311,7 +344,7 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.light.textDark,
     marginBottom: 8,
   },
@@ -326,22 +359,22 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.textDark,
     marginBottom: 8,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: "transparent",
     paddingHorizontal: 16,
     height: 56,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 3,
@@ -352,7 +385,7 @@ const styles = StyleSheet.create({
     }),
   },
   inputWrapperFocused: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderColor: Colors.light.secondary,
     ...Platform.select({
       ios: {
@@ -373,27 +406,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: Colors.light.textDark,
-    height: '100%',
+    height: "100%",
   },
   passwordInput: {
     paddingRight: 40,
   },
   eyeIcon: {
     padding: 8,
-    position: 'absolute',
+    position: "absolute",
     right: 8,
   },
 
   // Recuperar contraseña
   forgotContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginTop: -8,
     marginBottom: 16,
   },
   forgotText: {
     fontSize: 14,
     color: Colors.light.secondary,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   forgotTextDisabled: {
     opacity: 0.7,
@@ -401,12 +434,12 @@ const styles = StyleSheet.create({
 
   // Botón principal
   loginButton: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.light.secondary,
     height: 56,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 8,
     ...Platform.select({
       ios: {
@@ -424,13 +457,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginRight: 8,
   },
-
-  
 });
 
 export default LoginScreen;

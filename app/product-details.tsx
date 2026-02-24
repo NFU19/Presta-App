@@ -4,28 +4,36 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    arrayRemove,
-    arrayUnion,
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
+  arrayRemove,
+  arrayUnion,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
 } from "firebase/firestore";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
-    Alert,
-    Image,
-    Modal,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { auth, db } from "../firebaseConfig";
+
+interface ProductData {
+  id: string;
+  nombre: string;
+  categoria: string;
+  imagen: string;
+  estado: boolean;
+}
 
 const ProductDetailsScreen = () => {
   const router = useRouter();
@@ -33,7 +41,8 @@ const ProductDetailsScreen = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
   const { width } = useWindowDimensions();
-  const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+  const [productData, setProductData] = useState<ProductData | null>(null);
 
   // Responsive values
   const imageHeight = isMobile ? 250 : isTablet ? 350 : 450;
@@ -43,35 +52,48 @@ const ProductDetailsScreen = () => {
   // Datos del producto que vendrían de los parámetros
   const product = {
     id: params.id as string,
-    nombre: params.nombre as string,
-    categoria: params.categoria as string,
-    estado: params.estado === "true",
-    imagen: params.imagen as string,
   };
 
   const handleRequestLoan = () => {
+    if (!productData) return;
+
     router.push({
       pathname: "/loan-request-modal" as any,
       params: {
+        id_usuario: auth.currentUser?.uid,
         id: product.id,
-        nombre: product.nombre,
-        categoria: product.categoria,
+        nombre: productData.nombre,
+        categoria: productData.categoria,
       },
     });
   };
 
-  const syncFavoriteState = async () => {
+  const syncFavoriteState = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
     const userRef = doc(db, "usuarios", user.uid);
     const snapshot = await getDoc(userRef);
     const favs = (snapshot.data()?.favoritos as string[] | undefined) || [];
     setIsFavorite(favs.includes(product.id));
-  };
+  }, [product.id]);
+
+  const fetchArticulo = useCallback(() => {
+    fetch(`http://217.182.64.251:8002/articulos/id/${product.id}`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Datos del equipozzzzzzzzzzz:", data);
+        setProductData(data);
+      })
+      .catch((error) => {
+        console.error("Error al obtener datos del equipo:", error);
+        Alert.alert("Error", "No pudimos cargar los detalles del equipo.");
+      });
+  }, [product.id]);
 
   React.useEffect(() => {
     syncFavoriteState();
-  }, [product.id]);
+    fetchArticulo();
+  }, [syncFavoriteState, fetchArticulo]);
 
   const handleAddToFavorites = async () => {
     const user = auth.currentUser;
@@ -155,14 +177,18 @@ const ProductDetailsScreen = () => {
             >
               <Image
                 source={{
-                  uri: product.imagen || "https://via.placeholder.com/300",
+                  uri: productData?.foto || "https://via.placeholder.com/300",
                 }}
                 style={[styles.productImage, { height: imageHeight }]}
               />
               <View
                 style={[
                   styles.availabilityBadge,
-                  { backgroundColor: product.estado ? "#28a745" : "#dc3545" },
+                  {
+                    backgroundColor: productData?.estado
+                      ? "#28a745"
+                      : "#dc3545",
+                  },
                 ]}
               >
                 <Text
@@ -171,7 +197,7 @@ const ProductDetailsScreen = () => {
                     { fontSize: isMobile ? 12 : 14 },
                   ]}
                 >
-                  {product.estado ? "Disponible" : "No Disponible"}
+                  {productData?.estado ? "Disponible" : "No Disponible"}
                 </Text>
               </View>
             </View>
@@ -182,7 +208,7 @@ const ProductDetailsScreen = () => {
                   { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
                 ]}
               >
-                {product.nombre}
+                {productData?.nombre}
               </Text>
               <Text
                 style={[
@@ -190,7 +216,7 @@ const ProductDetailsScreen = () => {
                   { fontSize: isMobile ? 14 : 16 },
                 ]}
               >
-                {product.categoria}
+                {productData?.categoria}
               </Text>
             </View>
           </View>
@@ -205,13 +231,13 @@ const ProductDetailsScreen = () => {
                 color="#525f7f"
               />
               <Text style={styles.detailText}>
-                Código: {product.id?.substring(0, 8).toUpperCase()}
+                Código: {productData?.id}
               </Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="pricetag-outline" size={20} color="#525f7f" />
               <Text style={styles.detailText}>
-                Categoría: {product.categoria}
+                Categoría: {productData?.categoria}
               </Text>
             </View>
             <View style={styles.detailRow}>
@@ -283,7 +309,7 @@ const ProductDetailsScreen = () => {
             <View style={styles.featuresContainer}>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>Estado: Excelente</Text>
+                <Text style={styles.featureText}>Estado: {productData?.estado}</Text>
               </View>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
@@ -307,14 +333,16 @@ const ProductDetailsScreen = () => {
             <TouchableOpacity
               style={[
                 styles.primaryButton,
-                { backgroundColor: product.estado ? "#007bff" : "#6c757d" },
+                {
+                  backgroundColor: productData?.estado ? "#007bff" : "#6c757d",
+                },
               ]}
               onPress={handleRequestLoan}
-              disabled={!product.estado}
+              disabled={!productData?.estado}
             >
               <Ionicons name="calendar-outline" size={20} color="#fff" />
               <Text style={styles.primaryButtonText}>
-                {product.estado ? "Solicitar Préstamo" : "No Disponible"}
+                {productData?.estado ? "Solicitar Préstamo" : "No Disponible"}
               </Text>
             </TouchableOpacity>
 

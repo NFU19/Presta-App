@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Colors } from "@/constants/theme";
+import { useVpsUser } from "@/contexts/VpsUserContext";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -47,6 +48,7 @@ const ProfileScreen = () => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
   const pathname = usePathname();
+  const { clearVpsUserId } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
 
@@ -108,9 +110,16 @@ const ProfileScreen = () => {
     fetchUserProfile();
   }, []);
 
-  const handleLogout = () => {
-    auth.signOut();
-    router.replace("/login");
+  const handleLogout = async () => {
+    try {
+      await clearVpsUserId();
+      auth.signOut();
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout Error: ", error);
+      auth.signOut();
+      router.replace("/login");
+    }
   };
 
   const handleSaveProfile = () => {

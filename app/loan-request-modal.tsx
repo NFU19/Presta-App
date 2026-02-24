@@ -1,20 +1,21 @@
 import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper";
 import { Colors } from "@/constants/theme";
+import { useVpsUser } from "@/contexts/VpsUserContext";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { auth } from "../firebaseConfig";
 import { crearSolicitudPrestamo } from "../services/prestamoService";
@@ -28,6 +29,7 @@ const LoanRequestModal = () => {
   const [customPurposeDescription, setCustomPurposeDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sliderWidth, setSliderWidth] = useState(1);
+  const { vpsUserId, isLoading: vpsLoading } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
 
@@ -69,6 +71,74 @@ const LoanRequestModal = () => {
     { value: "presentation", label: "Presentación", icon: "easel-outline" },
     { value: "other", label: "Otro", icon: "ellipsis-horizontal-outline" },
   ];
+
+  const crearPrestamo = async () => {
+    console.log("Intentando crear préstamo con vpsUserId:", vpsUserId);
+
+    if (!vpsUserId) {
+      Alert.alert(
+        "Error",
+        "No se pudo obtener el ID del usuario. Por favor, inicia sesión nuevamente.",
+        [{ text: "OK", onPress: () => router.replace("/login") }],
+      );
+      return;
+    }
+
+    const idUsuarioNumerico = parseInt(vpsUserId);
+    if (isNaN(idUsuarioNumerico)) {
+      Alert.alert(
+        "Error",
+        "ID de usuario inválido. Por favor, inicia sesión nuevamente.",
+      );
+      return;
+    }
+
+    console.log("ID usuario numérico:", idUsuarioNumerico);
+
+    // crear prestamo en vps
+    fetch("http://217.182.64.251:8002/prestamos/crear", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id_usuario: idUsuarioNumerico,
+        id_articulo: product.id as string,
+        fecha_inicio: new Date().toISOString().split("T")[0], // Solo fecha sin hora
+        fecha_fin: new Date(
+          Date.now() + parseInt(selectedDuration) * 24 * 60 * 60 * 1000,
+        ).toISOString().split("T")[0], // Solo fecha sin hora
+        fecha_solicitud: new Date().toISOString().split("T")[0], // Solo fecha sin hora
+        fecha_aprobacion: null,
+        nota: "xd",
+        proposito:
+          selectedPurpose === "other"
+            ? customPurposeDescription.trim()
+            : selectedPurpose,
+        estado: "espera",
+        qr: "xd",
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Respuesta del servidor:", data);
+        if (data.success) {
+          Alert.alert(
+            "Solicitud Enviada",
+            `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "Ocurrió un error al crear la solicitud de préstamo. Por favor, intenta de nuevo.",
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error al crear el préstamo:", error);
+        Alert.alert("Error", "No se pudo crear la solicitud de préstamo.");
+      });
+  };
 
   const handleSliderChange = (positionX: number) => {
     const clamped = Math.min(Math.max(positionX, 0), sliderWidth);
@@ -516,7 +586,7 @@ const LoanRequestModal = () => {
                     customPurposeDescription.trim().length > 100))) &&
                 styles.disabledButton,
             ]}
-            onPress={handleSubmitRequest}
+            onPress={crearPrestamo}
             disabled={
               isSubmitting ||
               !selectedPurpose ||
