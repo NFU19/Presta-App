@@ -5,22 +5,22 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { usePathname, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Easing,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  Alert,
+  Animated,
+  Easing,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SideMenu } from "../../components/shared/side-menu";
 import { auth } from "../../firebaseConfig";
@@ -48,7 +48,7 @@ const ProfileScreen = () => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
   const pathname = usePathname();
-  const { clearVpsUserId } = useVpsUser();
+  const { vpsUserId, clearVpsUserId } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop, isWeb } = useResponsive();
 
@@ -81,24 +81,82 @@ const ProfileScreen = () => {
     setIsMenuVisible(!isMenuVisible);
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     const user = auth.currentUser;
-    if (user) {
-      // Por ahora usaremos datos simulados para Marlon
+    if (!user) {
+      return;
+    }
+
+    // Si no hay ID del VPS, solo usar datos de Firebase
+    if (!vpsUserId) {
       const profile = {
-        nombre: "Marlon",
-        apellidos: "Gómez",
-        email: "marlon@gmail.com",
-        telefono: "+52 55 1234 5678",
-        ubicacion: "CDMX, México",
-        matricula: "A01234567",
+        nombre: user.displayName?.split(" ")[0] || "Usuario",
+        apellidos: user.displayName?.split(" ").slice(1).join(" ") || "",
+        email: user.email || "",
+        telefono: "",
+        ubicacion: "",
+        matricula: "",
         avatar:
-          "https://ui-avatars.com/api/?name=Marlon&background=1a3a6b&color=fff",
+          user.photoURL ||
+          `https://ui-avatars.com/api/?name=${user.displayName || "Usuario"}&background=1a3a6b&color=fff`,
+      };
+      setUserProfile(profile);
+      setDraftProfile(profile);
+      return;
+    }
+
+    // Obtener datos del usuario desde el VPS
+    try {
+      console.log("Obteniendo perfil de usuario VPS con ID:", vpsUserId);
+      const response = await fetch(
+        `http://217.182.64.251:8002/usuarios/id/${vpsUserId}`,
+      );
+
+      if (!response.ok) {
+        console.log("Error al obtener perfil del VPS:", response.status);
+        throw new Error("No se pudo obtener el perfil del usuario");
+      }
+
+      const userData = await response.json();
+      console.log("Datos del usuario obtenidos del VPS:", userData);
+
+      const profile: UserProfile = {
+        nombre: userData.nombre || user.displayName?.split(" ")[0] || "Usuario",
+        apellidos:
+          userData.apellido ||
+          userData.apellidos ||
+          user.displayName?.split(" ").slice(1).join(" ") ||
+          "",
+        email: userData.correo || user.email || "",
+        telefono: userData.telefono || "",
+        ubicacion: userData.ubicacion || "",
+        matricula: userData.matricula || "",
+        avatar:
+          userData.foto ||
+          user.photoURL ||
+          `https://ui-avatars.com/api/?name=${userData.nombre || "Usuario"}&background=1a3a6b&color=fff`,
+      };
+
+      setUserProfile(profile);
+      setDraftProfile(profile);
+    } catch (error) {
+      console.error("Error al obtener perfil del VPS:", error);
+      // Fallback a datos de Firebase si falla
+      const profile = {
+        nombre: user.displayName?.split(" ")[0] || "Usuario",
+        apellidos: user.displayName?.split(" ").slice(1).join(" ") || "",
+        email: user.email || "",
+        telefono: "",
+        ubicacion: "",
+        matricula: "",
+        avatar:
+          user.photoURL ||
+          `https://ui-avatars.com/api/?name=${user.displayName || "Usuario"}&background=1a3a6b&color=fff`,
       };
       setUserProfile(profile);
       setDraftProfile(profile);
     }
-  };
+  }, [vpsUserId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -108,7 +166,7 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+  }, [fetchUserProfile]);
 
   const handleLogout = async () => {
     try {
