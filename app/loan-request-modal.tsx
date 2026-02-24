@@ -122,17 +122,11 @@ const LoanRequestModal = () => {
       .then((response) => response.json())
       .then((data) => {
         console.log("Respuesta del servidor:", data);
-        if (data.success) {
-          Alert.alert(
-            "Solicitud Enviada",
-            `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
-          );
-        } else {
-          Alert.alert(
-            "Error",
-            "Ocurrió un error al crear la solicitud de préstamo. Por favor, intenta de nuevo.",
-          );
-        }
+        router.back();
+        Alert.alert(
+          'Solicitud Enviada',
+          `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
+        )
       })
       .catch((error) => {
         console.error("Error al crear el préstamo:", error);
