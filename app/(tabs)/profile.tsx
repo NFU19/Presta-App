@@ -180,11 +180,50 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!draftProfile) return;
-    setUserProfile(draftProfile);
-    setIsEditing(false);
-    Alert.alert("Perfil actualizado", "Tus datos se han guardado.");
+
+    try {
+      console.log("Datos enviados al VPS:", {
+        id: vpsUserId,
+        ubicacion: draftProfile.ubicacion,
+      });
+
+      // Opción 1: Endpoint específico para ubicación
+      const response = await fetch(
+        `http://217.182.64.251:8002/usuarios/modificar/ubicacion/${vpsUserId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ubicacion: draftProfile.ubicacion,
+          }),
+        },
+      );
+
+      console.log("Respuesta del servidor:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(
+          "Error al guardar perfil en el VPS:",
+          response.status,
+          errorData,
+        );
+        throw new Error(
+          `No se pudo guardar el perfil del usuario: ${errorData}`,
+        );
+      }
+
+      setUserProfile(draftProfile);
+      setIsEditing(false);
+      Alert.alert("Perfil actualizado", "Tus datos se han guardado.");
+    } catch (error) {
+      console.error("Error al guardar perfil:", error);
+      Alert.alert("Error", "No pudimos guardar tu perfil. Intenta de nuevo.");
+    }
   };
 
   const handleUpdateLocation = async () => {
