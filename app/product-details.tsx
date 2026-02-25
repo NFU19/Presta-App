@@ -152,18 +152,7 @@ const ProductDetailsScreen = () => {
               >
                 Detalles del Producto
               </Text>
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  onPress={handleAddToFavorites}
-                  style={styles.favoriteButton}
-                >
-                  <Ionicons
-                    name={isFavorite ? "heart" : "heart-outline"}
-                    size={isMobile ? 22 : 24}
-                    color={Colors.light.error}
-                  />
-                </TouchableOpacity>
-              </View>
+              
             </View>
           </Header>
 

@@ -48,11 +48,6 @@ export function SideMenu({
           link: "/(tabs)/profile",
         },
         {
-          title: "Mis Favoritos",
-          icon: "heart-outline",
-          link: "/(tabs)/favorites",
-        },
-        {
           title: "Mis Préstamos",
           icon: "time-outline",
           link: "/(tabs)/history",

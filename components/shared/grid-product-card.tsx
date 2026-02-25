@@ -59,23 +59,7 @@ export const GridProductCard = ({
               <Text style={styles.unavailableText}>No disponible</Text>
             </View>
           )}
-          {onToggleFavorite && (
-            <TouchableOpacity
-              style={styles.favoriteButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                onToggleFavorite();
-              }}
-              activeOpacity={0.85}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
-                size={18}
-                color={Colors.light.error}
-              />
-            </TouchableOpacity>
-          )}
+          
         </View>
         <View style={[styles.productInfo, { padding: isMobile ? 12 : 14 }]}>
           <Text
