@@ -1,22 +1,24 @@
 import { Colors } from "@/constants/theme";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    DimensionValue,
-    FlatList,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  DimensionValue,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -136,8 +138,12 @@ const AdminDashboard = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalAnimation] = useState(new Animated.Value(0));
 
-  // Modal mock para escaneo QR (RF-6)
+  // Modal para escaneo QR (RF-6)
   const [showQrModal, setShowQrModal] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scannedData, setScannedData] = useState<string | null>(null);
+  const [scannedPrestamo, setScannedPrestamo] = useState<Prestamo | null>(null);
+  const router = useRouter();
 
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
@@ -256,26 +262,45 @@ const AdminDashboard = () => {
 
   // Acciones RF-5 (aprobación/rechazo)
   const actualizarEstadoPrestamo = (
-    prestamoId: string,
-    nuevoEstado: "aprobado" | "rechazado",
+    id: string,
+    estado: "aprobado" | "rechazado",
   ) => {
+
+    try {
+      fetch(`http://217.182.64.251:8002/prestamos/uriel/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ Estado: estado, fecha_aprobacion: new Date().toISOString().split('T')[0] }),
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error('Error al actualizar el estado del préstamo');
+        }
+      }
+      )
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "No se pudo actualizar el estado del préstamo. Por favor, inténtalo de nuevo.",
+      );
+      console.error("Error al actualizar el estado del préstamo:", error);
+    }
+
     setPrestamosHoy((prev) =>
       prev.map((p) =>
-        p.id === prestamoId ? { ...p, estado: nuevoEstado } : p,
+        p.id === id ? { ...p, estado } : p,
       ),
     );
     setPrestamosActivos((prev) =>
       prev.map((p) =>
-        p.id === prestamoId ? { ...p, estado: nuevoEstado } : p,
+        p.id === id ? { ...p, estado } : p,
       ),
     );
   };
 
   const aprobarPrestamo = (prestamoId: string) => {
-    Alert.alert(
-      "Demo",
-      "En la versión completa, esto aprobaría la solicitud y notificaría al usuario.",
-    );
+    
     actualizarEstadoPrestamo(prestamoId, "aprobado");
   };
 
@@ -808,30 +833,169 @@ const AdminDashboard = () => {
   const containerPadding = isMobile ? 16 : isTablet ? 20 : 24;
   const titleSize = isMobile ? 22 : isTablet ? 26 : 32;
 
-  // Datos de ejemplo para las gráficas
-  const lineChartData = [45, 52, 48, 65, 70, 58];
-  const lineChartLabels = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"];
+  // CALCULAR DATOS DINÁMICOS DESDE EL BACKEND
 
-  const barChartData = [
-    { label: "Laptops", value: 20, color: "#3b82f6" },
-    { label: "Proyectores", value: 15, color: "#8b5cf6" },
-    { label: "Cámaras", value: 8, color: "#ec4899" },
-    { label: "Tablets", value: 12, color: "#10b981" },
-    { label: "Otros", value: 14, color: "#f59e0b" },
-  ];
+  // Préstamos por mes (últimos 6 meses)
+  const lineChartData = React.useMemo(() => {
+    if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0)
+      return [0, 0, 0, 0, 0, 0];
 
-  const pieChartData = [
-    { name: "Activos", value: 45, color: "#10b981" },
-    { name: "Pendientes", value: 18, color: "#fbbf24" },
-    { name: "Devueltos", value: 32, color: "#6b7280" },
-    { name: "Vencidos", value: 5, color: "#ef4444" },
-  ];
+    const now = new Date();
+    const monthCounts = [0, 0, 0, 0, 0, 0];
 
-  const progressData = [
-    { label: "Disponibilidad", value: 0.84, color: "#3b82f6" },
-    { label: "Utilización", value: 0.72, color: "#8b5cf6" },
-    { label: "Satisfacción", value: 0.91, color: "#10b981" },
-  ];
+    prestamosHoy.forEach((prestamo) => {
+      const fechaSolicitud = prestamo.fechaSolicitud
+        ? new Date(prestamo.fechaSolicitud)
+        : null;
+      if (fechaSolicitud && !isNaN(fechaSolicitud.getTime())) {
+        const monthsAgo =
+          (now.getFullYear() - fechaSolicitud.getFullYear()) * 12 +
+          (now.getMonth() - fechaSolicitud.getMonth());
+        if (monthsAgo >= 0 && monthsAgo < 6) {
+          monthCounts[5 - monthsAgo]++;
+        }
+      }
+    });
+
+    return monthCounts;
+  }, [prestamosHoy]);
+
+  const lineChartLabels = React.useMemo(() => {
+    const now = new Date();
+    const labels = [];
+    const meses = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(meses[date.getMonth()]);
+    }
+
+    return labels;
+  }, []);
+
+  // Equipos por categoría
+  const barChartData = React.useMemo(() => {
+    if (!Array.isArray(equipos) || equipos.length === 0) return [];
+
+    const categorias: { [key: string]: number } = {};
+    equipos.forEach((equipo) => {
+      const categoria = equipo.categoria || equipo.tipo || "Otros";
+      categorias[categoria] = (categorias[categoria] || 0) + 1;
+    });
+
+    const colores = [
+      "#3b82f6",
+      "#8b5cf6",
+      "#ec4899",
+      "#10b981",
+      "#f59e0b",
+      "#06b6d4",
+      "#f43f5e",
+    ];
+
+    return Object.entries(categorias)
+      .map(([label, value], index) => ({
+        label,
+        value,
+        color: colores[index % colores.length],
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 7);
+  }, [equipos]);
+
+  // Estados de préstamos
+  const pieChartData = React.useMemo(() => {
+    if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0) {
+      return [{ name: "Sin datos", value: 1, color: "#e5e7eb" }];
+    }
+
+    const estados: { [key: string]: number } = {};
+    prestamosHoy.forEach((prestamo) => {
+      const estado = prestamo.estado || "desconocido";
+      estados[estado] = (estados[estado] || 0) + 1;
+    });
+
+    const estadoMap: { [key: string]: { name: string; color: string } } = {
+      aceptado: { name: "Activos", color: "#10b981" },
+      aprobado: { name: "Activos", color: "#10b981" },
+      pendiente: { name: "Pendientes", color: "#fbbf24" },
+      devuelto: { name: "Devueltos", color: "#6b7280" },
+      rechazado: { name: "Rechazados", color: "#ef4444" },
+      vencido: { name: "Vencidos", color: "#dc2626" },
+    };
+
+    const consolidado: { [key: string]: { value: number; color: string } } = {};
+    Object.entries(estados).forEach(([estado, count]) => {
+      const mapped = estadoMap[estado] || {
+        name: estado.charAt(0).toUpperCase() + estado.slice(1),
+        color: "#9ca3af",
+      };
+      if (consolidado[mapped.name]) {
+        consolidado[mapped.name].value += count;
+      } else {
+        consolidado[mapped.name] = { value: count, color: mapped.color };
+      }
+    });
+
+    return Object.entries(consolidado).map(([name, data]) => ({
+      name,
+      value: data.value,
+      color: data.color,
+    }));
+  }, [prestamosHoy]);
+
+  // Métricas de progreso
+  const progressData = React.useMemo(() => {
+    const totalEquipos = equipos.length || 1;
+    const equiposDisponibles = equipos.filter((e) => e.estado).length;
+    const disponibilidad = equiposDisponibles / totalEquipos;
+
+    const utilizacion = prestamosActivos.length / totalEquipos;
+
+    // Calcular satisfacción basado en préstamos completados vs rechazados
+    const completados =
+      prestamosHoy.filter(
+        (p) =>
+          p.estado === "devuelto" ||
+          p.estado === "aprobado" ||
+          p.estado === "aceptado",
+      ).length || 1;
+    const rechazados = prestamosHoy.filter(
+      (p) => p.estado === "rechazado",
+    ).length;
+    const satisfaccion = completados / (completados + rechazados);
+
+    return [
+      {
+        label: "Disponibilidad",
+        value: Math.min(disponibilidad, 1),
+        color: "#3b82f6",
+      },
+      {
+        label: "Utilización",
+        value: Math.min(utilizacion, 1),
+        color: "#8b5cf6",
+      },
+      {
+        label: "Satisfacción",
+        value: Math.min(satisfaccion, 1),
+        color: "#10b981",
+      },
+    ];
+  }, [equipos, prestamosActivos, prestamosHoy]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -1146,7 +1310,7 @@ const AdminDashboard = () => {
                   <Text
                     style={[styles.insightValue, isMobile && { fontSize: 24 }]}
                   >
-                    84%
+                    {((progressData[0]?.value || 0) * 100).toFixed(0)}%
                   </Text>
                   <Text
                     style={[styles.insightLabel, isMobile && { fontSize: 11 }]}
@@ -1167,7 +1331,7 @@ const AdminDashboard = () => {
                   <Text
                     style={[styles.insightValue, isMobile && { fontSize: 24 }]}
                   >
-                    134
+                    {usuarios.filter((u) => u.activo).length}
                   </Text>
                   <Text
                     style={[styles.insightLabel, isMobile && { fontSize: 11 }]}
@@ -1188,7 +1352,26 @@ const AdminDashboard = () => {
                   <Text
                     style={[styles.insightValue, isMobile && { fontSize: 24 }]}
                   >
-                    5.2
+                    {(() => {
+                      const prestamosConFechas = prestamosHoy.filter(
+                        (p) => p.fechaSolicitud && p.fechaDevolucionEsperada,
+                      );
+                      if (prestamosConFechas.length === 0) return "0";
+                      const promedio =
+                        prestamosConFechas.reduce((sum, p) => {
+                          const inicio = new Date(p.fechaSolicitud);
+                          const fin = new Date(p.fechaDevolucionEsperada!);
+                          const dias = Math.max(
+                            0,
+                            Math.ceil(
+                              (fin.getTime() - inicio.getTime()) /
+                                (1000 * 60 * 60 * 24),
+                            ),
+                          );
+                          return sum + dias;
+                        }, 0) / prestamosConFechas.length;
+                      return promedio.toFixed(1);
+                    })()}
                   </Text>
                   <Text
                     style={[styles.insightLabel, isMobile && { fontSize: 11 }]}
@@ -1209,7 +1392,18 @@ const AdminDashboard = () => {
                   <Text
                     style={[styles.insightValue, isMobile && { fontSize: 24 }]}
                   >
-                    +15%
+                    {(() => {
+                      if (lineChartData.length < 2) return "+0%";
+                      const mesAnterior =
+                        lineChartData[lineChartData.length - 2] || 1;
+                      const mesActual =
+                        lineChartData[lineChartData.length - 1] || 0;
+                      const crecimiento =
+                        mesAnterior === 0
+                          ? 0
+                          : ((mesActual - mesAnterior) / mesAnterior) * 100;
+                      return `${crecimiento >= 0 ? "+" : ""}${crecimiento.toFixed(0)}%`;
+                    })()}
                   </Text>
                   <Text
                     style={[styles.insightLabel, isMobile && { fontSize: 11 }]}
@@ -1249,45 +1443,207 @@ const AdminDashboard = () => {
         <Text style={styles.fabText}>Escanear QR</Text>
       </TouchableOpacity>
 
-      {/* Modal mock de cámara QR */}
+      {/* Modal de cámara QR */}
       <Modal
         visible={showQrModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowQrModal(false)}
+        onRequestClose={() => {
+          setShowQrModal(false);
+          setScannedData(null);
+          setScannedPrestamo(null);
+        }}
       >
         <View style={styles.qrModalOverlay}>
           <View style={styles.qrModalContent}>
             <View style={styles.qrModalHeader}>
               <Ionicons name="qr-code" size={26} color="#0A2540" />
               <Text style={styles.qrModalTitle}>Escanear Código QR</Text>
-              <TouchableOpacity onPress={() => setShowQrModal(false)}>
-                <Ionicons name="close" size={22} color="#6b7280" />
+              <TouchableOpacity
+                onPress={() => {
+                  setShowQrModal(false);
+                  setScannedData(null);
+                  setScannedPrestamo(null);
+                }}
+              >
+                <Ionicons name="close" size={26} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            <View style={styles.qrMockCamera}>
-              <Ionicons name="scan-outline" size={64} color="#0A66FF" />
-              <Text
-                style={styles.qrMockText}
-              >{`Simulación de cámara\n(implementación real pendiente)`}</Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                styles.actionButtonSuccess,
-                styles.qrPrimaryButton,
-              ]}
-              onPress={() => {
-                Alert.alert(
-                  "Demo",
-                  "Simulando lectura de QR y actualización de estado",
-                );
-                setShowQrModal(false);
-              }}
-            >
-              <Ionicons name="flash" size={18} color="#fff" />
-              <Text style={styles.actionButtonText}>Simular escaneo</Text>
-            </TouchableOpacity>
+
+            {!permission?.granted ? (
+              <View style={styles.qrMockCamera}>
+                <Ionicons name="camera-outline" size={64} color="#0A66FF" />
+                <Text style={styles.qrMockText}>
+                  Se necesita permiso para acceder a la cámara
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    styles.actionButtonSuccess,
+                    { marginTop: 16 },
+                  ]}
+                  onPress={requestPermission}
+                >
+                  <Ionicons name="camera" size={18} color="#fff" />
+                  <Text style={styles.actionButtonText}>Permitir Cámara</Text>
+                </TouchableOpacity>
+              </View>
+            ) : scannedPrestamo ? (
+              <View style={styles.qrResultContainer}>
+                <View style={styles.qrResultHeader}>
+                  <Ionicons name="checkmark-circle" size={48} color="#10b981" />
+                  <Text style={styles.qrResultTitle}>QR Escaneado</Text>
+                </View>
+
+                <View style={styles.qrResultCard}>
+                  <View style={styles.qrResultRow}>
+                    <Text style={styles.qrResultLabel}>Equipo:</Text>
+                    <Text style={styles.qrResultValue}>
+                      {scannedPrestamo.equipoNombre}
+                    </Text>
+                  </View>
+                  <View style={styles.qrResultRow}>
+                    <Text style={styles.qrResultLabel}>Usuario:</Text>
+                    <Text style={styles.qrResultValue}>
+                      {scannedPrestamo.usuarioNombre}
+                    </Text>
+                  </View>
+                  <View style={styles.qrResultRow}>
+                    <Text style={styles.qrResultLabel}>Estado:</Text>
+                    <View
+                      style={[
+                        styles.pill,
+                        {
+                          backgroundColor: getStatusTokens(
+                            scannedPrestamo.estado,
+                          ).bg,
+                          borderColor: getStatusTokens(scannedPrestamo.estado)
+                            .border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.pillText,
+                          {
+                            color: getStatusTokens(scannedPrestamo.estado).text,
+                          },
+                        ]}
+                      >
+                        {formatEstadoLabel(scannedPrestamo.estado)}
+                      </Text>
+                    </View>
+                  </View>
+                  {scannedPrestamo.proposito && (
+                    <View style={styles.qrResultRow}>
+                      <Text style={styles.qrResultLabel}>Propósito:</Text>
+                      <Text style={styles.qrResultValue}>
+                        {scannedPrestamo.proposito}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {scannedPrestamo.estado === "pendiente" && (
+                  <View style={styles.qrActionsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.actionButton,
+                        styles.actionButtonSuccess,
+                        { flex: 1 },
+                      ]}
+                      onPress={() => {
+                        aprobarPrestamo(scannedPrestamo.id);
+                        setShowQrModal(false);
+                        setScannedData(null);
+                        setScannedPrestamo(null);
+                      }}
+                    >
+                      <Ionicons name="checkmark" size={18} color="#fff" />
+                      <Text style={styles.actionButtonText}>Aprobar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.actionButton,
+                        styles.actionButtonDanger,
+                        { flex: 1 },
+                      ]}
+                      onPress={() => {
+                        rechazarPrestamo(scannedPrestamo.id);
+                        setShowQrModal(false);
+                        setScannedData(null);
+                        setScannedPrestamo(null);
+                      }}
+                    >
+                      <Ionicons name="close" size={18} color="#fff" />
+                      <Text style={styles.actionButtonText}>Rechazar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: "#6b7280", marginTop: 12 },
+                  ]}
+                  onPress={() => {
+                    setScannedData(null);
+                    setScannedPrestamo(null);
+                  }}
+                >
+                  <Ionicons name="scan" size={18} color="#fff" />
+                  <Text style={styles.actionButtonText}>Escanear Otro</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.cameraContainer}>
+                <CameraView
+                  style={styles.camera}
+                  facing="back"
+                  barcodeScannerSettings={{
+                    barcodeTypes: ["qr"],
+                  }}
+                  onBarcodeScanned={(result) => {
+                    if (scannedData) return; // Evitar múltiples escaneos
+
+                    setScannedData(result.data);
+
+                    // Buscar el préstamo por ID o QR
+                    const prestamoId = result.data;
+                    const prestamo = [
+                      ...prestamosActivos,
+                      ...prestamosHoy,
+                    ].find(
+                      (p) =>
+                        p.id === prestamoId || p.id.toString() === prestamoId,
+                    );
+
+                    if (prestamo) {
+                      setScannedPrestamo(prestamo);
+                    } else {
+                      Alert.alert(
+                        "Préstamo no encontrado",
+                        `No se encontró el préstamo con ID: ${prestamoId}`,
+                        [
+                          {
+                            text: "OK",
+                            onPress: () => {
+                              setScannedData(null);
+                            },
+                          },
+                        ],
+                      );
+                    }
+                  }}
+                />
+                <View style={styles.scannerOverlay}>
+                  <View style={styles.scannerFrame} />
+                  <Text style={styles.scannerText}>
+                    Apunta al código QR del préstamo
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -1965,6 +2321,81 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     justifyContent: "center",
     marginTop: 8,
+  },
+  cameraContainer: {
+    height: 400,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  camera: {
+    flex: 1,
+  },
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  scannerFrame: {
+    width: 250,
+    height: 250,
+    borderWidth: 3,
+    borderColor: "#fff",
+    borderRadius: 16,
+    backgroundColor: "transparent",
+  },
+  scannerText: {
+    marginTop: 20,
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  qrResultContainer: {
+    padding: 16,
+  },
+  qrResultHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  qrResultTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0A2540",
+    marginTop: 8,
+  },
+  qrResultCard: {
+    backgroundColor: "#f7f9fc",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
+  },
+  qrResultRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  qrResultLabel: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  qrResultValue: {
+    fontSize: 14,
+    color: "#0A2540",
+    fontWeight: "700",
+    flex: 1,
+    textAlign: "right",
+  },
+  qrActionsContainer: {
+    flexDirection: "row",
+    gap: 12,
   },
   emptyState: {
     alignItems: "center",
