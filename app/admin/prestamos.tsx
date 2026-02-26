@@ -57,6 +57,7 @@ const PrestamosAdminScreen = () => {
 
           // Verificar que el ID existe
           console.log("Primer ID encontrado:", prestamosArray[0].ID);
+          console.log("Estado del primer préstamo:", prestamosArray[0].Estado);
         }
 
         setSolicitudes(prestamosArray);
@@ -194,11 +195,22 @@ const PrestamosAdminScreen = () => {
 
   const getEstadoBadge = (Estado: EstadoPrestamo) => {
     const config = {
-      espera: { label: "espera", color: "#ffc107", icon: "time-outline" },
+      espera: { label: "En espera", color: "#ffc107", icon: "time-outline" },
+      pendiente: { label: "Pendiente", color: "#ffc107", icon: "time-outline" },
+      "En espera": {
+        label: "En espera",
+        color: "#ffc107",
+        icon: "time-outline",
+      },
       aceptado: {
         label: "Aceptado",
         color: "#17a2b8",
         icon: "checkmark-circle-outline",
+      },
+      denegado: {
+        label: "Denegado",
+        color: "#dc3545",
+        icon: "close-circle-outline",
       },
       activo: {
         label: "Activo",
@@ -211,9 +223,16 @@ const PrestamosAdminScreen = () => {
     return { label, color, icon };
   };
 
-  const formatDate = (date?: Date) => {
+  const formatDate = (date?: Date | string) => {
     if (!date) return "-";
-    return date.toLocaleDateString("es-MX", {
+
+    // Si es string, convertir a Date
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    // Validar que sea una fecha válida
+    if (isNaN(dateObj.getTime())) return "-";
+
+    return dateObj.toLocaleDateString("es-MX", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -298,12 +317,14 @@ const PrestamosAdminScreen = () => {
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={18} color={Colors.light.gray} />
             <Text style={styles.infoTextSmall}>
-              Solicitado: {formatDate(solicitud.fechaSolicitud)}
+              Solicitado: {formatDate(solicitud.Fecha_Solicitud)}
             </Text>
           </View>
         </View>
 
-        {solicitud.Estado === "espera" && (
+        {(solicitud.Estado === "espera" ||
+          solicitud.Estado === "pendiente" ||
+          solicitud.Estado === "En espera") && (
           <View style={styles.cardActions}>
             <TouchableOpacity
               style={[styles.actionButton, styles.approveButton]}
@@ -355,10 +376,15 @@ const PrestamosAdminScreen = () => {
           >
             {Array.isArray(solicitudes)
               ? solicitudes
-                  .filter((s) => s.Estado === "espera")
+                  .filter(
+                    (s) =>
+                      s.Estado === "espera" ||
+                      s.Estado === "pendiente" ||
+                      s.Estado === "En espera",
+                  )
                   .length.toString()
               : "0"}{" "}
-            solicitudes esperas
+            solicitudes en espera
           </Text>
         </View>
       </View>
@@ -387,9 +413,9 @@ const PrestamosAdminScreen = () => {
             (isMobile || isTablet) && styles.cardsContainerMobile,
           ]}
         >
-          {solicitudes.map((solicitud) => (
+          {solicitudes.map((solicitud, index) => (
             <PrestamoCard
-              key={(solicitud as any).Id || solicitud.id}
+              key={(solicitud as any).ID || index}
               solicitud={solicitud}
             />
           ))}

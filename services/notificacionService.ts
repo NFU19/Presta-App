@@ -410,7 +410,7 @@ export const rechazarPrestamoConNotificacion = async (
   motivoRechazo: string,
 ): Promise<{ success: boolean; message?: string }> => {
   try {
-    const fechaAprobacion = new Date().toISOString();
+    const fechaAprobacion = new Date().toISOString().split("T")[0]; // Solo fecha sin hora
 
     const response = await fetch(
       buildUrl(API_CONFIG.ENDPOINTS.ACTUALIZAR_PRESTAMO(Number(prestamoId))),
@@ -421,7 +421,7 @@ export const rechazarPrestamoConNotificacion = async (
         },
         body: JSON.stringify({
           id: Number(prestamoId),
-          estado: "rechazado",
+          estado: "denegado",
           fecha_aprobacion: fechaAprobacion,
         }),
         signal: createTimeoutSignal(API_CONFIG.TIMEOUT),
