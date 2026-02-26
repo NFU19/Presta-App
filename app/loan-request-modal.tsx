@@ -32,6 +32,7 @@ const LoanRequestModal = () => {
   const { vpsUserId, isLoading: vpsLoading } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
+  const [qrData, setQrData] = useState<string | null>(null);
 
   // Responsive values
   const contentPadding = isMobile ? 16 : isTablet ? 20 : 24;
@@ -62,6 +63,11 @@ const LoanRequestModal = () => {
     if (value !== "other") {
       setCustomPurposeDescription("");
     }
+  };
+
+  const generateQRData = () => {
+    const data = vpsUserId?.toString() || "";
+    setQrData(data);
   };
 
   const purposeOptions = [
@@ -95,6 +101,10 @@ const LoanRequestModal = () => {
 
     console.log("ID usuario numérico:", idUsuarioNumerico);
 
+    // Generar QR data (usar directamente el vpsUserId)
+    const qrCode = vpsUserId.toString();
+    console.log("Código QR generado:", qrCode);
+
     // crear prestamo en vps
     fetch("http://217.182.64.251:8002/prestamos/crear", {
       method: "POST",
@@ -107,7 +117,9 @@ const LoanRequestModal = () => {
         fecha_inicio: new Date().toISOString().split("T")[0], // Solo fecha sin hora
         fecha_fin: new Date(
           Date.now() + parseInt(selectedDuration) * 24 * 60 * 60 * 1000,
-        ).toISOString().split("T")[0], // Solo fecha sin hora
+        )
+          .toISOString()
+          .split("T")[0], // Solo fecha sin hora
         fecha_solicitud: new Date().toISOString().split("T")[0], // Solo fecha sin hora
         fecha_aprobacion: null,
         nota: "xd",
@@ -116,7 +128,7 @@ const LoanRequestModal = () => {
             ? customPurposeDescription.trim()
             : selectedPurpose,
         estado: "espera",
-        qr: "xd",
+        qr: qrCode,
       }),
     })
       .then((response) => response.json())
@@ -124,9 +136,9 @@ const LoanRequestModal = () => {
         console.log("Respuesta del servidor:", data);
         router.back();
         Alert.alert(
-          'Solicitud Enviada',
+          "Solicitud Enviada",
           `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
-        )
+        );
       })
       .catch((error) => {
         console.error("Error al crear el préstamo:", error);
