@@ -31,7 +31,7 @@ const EquipoModalScreen = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
-  const estadoOptions = ['disponible', 'agotado'];
+  const estadoOptions = ["disponible", "agotado"];
 
   const handleEstadoSelect = (selectedEstado: string) => {
     setEstado(selectedEstado);
@@ -47,7 +47,7 @@ const EquipoModalScreen = () => {
 
   const fetchArticulo = async () => {
     try {
-      fetch(`http://217.182.64.251:8002/articulos/id/${id}`)
+      fetch(`https://prestaapp.site/articulos/id/${id}`)
         .then((response) => response.json())
         .then((data) => {
           setNombre(data.nombre || "");
@@ -103,7 +103,7 @@ const EquipoModalScreen = () => {
     try {
       if (isEditMode) {
         // make a post request to create articulo
-        await fetch(`http://217.182.64.251:8002/articulos/crear`, {
+        await fetch(`https://prestaapp.site/articulos/crear`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -112,7 +112,7 @@ const EquipoModalScreen = () => {
         });
         Alert.alert("Éxito", "Equipo actualizado correctamente.");
       } else {
-        await fetch(`http://217.182.64.251:8002/articulos/crear`, {
+        await fetch(`https://prestaapp.site/articulos/crear`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -206,7 +206,8 @@ const EquipoModalScreen = () => {
                       key={option}
                       style={[
                         styles.dropdownOption,
-                        hoveredOption === option && styles.dropdownOptionHovered
+                        hoveredOption === option &&
+                          styles.dropdownOptionHovered,
                       ]}
                       onPress={() => handleEstadoSelect(option)}
                       onMouseEnter={() => setHoveredOption(option)}

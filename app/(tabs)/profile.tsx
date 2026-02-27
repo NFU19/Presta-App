@@ -7,20 +7,20 @@ import * as Location from "expo-location";
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  Animated,
-  Easing,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    Alert,
+    Animated,
+    Easing,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 import { SideMenu } from "../../components/shared/side-menu";
 import { auth } from "../../firebaseConfig";
@@ -109,7 +109,7 @@ const ProfileScreen = () => {
     try {
       console.log("Obteniendo perfil de usuario VPS con ID:", vpsUserId);
       const response = await fetch(
-        `http://217.182.64.251:8002/usuarios/id/${vpsUserId}`,
+        `https://prestaapp.site/usuarios/id/${vpsUserId}`,
       );
 
       if (!response.ok) {
@@ -191,7 +191,7 @@ const ProfileScreen = () => {
 
       // Opción 1: Endpoint específico para ubicación
       const response = await fetch(
-        `http://217.182.64.251:8002/usuarios/modificar/ubicacion/${vpsUserId}`,
+        `https://prestaapp.site/usuarios/modificar/ubicacion/${vpsUserId}`,
         {
           method: "PUT",
           headers: {

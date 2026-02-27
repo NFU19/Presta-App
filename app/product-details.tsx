@@ -4,26 +4,26 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  arrayRemove,
-  arrayUnion,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
+    arrayRemove,
+    arrayUnion,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
 } from "firebase/firestore";
 import React, { useCallback, useState } from "react";
 import {
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { auth, db } from "../firebaseConfig";
 
@@ -78,7 +78,7 @@ const ProductDetailsScreen = () => {
   }, [product.id]);
 
   const fetchArticulo = useCallback(() => {
-    fetch(`http://217.182.64.251:8002/articulos/id/${product.id}`)
+    fetch(`https://prestaapp.site/articulos/id/${product.id}`)
       .then((response) => response.json())
       .then((data) => {
         console.log("Datos del equipozzzzzzzzzzz:", data);
@@ -152,7 +152,6 @@ const ProductDetailsScreen = () => {
               >
                 Detalles del Producto
               </Text>
-              
             </View>
           </Header>
 
@@ -219,9 +218,7 @@ const ProductDetailsScreen = () => {
                 size={20}
                 color="#525f7f"
               />
-              <Text style={styles.detailText}>
-                Código: {productData?.id}
-              </Text>
+              <Text style={styles.detailText}>Código: {productData?.id}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="pricetag-outline" size={20} color="#525f7f" />
@@ -298,7 +295,9 @@ const ProductDetailsScreen = () => {
             <View style={styles.featuresContainer}>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>Estado: {productData?.estado}</Text>
+                <Text style={styles.featureText}>
+                  Estado: {productData?.estado}
+                </Text>
               </View>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />

@@ -6,16 +6,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { auth } from "../firebaseConfig";
 import { crearSolicitudPrestamo } from "../services/prestamoService";
@@ -106,7 +106,7 @@ const LoanRequestModal = () => {
     console.log("Código QR generado:", qrCode);
 
     // crear prestamo en vps
-    fetch("http://217.182.64.251:8002/prestamos/crear", {
+    fetch("https://prestaapp.site/prestamos/crear", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

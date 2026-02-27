@@ -3,24 +3,24 @@ import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-  arrayRemove,
-  arrayUnion,
-  doc,
-  setDoc,
-  updateDoc
+    arrayRemove,
+    arrayUnion,
+    doc,
+    setDoc,
+    updateDoc,
 } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  FlatList,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
+    FlatList,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    TextInput,
+    View,
 } from "react-native";
 
 import { Header } from "@/components/header";
@@ -65,7 +65,7 @@ const CatalogScreen = () => {
 
   const fetchEquipos = async () => {
     try {
-      const response = await fetch("http://217.182.64.251:8002/articulos");
+      const response = await fetch("https://prestaapp.site/articulos");
       const data = await response.json();
 
       const mapped: Equipo[] = data.map((item: any, index: number) => ({

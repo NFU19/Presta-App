@@ -5,20 +5,20 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  DimensionValue,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    DimensionValue,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -153,9 +153,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     // Hacer todas las peticiones en paralelo
     Promise.all([
-      fetch("http://217.182.64.251:8002/prestamos").then((res) => res.json()),
-      fetch("http://217.182.64.251:8002/usuarios").then((res) => res.json()),
-      fetch("http://217.182.64.251:8002/articulos").then((res) => res.json()),
+      fetch("https://prestaapp.site/prestamos").then((res) => res.json()),
+      fetch("https://prestaapp.site/usuarios").then((res) => res.json()),
+      fetch("https://prestaapp.site/articulos").then((res) => res.json()),
     ])
       .then(([prestamosData, usuariosData, articulosData]) => {
         console.log("Préstamos recibidos:", prestamosData);
@@ -265,20 +265,21 @@ const AdminDashboard = () => {
     id: string,
     estado: "aprobado" | "rechazado",
   ) => {
-
     try {
-      fetch(`http://217.182.64.251:8002/prestamos/uriel/${id}`, {
-        method: 'PUT',
+      fetch(`https://prestaapp.site/prestamos/uriel/${id}`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ Estado: estado, fecha_aprobacion: new Date().toISOString().split('T')[0] }),
+        body: JSON.stringify({
+          Estado: estado,
+          fecha_aprobacion: new Date().toISOString().split("T")[0],
+        }),
       }).then((res) => {
         if (!res.ok) {
-          throw new Error('Error al actualizar el estado del préstamo');
+          throw new Error("Error al actualizar el estado del préstamo");
         }
-      }
-      )
+      });
     } catch (error) {
       Alert.alert(
         "Error",
@@ -288,19 +289,14 @@ const AdminDashboard = () => {
     }
 
     setPrestamosHoy((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, estado } : p,
-      ),
+      prev.map((p) => (p.id === id ? { ...p, estado } : p)),
     );
     setPrestamosActivos((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, estado } : p,
-      ),
+      prev.map((p) => (p.id === id ? { ...p, estado } : p)),
     );
   };
 
   const aprobarPrestamo = (prestamoId: string) => {
-    
     actualizarEstadoPrestamo(prestamoId, "aprobado");
   };
 

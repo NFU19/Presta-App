@@ -6,18 +6,18 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-  aprobarPrestamoConNotificacion,
-  rechazarPrestamoConNotificacion,
+    aprobarPrestamoConNotificacion,
+    rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -32,7 +32,7 @@ const PrestamosAdminScreen = () => {
   }, []);
 
   const fetchPrestamos = () => {
-    fetch("http://217.182.64.251:8002/prestamos")
+    fetch("https://prestaapp.site/prestamos")
       .then((response) => response.json())
       .then((data) => {
         console.log("API RESPONSE:", data);

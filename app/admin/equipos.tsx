@@ -1,23 +1,20 @@
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import {
-  deleteDoc,
-  doc
-} from "firebase/firestore";
+import { deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  DimensionValue,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    DimensionValue,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { db } from "../../firebaseConfig";
 
@@ -48,7 +45,7 @@ const EquiposAdminScreen = () => {
   }, []);
 
   const fetchArticulos = () => {
-    fetch("http://217.182.64.251:8002/articulos")
+    fetch("https://prestaapp.site/articulos")
       .then((response) => response.json())
       .then((data) => {
         console.log("Artículos recibidos:", data);

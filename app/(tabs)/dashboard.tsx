@@ -7,18 +7,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  FlatList,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Easing,
+    FlatList,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SideMenu } from "../../components/shared/side-menu";
 
@@ -134,7 +134,7 @@ const DashboardScreen = () => {
 
   const fetchEquipos = () => {
     try {
-      fetch("http://217.182.64.251:8002/articulos")
+      fetch("https://prestaapp.site/articulos")
         .then((response) => response.json())
         .then((data) => {
           const articulos = data.map((item: any) => ({

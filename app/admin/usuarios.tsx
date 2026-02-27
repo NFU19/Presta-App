@@ -1,46 +1,44 @@
-import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import { useEffect, useMemo, useState } from 'react';
+import { useResponsive } from "@/hooks/use-responsive";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Modal,
-  Platform,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { db } from '../../firebaseConfig';
-import { useResponsive } from '@/hooks/use-responsive';
-import { Usuario } from '@/types/usuario';
-import { 
-  registrarUsuario, 
-  actualizarUsuario, 
-  desactivarUsuario, 
-  activarUsuario, 
-  eliminarUsuario 
-} from '@/services/usuarioService';
+    activarUsuario,
+    desactivarUsuario,
+    eliminarUsuario,
+} from "@/services/usuarioService";
+import { Usuario } from "@/types/usuario";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 const UsuariosAdminScreen = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<Usuario | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Form fields
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [matricula, setMatricula] = useState('');
-  const [rol, setRol] = useState<'Estudiante' | 'Docente' | 'Administrador'>('Estudiante'); // RF-1
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [matricula, setMatricula] = useState("");
+  const [rol, setRol] = useState<"Estudiante" | "Docente" | "Administrador">(
+    "Estudiante",
+  ); // RF-1
   const [showRolModal, setShowRolModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [password, setPassword] = useState(''); // Campo para password (RF-1)
+  const [password, setPassword] = useState(""); // Campo para password (RF-1)
 
   const { isMobile, isTablet } = useResponsive();
 
@@ -49,14 +47,14 @@ const UsuariosAdminScreen = () => {
   }, []);
 
   const fetchUsuarios = () => {
-    fetch('http://217.182.64.251:8002/usuarios')
-      .then(response => response.json())
-      .then(data => {
+    fetch("https://prestaapp.site/usuarios")
+      .then((response) => response.json())
+      .then((data) => {
         setUsuarios(data);
         setLoading(false);
       })
-      .catch(error => {
-        Alert.alert('Error', 'No se pudieron cargar los usuarios.');
+      .catch((error) => {
+        Alert.alert("Error", "No se pudieron cargar los usuarios.");
         console.error("Error fetching users: ", error);
         setLoading(false);
       });
@@ -75,7 +73,7 @@ const UsuariosAdminScreen = () => {
     setTelefono(user.telefono);
     setCorreo(user.correo);
     setMatricula(user.matricula);
-    setRol(user.rol || 'Estudiante'); // RF-1
+    setRol(user.rol || "Estudiante"); // RF-1
     setModalVisible(true);
   };
 
@@ -83,55 +81,55 @@ const UsuariosAdminScreen = () => {
     try {
       if (user.activo) {
         await desactivarUsuario(user.id);
-        Alert.alert('Éxito', 'Usuario desactivado correctamente.');
+        Alert.alert("Éxito", "Usuario desactivado correctamente.");
       } else {
         await activarUsuario(user.id);
-        Alert.alert('Éxito', 'Usuario activado correctamente.');
+        Alert.alert("Éxito", "Usuario activado correctamente.");
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo cambiar el estado del usuario.');
+      Alert.alert("Error", "No se pudo cambiar el estado del usuario.");
       console.error("Error toggling user status: ", error);
     }
   };
 
   const handleDelete = (user: Usuario) => {
     Alert.alert(
-      'Confirmar Eliminación',
+      "Confirmar Eliminación",
       `¿Estás seguro de que quieres eliminar a "${user.nombre} ${user.apellido}"? Esta acción no se puede deshacer.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: async () => {
             try {
               await eliminarUsuario(user.id);
-              Alert.alert('Éxito', 'Usuario eliminado correctamente.');
+              Alert.alert("Éxito", "Usuario eliminado correctamente.");
             } catch (error) {
-              Alert.alert('Error', 'No se pudo eliminar el usuario.');
+              Alert.alert("Error", "No se pudo eliminar el usuario.");
               console.error("Error deleting user: ", error);
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const resetForm = () => {
-    setNombre('');
-    setApellido('');
-    setTelefono('');
-    setCorreo('');
-    setMatricula('');
-    setRol('Estudiante'); // RF-1
+    setNombre("");
+    setApellido("");
+    setTelefono("");
+    setCorreo("");
+    setMatricula("");
+    setRol("Estudiante"); // RF-1
   };
 
-  const actualizarUsuario =async () => {
+  const actualizarUsuario = async () => {
     try {
-      fetch(`https://217.182.64.251/usuarios/modificar/${editingUser?.id}`, {
-        method: 'PUT',
+      fetch(`https://prestaapp.site/usuarios/modificar/${editingUser?.id}`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           nombre: nombre.trim(),
@@ -141,19 +139,19 @@ const UsuariosAdminScreen = () => {
           matricula: matricula.trim(),
           rol, // RF-1
         }),
-      })
+      });
     } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error al actualizar el usuario.');
+      Alert.alert("Error", "Ocurrió un error al actualizar el usuario.");
       console.error("Error updating user: ", error);
     }
-  }
+  };
 
   const crearUsuario = async () => {
     try {
-      fetch('http://217.182.64.251:8002/usuarios/crear', {
-        method: 'POST',
+      fetch("https://prestaapp.site/usuarios/crear", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           nombre: nombre.trim(),
@@ -161,50 +159,49 @@ const UsuariosAdminScreen = () => {
           matricula: matricula.trim(),
           telefono: telefono.trim(),
           email: correo.trim(),
-          rol: 'user',
-          carrera: 'Sin asignar',
+          rol: "user",
+          carrera: "Sin asignar",
           password: password.trim(), // RF-1
-          created_at: new Date().toISOString().split('T')[0], // Solo fecha en formato YYYY-MM-DD
-
+          created_at: new Date().toISOString().split("T")[0], // Solo fecha en formato YYYY-MM-DD
         }),
-      })
+      });
     } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error al registrar el usuario.');
+      Alert.alert("Error", "Ocurrió un error al registrar el usuario.");
       console.error("Error creating user: ", error);
     }
-  }
+  };
 
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      Alert.alert('Error', 'El nombre es requerido');
+      Alert.alert("Error", "El nombre es requerido");
       return;
     }
     if (!apellido.trim()) {
-      Alert.alert('Error', 'El apellido es requerido');
+      Alert.alert("Error", "El apellido es requerido");
       return;
     }
     if (!telefono.trim()) {
-      Alert.alert('Error', 'El teléfono es requerido');
+      Alert.alert("Error", "El teléfono es requerido");
       return;
     }
     if (!correo.trim()) {
-      Alert.alert('Error', 'El correo es requerido');
+      Alert.alert("Error", "El correo es requerido");
       return;
     }
     if (!matricula.trim()) {
-      Alert.alert('Error', 'La matrícula es requerida');
+      Alert.alert("Error", "La matrícula es requerida");
       return;
     }
     if (!rol) {
-      Alert.alert('Error', 'El rol es requerido');
+      Alert.alert("Error", "El rol es requerido");
       return;
     }
 
     // Validar formato de correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(correo)) {
-      Alert.alert('Error', 'El correo no tiene un formato válido');
+      Alert.alert("Error", "El correo no tiene un formato válido");
       return;
     }
 
@@ -214,17 +211,20 @@ const UsuariosAdminScreen = () => {
       if (editingUser) {
         // Actualizar usuario existente
         actualizarUsuario();
-        Alert.alert('Éxito', 'Usuario actualizado correctamente.');
+        Alert.alert("Éxito", "Usuario actualizado correctamente.");
       } else {
         // Crear nuevo usuario
         crearUsuario();
-        Alert.alert('Éxito', 'Usuario registrado correctamente.');
+        Alert.alert("Éxito", "Usuario registrado correctamente.");
       }
       setModalVisible(false);
       resetForm();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ocurrió un error al guardar el usuario';
-      Alert.alert('Error', message);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al guardar el usuario";
+      Alert.alert("Error", message);
     } finally {
       setSubmitting(false);
     }
@@ -232,20 +232,33 @@ const UsuariosAdminScreen = () => {
 
   const filteredUsuarios = useMemo(() => {
     if (!searchTerm.trim()) return usuarios;
-    
+
     const term = searchTerm.toLowerCase();
-    return usuarios.filter(user => 
-      user.nombre.toLowerCase().includes(term) ||
-      user.apellido.toLowerCase().includes(term) ||
-      user.correo.toLowerCase().includes(term) ||
-      user.matricula.toLowerCase().includes(term)
+    return usuarios.filter(
+      (user) =>
+        user.nombre.toLowerCase().includes(term) ||
+        user.apellido.toLowerCase().includes(term) ||
+        user.correo.toLowerCase().includes(term) ||
+        user.matricula.toLowerCase().includes(term),
     );
   }, [usuarios, searchTerm]);
 
   const StatusBadge = ({ active }: { active: boolean }) => (
-    <View style={[styles.statusBadge, active ? styles.statusBadgeActive : styles.statusBadgeInactive]}>
-      <Text style={[styles.statusBadgeText, active ? styles.statusBadgeTextActive : styles.statusBadgeTextInactive]}>
-        {active ? 'Activo' : 'Inactivo'}
+    <View
+      style={[
+        styles.statusBadge,
+        active ? styles.statusBadgeActive : styles.statusBadgeInactive,
+      ]}
+    >
+      <Text
+        style={[
+          styles.statusBadgeText,
+          active
+            ? styles.statusBadgeTextActive
+            : styles.statusBadgeTextInactive,
+        ]}
+      >
+        {active ? "Activo" : "Inactivo"}
       </Text>
     </View>
   );
@@ -254,17 +267,17 @@ const UsuariosAdminScreen = () => {
     <View style={styles.userCard}>
       <View style={styles.userCardHeader}>
         <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>
-            {user.Email.charAt(0)}
-          </Text>
+          <Text style={styles.userAvatarText}>{user.Email.charAt(0)}</Text>
         </View>
         <View style={styles.userCardInfo}>
-          <Text style={styles.userCardName}>{user.nombre} {user.apellido}</Text>
+          <Text style={styles.userCardName}>
+            {user.nombre} {user.apellido}
+          </Text>
           <Text style={styles.userCardEmail}>{user.Email}</Text>
         </View>
         <StatusBadge active={user.activo} />
       </View>
-      
+
       <View style={styles.userCardBody}>
         <View style={styles.userCardRow}>
           <Ionicons name="call-outline" size={16} color="#6b7280" />
@@ -280,28 +293,39 @@ const UsuariosAdminScreen = () => {
           <Ionicons name="shield-checkmark-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Rol:</Text>
           <View style={styles.rolBadge}>
-            <Text style={styles.rolBadgeText}>{user.Rol || 'Sin asignar'}</Text>
+            <Text style={styles.rolBadgeText}>{user.Rol || "Sin asignar"}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.userCardActions}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.actionButtonEdit]} 
+        <TouchableOpacity
+          style={[styles.actionButton, styles.actionButtonEdit]}
           onPress={() => handleEdit(user)}
         >
           <Ionicons name="pencil" size={16} color="#fff" />
           <Text style={styles.actionButtonText}>Editar</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, user.activo ? styles.actionButtonWarning : styles.actionButtonSuccess]} 
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            user.activo
+              ? styles.actionButtonWarning
+              : styles.actionButtonSuccess,
+          ]}
           onPress={() => handleToggleActive(user)}
         >
-          <Ionicons name={user.activo ? "ban" : "checkmark-circle"} size={16} color="#fff" />
-          <Text style={styles.actionButtonText}>{user.activo ? 'Desactivar' : 'Activar'}</Text>
+          <Ionicons
+            name={user.activo ? "ban" : "checkmark-circle"}
+            size={16}
+            color="#fff"
+          />
+          <Text style={styles.actionButtonText}>
+            {user.activo ? "Desactivar" : "Activar"}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.actionButtonDanger]} 
+        <TouchableOpacity
+          style={[styles.actionButton, styles.actionButtonDanger]}
           onPress={() => handleDelete(user)}
         >
           <Ionicons name="trash" size={16} color="#fff" />
@@ -312,23 +336,52 @@ const UsuariosAdminScreen = () => {
   );
 
   return (
-    <ScrollView style={[styles.container, (isMobile || isTablet) && styles.containerMobile]}>
-      <View style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}>
-        <Text style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}>Gestión de Usuarios</Text>
-        <TouchableOpacity 
-          style={[styles.addButton, (isMobile || isTablet) && styles.addButtonMobile]} 
+    <ScrollView
+      style={[
+        styles.container,
+        (isMobile || isTablet) && styles.containerMobile,
+      ]}
+    >
+      <View
+        style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
+      >
+        <Text
+          style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}
+        >
+          Gestión de Usuarios
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            (isMobile || isTablet) && styles.addButtonMobile,
+          ]}
           onPress={handleAdd}
         >
-          <Ionicons name="person-add" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Ionicons
+            name="person-add"
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
           <Text style={styles.addButtonText}>
-            {isMobile ? 'Nuevo' : 'Registrar Usuario'}
+            {isMobile ? "Nuevo" : "Registrar Usuario"}
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, (isMobile || isTablet) && styles.searchContainerMobile]}>
-        <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
+      <View
+        style={[
+          styles.searchContainer,
+          (isMobile || isTablet) && styles.searchContainerMobile,
+        ]}
+      >
+        <Ionicons
+          name="search"
+          size={20}
+          color="#9ca3af"
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nombre, apellido, correo o matrícula..."
@@ -337,7 +390,7 @@ const UsuariosAdminScreen = () => {
           placeholderTextColor="#9ca3af"
         />
         {searchTerm.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchTerm('')}>
+          <TouchableOpacity onPress={() => setSearchTerm("")}>
             <Ionicons name="close-circle" size={20} color="#9ca3af" />
           </TouchableOpacity>
         )}
@@ -351,7 +404,9 @@ const UsuariosAdminScreen = () => {
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={64} color="#d1d5db" />
               <Text style={styles.emptyStateText}>
-                {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+                {searchTerm
+                  ? "No se encontraron usuarios"
+                  : "No hay usuarios registrados"}
               </Text>
             </View>
           ) : (
@@ -370,11 +425,16 @@ const UsuariosAdminScreen = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, (isMobile || isTablet) && styles.modalContentMobile]}>
+          <View
+            style={[
+              styles.modalContent,
+              (isMobile || isTablet) && styles.modalContentMobile,
+            ]}
+          >
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {editingUser ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
+                  {editingUser ? "Editar Usuario" : "Registrar Nuevo Usuario"}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Ionicons name="close" size={24} color="#6b7280" />
@@ -453,27 +513,32 @@ const UsuariosAdminScreen = () => {
 
               <View style={styles.formGroup}>
                 <Text style={styles.label}>Rol *</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.input, styles.dropdown]}
                   onPress={() => setShowRolModal(true)}
                 >
-                  <Text style={[styles.dropdownText, !rol && styles.dropdownPlaceholder]}>
-                    {rol || 'Selecciona el rol'}
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      !rol && styles.dropdownPlaceholder,
+                    ]}
+                  >
+                    {rol || "Selecciona el rol"}
                   </Text>
                   <Ionicons name="chevron-down" size={20} color="#6b7280" />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.modalButtonCancel]} 
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
                   onPress={() => setModalVisible(false)}
                   disabled={submitting}
                 >
                   <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.modalButtonSubmit]} 
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonSubmit]}
                   onPress={handleSubmit}
                   disabled={submitting}
                 >
@@ -481,7 +546,7 @@ const UsuariosAdminScreen = () => {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.modalButtonText}>
-                      {editingUser ? 'Actualizar' : 'Registrar'}
+                      {editingUser ? "Actualizar" : "Registrar"}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -501,68 +566,92 @@ const UsuariosAdminScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.rolModalContent}>
             <Text style={styles.rolModalTitle}>Selecciona el Rol</Text>
-            
-            <TouchableOpacity 
-              style={[styles.rolOption, rol === 'Estudiante' && styles.rolOptionSelected]}
+
+            <TouchableOpacity
+              style={[
+                styles.rolOption,
+                rol === "Estudiante" && styles.rolOptionSelected,
+              ]}
               onPress={() => {
-                setRol('Estudiante');
+                setRol("Estudiante");
                 setShowRolModal(false);
               }}
             >
-              <Ionicons 
-                name="school" 
-                size={24} 
-                color={rol === 'Estudiante' ? '#0A66FF' : '#6b7280'} 
+              <Ionicons
+                name="school"
+                size={24}
+                color={rol === "Estudiante" ? "#0A66FF" : "#6b7280"}
               />
-              <Text style={[styles.rolOptionText, rol === 'Estudiante' && styles.rolOptionTextSelected]}>
+              <Text
+                style={[
+                  styles.rolOptionText,
+                  rol === "Estudiante" && styles.rolOptionTextSelected,
+                ]}
+              >
                 Estudiante
               </Text>
-              {rol === 'Estudiante' && (
+              {rol === "Estudiante" && (
                 <Ionicons name="checkmark-circle" size={24} color="#0A66FF" />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.rolOption, rol === 'Docente' && styles.rolOptionSelected]}
+            <TouchableOpacity
+              style={[
+                styles.rolOption,
+                rol === "Docente" && styles.rolOptionSelected,
+              ]}
               onPress={() => {
-                setRol('Docente');
+                setRol("Docente");
                 setShowRolModal(false);
               }}
             >
-              <Ionicons 
-                name="person" 
-                size={24} 
-                color={rol === 'Docente' ? '#0A66FF' : '#6b7280'} 
+              <Ionicons
+                name="person"
+                size={24}
+                color={rol === "Docente" ? "#0A66FF" : "#6b7280"}
               />
-              <Text style={[styles.rolOptionText, rol === 'Docente' && styles.rolOptionTextSelected]}>
+              <Text
+                style={[
+                  styles.rolOptionText,
+                  rol === "Docente" && styles.rolOptionTextSelected,
+                ]}
+              >
                 Docente
               </Text>
-              {rol === 'Docente' && (
+              {rol === "Docente" && (
                 <Ionicons name="checkmark-circle" size={24} color="#0A66FF" />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.rolOption, rol === 'Administrador' && styles.rolOptionSelected]}
+            <TouchableOpacity
+              style={[
+                styles.rolOption,
+                rol === "Administrador" && styles.rolOptionSelected,
+              ]}
               onPress={() => {
-                setRol('Administrador');
+                setRol("Administrador");
                 setShowRolModal(false);
               }}
             >
-              <Ionicons 
-                name="shield-checkmark" 
-                size={24} 
-                color={rol === 'Administrador' ? '#0A66FF' : '#6b7280'} 
+              <Ionicons
+                name="shield-checkmark"
+                size={24}
+                color={rol === "Administrador" ? "#0A66FF" : "#6b7280"}
               />
-              <Text style={[styles.rolOptionText, rol === 'Administrador' && styles.rolOptionTextSelected]}>
+              <Text
+                style={[
+                  styles.rolOptionText,
+                  rol === "Administrador" && styles.rolOptionTextSelected,
+                ]}
+              >
                 Administrador
               </Text>
-              {rol === 'Administrador' && (
+              {rol === "Administrador" && (
                 <Ionicons name="checkmark-circle" size={24} color="#0A66FF" />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.rolModalCloseButton}
               onPress={() => setShowRolModal(false)}
             >
@@ -578,16 +667,16 @@ const UsuariosAdminScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fb',
+    backgroundColor: "#f5f7fb",
     padding: 24,
   },
   containerMobile: {
     padding: 16,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   headerMobile: {
@@ -597,8 +686,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#0A2540',
+    fontWeight: "800",
+    color: "#0A2540",
     letterSpacing: 0.2,
   },
   titleMobile: {
@@ -606,19 +695,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0A66FF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0A66FF",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
     ...Platform.select({
       web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        ':hover': {
-          backgroundColor: '#0856d6',
-          transform: 'translateY(-1px)',
+        cursor: "pointer",
+        transition: "all 0.2s",
+        ":hover": {
+          backgroundColor: "#0856d6",
+          transform: "translateY(-1px)",
         },
       },
     }),
@@ -628,20 +717,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   addButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   searchContainerMobile: {
     marginBottom: 16,
@@ -652,7 +741,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#1f2937',
+    color: "#1f2937",
   },
   loader: {
     marginTop: 40,
@@ -661,26 +750,26 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyStateText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: "#9ca3af",
+    textAlign: "center",
   },
   userCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     ...Platform.select({
       web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
@@ -689,39 +778,39 @@ const styles = StyleSheet.create({
     }),
   },
   userCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: "#f3f4f6",
   },
   userAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#0A66FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#0A66FF",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 12,
   },
   userAvatarText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   userCardInfo: {
     flex: 1,
   },
   userCardName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
     marginBottom: 4,
   },
   userCardEmail: {
     fontSize: 14,
-    color: '#6b7280',
+    color: "#6b7280",
   },
   statusBadge: {
     paddingHorizontal: 12,
@@ -729,159 +818,159 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   statusBadgeActive: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: "#d1fae5",
   },
   statusBadgeInactive: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: "#fee2e2",
   },
   statusBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statusBadgeTextActive: {
-    color: '#065f46',
+    color: "#065f46",
   },
   statusBadgeTextInactive: {
-    color: '#991b1b',
+    color: "#991b1b",
   },
   userCardBody: {
     gap: 12,
     marginBottom: 16,
   },
   userCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   userCardLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '600',
+    color: "#6b7280",
+    fontWeight: "600",
   },
   userCardValue: {
     fontSize: 14,
-    color: '#1f2937',
+    color: "#1f2937",
   },
   rolBadge: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: "#eff6ff",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: "#bfdbfe",
   },
   rolBadgeText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1e40af',
+    fontWeight: "600",
+    color: "#1e40af",
   },
   userCardActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     gap: 6,
     ...Platform.select({
       web: {
-        cursor: 'pointer',
+        cursor: "pointer",
       },
     }),
   },
   actionButtonEdit: {
-    backgroundColor: '#0A66FF',
+    backgroundColor: "#0A66FF",
   },
   actionButtonWarning: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: "#f59e0b",
   },
   actionButtonSuccess: {
-    backgroundColor: '#10b981',
+    backgroundColor: "#10b981",
   },
   actionButtonDanger: {
-    backgroundColor: '#ef4444',
+    backgroundColor: "#ef4444",
   },
   actionButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 24,
-    width: '100%',
+    width: "100%",
     maxWidth: 500,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalContentMobile: {
-    maxHeight: '95%',
+    maxHeight: "95%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
   },
   formGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#1f2937',
+    color: "#1f2937",
   },
   dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   dropdownText: {
     fontSize: 15,
-    color: '#1f2937',
+    color: "#1f2937",
   },
   dropdownPlaceholder: {
-    color: '#9ca3af',
+    color: "#9ca3af",
   },
   rolModalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 24,
-    width: '85%',
+    width: "85%",
     maxWidth: 400,
     ...Platform.select({
       web: {
-        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+        boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.15,
         shadowRadius: 20,
@@ -891,49 +980,49 @@ const styles = StyleSheet.create({
   },
   rolModalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontWeight: "700",
+    color: "#1f2937",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   rolOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     gap: 12,
   },
   rolOptionSelected: {
-    borderColor: '#0A66FF',
-    backgroundColor: '#eff6ff',
+    borderColor: "#0A66FF",
+    backgroundColor: "#eff6ff",
   },
   rolOptionText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#4b5563',
+    fontWeight: "600",
+    color: "#4b5563",
   },
   rolOptionTextSelected: {
-    color: '#0A66FF',
+    color: "#0A66FF",
   },
   rolModalCloseButton: {
     marginTop: 8,
     padding: 14,
     borderRadius: 10,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
   },
   rolModalCloseText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 8,
   },
@@ -941,24 +1030,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalButtonCancel: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
   },
   modalButtonSubmit: {
-    backgroundColor: '#0A66FF',
+    backgroundColor: "#0A66FF",
   },
   modalButtonTextCancel: {
-    color: '#6b7280',
+    color: "#6b7280",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

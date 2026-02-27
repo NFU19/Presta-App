@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Prestapp",
-    "slug": "Prestapp",
+    "slug": "Prestappxd",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -25,7 +25,9 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "usesCleartextTraffic": true,
       "permissions": [
+        "android.permission.INTERNET",
         "android.permission.CAMERA",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
@@ -86,12 +88,12 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
+    "owner": "elricky80",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f1d25c96-3ba3-4650-899f-6092b6e92a7d"
+        "projectId": "8bf095ac-092a-429d-bf58-524d9b395fe2"
       }
-    },
-    "owner": "elricky80"
+    }
   }
 }

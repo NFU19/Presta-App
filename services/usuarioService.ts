@@ -284,7 +284,7 @@ export const obtenerUsuarioPorCorreo = async (
   try {
     console.log("Buscando usuario con correo:", correo);
     const response = await fetch(
-      `http://217.182.64.251:8002/usuarios/email/${correo}`,
+      `https://prestaapp.site/usuarios/email/${correo}`,
     );
 
     if (!response.ok) {

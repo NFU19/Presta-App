@@ -5,20 +5,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Easing,
-  FlatList,
-  Image,
-  Modal,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
+    FlatList,
+    Image,
+    Modal,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SideMenu } from "../../components/shared/side-menu";
@@ -139,7 +139,7 @@ const HistoryScreen = () => {
       // Obtener préstamos del VPS
       console.log("Obteniendo préstamos del usuario VPS:", vpsUserId);
       const response = await fetch(
-        `http://217.182.64.251:8002/prestamos/usuario/${vpsUserId}`,
+        `https://prestaapp.site/prestamos/usuario/${vpsUserId}`,
       );
 
       if (!response.ok) {

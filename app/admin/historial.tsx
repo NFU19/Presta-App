@@ -3,14 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface HistorialEvento {
@@ -82,7 +82,7 @@ const HistorialScreen = () => {
 
   const fetchHistorial = async () => {
     try {
-      const response = await fetch("http://217.182.64.251:8002/prestamos");
+      const response = await fetch("https://prestaapp.site/prestamos");
       const result = await response.json();
 
       // Asegura que siempre sea array
