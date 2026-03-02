@@ -5,20 +5,20 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    DimensionValue,
-    FlatList,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  DimensionValue,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -204,16 +204,15 @@ const AdminDashboard = () => {
           const prestamosMapeados = prestamosData.map((p: any) => {
             const usuario = usuariosMap.get(p["ID Usuario"]);
             const articulo = articulosMap.get(p["ID Articulo"]);
+            const prestamo = prestamosData.find((pr: any) => pr.ID === p.ID);
 
             return {
-              id: p.ID?.toString() || "",
-              equipoNombre:
-                articulo?.nombre || `Equipo #${p["ID Articulo"] || "?"}`,
-              usuarioNombre:
-                usuario?.nombre || `Usuario #${p["ID Usuario"] || "?"}`,
+              id: p.ID || "",
+              equipoNombre: articulo?.nombre || `Equipo #${p.ID}`,
+              usuarioNombre: prestamo?.Email_Usuario || `Usuario #${p.nombre}`,
               estado: (p.Estado || "").toLowerCase(),
-              fechaSolicitud: p["Fecha Solicitud"] || null,
-              fechaAprobacion: p["Fecha Inicio"] || null,
+              fechaSolicitud: p.Fecha_Solicitud || null,
+              fechaAprobacion: p.Fecha_Aprobacion || null,
               fechaDevolucionEsperada: p["Fecha Fin"] || null,
               proposito: p.Proposito || p.Nota || "",
             };
@@ -422,10 +421,10 @@ const AdminDashboard = () => {
             />
             <Text style={styles.metaText}>
               {item.fechaAprobacion
-                ? item.fechaAprobacion instanceof Date
-                  ? item.fechaAprobacion.toLocaleDateString("es-ES")
-                  : "Sin fecha"
-                : "Sin fecha"}
+                ? new Date(item.fechaAprobacion).toLocaleDateString("es-ES")
+                : item.fechaSolicitud
+                  ? new Date(item.fechaSolicitud).toLocaleDateString("es-ES")
+                  : "Sin fecha"}
             </Text>
           </View>
           {item.proposito ? (

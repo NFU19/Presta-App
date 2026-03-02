@@ -6,9 +6,9 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { API_CONFIG, buildUrl } from "../constants/api";
 import {
-    Notificacion,
-    NotificacionLocal,
-    RegistrarTokenData,
+  Notificacion,
+  NotificacionLocal,
+  RegistrarTokenData,
 } from "../types/notificacion";
 
 /**
@@ -362,19 +362,18 @@ export const aprobarPrestamoConNotificacion = async (
   notas?: string,
 ): Promise<{ success: boolean; codigoQR?: string; message?: string }> => {
   try {
-    const fechaAprobacion = new Date().toISOString();
+    console.log("Aprobando préstamo:", prestamoId, "por admin:", adminId);
 
     const response = await fetch(
-      buildUrl(API_CONFIG.ENDPOINTS.ACTUALIZAR_PRESTAMO(Number(prestamoId))),
+      buildUrl(API_CONFIG.ENDPOINTS.APROBAR_PRESTAMO(Number(prestamoId))),
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: Number(prestamoId),
-          estado: "aceptado",
-          fecha_aprobacion: fechaAprobacion,
+          adminId: adminId,
+          notas: notas || undefined,
         }),
         signal: createTimeoutSignal(API_CONFIG.TIMEOUT),
       },
@@ -382,14 +381,17 @@ export const aprobarPrestamoConNotificacion = async (
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
+      console.error("Error al aprobar préstamo:", error);
       return {
         success: false,
-        message: error.message || "Error al aprobar el préstamo",
+        message: error.message || error.error || "Error al aprobar el préstamo",
       };
     }
 
     const result = await response.json().catch(() => ({}));
-    // Generar un código QR temporal si el backend no lo devuelve
+    console.log("Resultado de aprobar préstamo:", result);
+
+    // El backend devuelve el código QR
     const codigoQR =
       result.codigoQR ||
       result.Codigo_QR ||
@@ -410,19 +412,25 @@ export const rechazarPrestamoConNotificacion = async (
   motivoRechazo: string,
 ): Promise<{ success: boolean; message?: string }> => {
   try {
-    const fechaAprobacion = new Date().toISOString().split("T")[0]; // Solo fecha sin hora
+    console.log("Rechazando préstamo:", prestamoId, "por admin:", adminId);
+
+    if (!motivoRechazo || !motivoRechazo.trim()) {
+      return {
+        success: false,
+        message: "El motivo de rechazo es requerido",
+      };
+    }
 
     const response = await fetch(
-      buildUrl(API_CONFIG.ENDPOINTS.ACTUALIZAR_PRESTAMO(Number(prestamoId))),
+      buildUrl(API_CONFIG.ENDPOINTS.RECHAZAR_PRESTAMO(Number(prestamoId))),
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: Number(prestamoId),
-          estado: "denegado",
-          fecha_aprobacion: fechaAprobacion,
+          adminId: adminId,
+          motivoRechazo: motivoRechazo.trim(),
         }),
         signal: createTimeoutSignal(API_CONFIG.TIMEOUT),
       },
@@ -430,11 +438,16 @@ export const rechazarPrestamoConNotificacion = async (
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
+      console.error("Error al rechazar préstamo:", error);
       return {
         success: false,
-        message: error.message || "Error al rechazar el préstamo",
+        message:
+          error.message || error.error || "Error al rechazar el préstamo",
       };
     }
+
+    const result = await response.json().catch(() => ({}));
+    console.log("Resultado de rechazar préstamo:", result);
 
     return { success: true };
   } catch (error) {

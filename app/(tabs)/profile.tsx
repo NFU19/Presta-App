@@ -7,20 +7,20 @@ import * as Location from "expo-location";
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Easing,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  Alert,
+  Animated,
+  Easing,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SideMenu } from "../../components/shared/side-menu";
 import { auth } from "../../firebaseConfig";
@@ -323,54 +323,21 @@ const ProfileScreen = () => {
                 ]}
               />
               <View style={styles.userInfo}>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.userName,
-                      styles.inputInline,
-                      { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
-                    ]}
-                    value={draftProfile?.nombre}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, nombre: text } : prev,
-                      )
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={[
-                      styles.userName,
-                      { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
-                    ]}
-                  >
-                    {userProfile
-                      ? `${userProfile.nombre} ${userProfile.apellidos}`
-                      : ""}
-                  </Text>
-                )}
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.userEmail,
-                      styles.inputInline,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.email}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, email: text } : prev,
-                      )
-                    }
-                    keyboardType="email-address"
-                  />
-                ) : (
-                  <Text
-                    style={[styles.userEmail, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.email}
-                  </Text>
-                )}
+                <Text
+                  style={[
+                    styles.userName,
+                    { fontSize: isMobile ? 22 : isTablet ? 26 : 30 },
+                  ]}
+                >
+                  {userProfile
+                    ? `${userProfile.nombre} ${userProfile.apellidos}`
+                    : ""}
+                </Text>
+                <Text
+                  style={[styles.userEmail, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.email}
+                </Text>
               </View>
             </View>
 
@@ -389,26 +356,11 @@ const ProfileScreen = () => {
                 >
                   Nombre
                 </Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.infoValueInput,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.nombre}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, nombre: text } : prev,
-                      )
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.nombre}
-                  </Text>
-                )}
+                <Text
+                  style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.nombre}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text
@@ -416,26 +368,11 @@ const ProfileScreen = () => {
                 >
                   Apellidos
                 </Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.infoValueInput,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.apellidos}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, apellidos: text } : prev,
-                      )
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.apellidos}
-                  </Text>
-                )}
+                <Text
+                  style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.apellidos}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text
@@ -443,27 +380,11 @@ const ProfileScreen = () => {
                 >
                   Correo
                 </Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.infoValueInput,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.email}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, email: text } : prev,
-                      )
-                    }
-                    keyboardType="email-address"
-                  />
-                ) : (
-                  <Text
-                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.email}
-                  </Text>
-                )}
+                <Text
+                  style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.email}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text
@@ -471,27 +392,11 @@ const ProfileScreen = () => {
                 >
                   Teléfono
                 </Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.infoValueInput,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.telefono}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, telefono: text } : prev,
-                      )
-                    }
-                    keyboardType="phone-pad"
-                  />
-                ) : (
-                  <Text
-                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.telefono}
-                  </Text>
-                )}
+                <Text
+                  style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.telefono}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text
@@ -547,26 +452,11 @@ const ProfileScreen = () => {
                 >
                   Matrícula escolar
                 </Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[
-                      styles.infoValueInput,
-                      { fontSize: isMobile ? 14 : 16 },
-                    ]}
-                    value={draftProfile?.matricula}
-                    onChangeText={(text) =>
-                      setDraftProfile((prev) =>
-                        prev ? { ...prev, matricula: text } : prev,
-                      )
-                    }
-                  />
-                ) : (
-                  <Text
-                    style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
-                  >
-                    {userProfile?.matricula}
-                  </Text>
-                )}
+                <Text
+                  style={[styles.infoValue, { fontSize: isMobile ? 14 : 16 }]}
+                >
+                  {userProfile?.matricula}
+                </Text>
               </View>
             </View>
 

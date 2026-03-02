@@ -6,18 +6,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-    aprobarPrestamoConNotificacion,
-    rechazarPrestamoConNotificacion,
+  aprobarPrestamoConNotificacion,
+  rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -26,6 +28,14 @@ const PrestamosAdminScreen = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const { isMobile, isTablet } = useResponsive();
+
+  // Estados para modales de confirmación
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [selectedSolicitud, setSelectedSolicitud] = useState<Prestamo | null>(
+    null,
+  );
+  const [motivoRechazo, setMotivoRechazo] = useState("");
 
   useEffect(() => {
     fetchPrestamos();
@@ -70,127 +80,115 @@ const PrestamosAdminScreen = () => {
       });
   };
 
-  const handleAprobar = async (solicitud: Prestamo) => {
-    const adminId = auth.currentUser?.uid;
-    if (!adminId) {
-      Alert.alert("Error", "No se pudo identificar al administrador");
-      return;
-    }
-
-    Alert.alert(
-      "Aprobar Solicitud",
-      "¿Confirmas que deseas aprobar esta solicitud?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Aprobar",
-          onPress: async () => {
-            try {
-              setProcessing(true);
-
-              // Extraer el ID correctamente
-              const prestamoId = (solicitud as any).ID;
-
-              if (!prestamoId) {
-                Alert.alert("Error", "No se pudo obtener el ID del préstamo");
-                return;
-              }
-
-              const result = await aprobarPrestamoConNotificacion(
-                prestamoId,
-                adminId,
-              );
-
-              if (result.success) {
-                Alert.alert(
-                  "Solicitud Aprobada",
-                  `Se ha aprobado la solicitud y se generó el código QR:\n\n${result.codigoQR}\n\nEl usuario ha recibido una notificación.`,
-                );
-                fetchPrestamos();
-              } else {
-                Alert.alert(
-                  "Error",
-                  result.message || "No se pudo aprobar la solicitud",
-                );
-              }
-            } catch (error: any) {
-              console.error("Error al aprobar solicitud:", error);
-              Alert.alert("Error", "No se pudo procesar la solicitud.");
-            } finally {
-              setProcessing(false);
-            }
-          },
-        },
-      ],
-    );
+  const handleAprobar = (solicitud: Prestamo) => {
+    setSelectedSolicitud(solicitud);
+    setConfirmModalVisible(true);
   };
 
-  const handleRechazar = async (solicitud: Prestamo) => {
+  const confirmarAprobacion = async () => {
+    if (!selectedSolicitud) return;
+
     const adminId = auth.currentUser?.uid;
     if (!adminId) {
       Alert.alert("Error", "No se pudo identificar al administrador");
+      setConfirmModalVisible(false);
       return;
     }
 
-    Alert.prompt(
-      "Rechazar Solicitud",
-      "Ingresa el motivo del rechazo:",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Rechazar",
-          onPress: async (motivoRechazo?: string) => {
-            if (!motivoRechazo || !motivoRechazo.trim()) {
-              Alert.alert("Error", "Debes especificar el motivo del rechazo");
-              return;
-            }
+    try {
+      setProcessing(true);
+      setConfirmModalVisible(false);
 
-            try {
-              setProcessing(true);
+      // Extraer el ID correctamente
+      const prestamoId = (selectedSolicitud as any).ID;
 
-              // Extraer el ID correctamente
-              const prestamoId = (solicitud as any).ID;
+      if (!prestamoId) {
+        Alert.alert("Error", "No se pudo obtener el ID del préstamo");
+        return;
+      }
 
-              if (!prestamoId) {
-                Alert.alert("Error", "No se pudo obtener el ID del préstamo");
-                return;
-              }
+      const result = await aprobarPrestamoConNotificacion(prestamoId, adminId);
 
-              const result = await rechazarPrestamoConNotificacion(
-                prestamoId,
-                adminId,
-                motivoRechazo,
-              );
+      if (result.success) {
+        Alert.alert(
+          "Solicitud Aprobada",
+          `Se ha aprobado la solicitud y se generó el código QR:\n\n${result.codigoQR}\n\nEl usuario ha recibido una notificación.`,
+        );
+        fetchPrestamos();
+      } else {
+        Alert.alert(
+          "Error",
+          result.message || "No se pudo aprobar la solicitud",
+        );
+      }
+    } catch (error: any) {
+      console.error("Error al aprobar solicitud:", error);
+      Alert.alert("Error", "No se pudo procesar la solicitud.");
+    } finally {
+      setProcessing(false);
+      setSelectedSolicitud(null);
+    }
+  };
 
-              if (result.success) {
-                Alert.alert(
-                  "Solicitud Rechazada",
-                  "La solicitud ha sido rechazada y el usuario ha recibido una notificación.",
-                );
-                fetchPrestamos();
-              } else {
-                Alert.alert(
-                  "Error",
-                  result.message || "No se pudo rechazar la solicitud",
-                );
-              }
-            } catch (error: any) {
-              console.error("Error al rechazar solicitud:", error);
-              Alert.alert("Error", "No se pudo procesar la solicitud.");
-            } finally {
-              setProcessing(false);
-            }
-          },
-        },
-      ],
-      "plain-text",
-    );
+  const handleRechazar = (solicitud: Prestamo) => {
+    setSelectedSolicitud(solicitud);
+    setMotivoRechazo("");
+    setRejectModalVisible(true);
+  };
+
+  const confirmarRechazo = async () => {
+    if (!selectedSolicitud) return;
+
+    const adminId = auth.currentUser?.uid;
+    if (!adminId) {
+      Alert.alert("Error", "No se pudo identificar al administrador");
+      setRejectModalVisible(false);
+      return;
+    }
+
+    if (!motivoRechazo || !motivoRechazo.trim()) {
+      Alert.alert("Error", "Debes especificar el motivo del rechazo");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setRejectModalVisible(false);
+
+      // Extraer el ID correctamente
+      const prestamoId = (selectedSolicitud as any).ID;
+
+      if (!prestamoId) {
+        Alert.alert("Error", "No se pudo obtener el ID del préstamo");
+        return;
+      }
+
+      const result = await rechazarPrestamoConNotificacion(
+        prestamoId,
+        adminId,
+        motivoRechazo,
+      );
+
+      if (result.success) {
+        Alert.alert(
+          "Solicitud Rechazada",
+          "La solicitud ha sido rechazada y el usuario ha recibido una notificación.",
+        );
+        fetchPrestamos();
+      } else {
+        Alert.alert(
+          "Error",
+          result.message || "No se pudo rechazar la solicitud",
+        );
+      }
+    } catch (error: any) {
+      console.error("Error al rechazar solicitud:", error);
+      Alert.alert("Error", "No se pudo procesar la solicitud.");
+    } finally {
+      setProcessing(false);
+      setSelectedSolicitud(null);
+      setMotivoRechazo("");
+    }
   };
 
   const getEstadoBadge = (Estado: EstadoPrestamo) => {
@@ -358,70 +356,175 @@ const PrestamosAdminScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View
-        style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
-      >
-        <View>
-          <Text
-            style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}
-          >
-            Gestión de Préstamos
-          </Text>
-          <Text
+    <>
+      <ScrollView style={styles.container}>
+        <View
+          style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
+        >
+          <View>
+            <Text
+              style={[
+                styles.title,
+                (isMobile || isTablet) && styles.titleMobile,
+              ]}
+            >
+              Gestión de Préstamos
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                (isMobile || isTablet) && styles.subtitleMobile,
+              ]}
+            >
+              {Array.isArray(solicitudes)
+                ? solicitudes
+                    .filter(
+                      (s) =>
+                        s.Estado === "espera" ||
+                        s.Estado === "pendiente" ||
+                        s.Estado === "En espera",
+                    )
+                    .length.toString()
+                : "0"}{" "}
+              solicitudes en espera
+            </Text>
+          </View>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={Colors.light.secondary}
+            style={styles.loader}
+          />
+        ) : solicitudes.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="folder-open-outline"
+              size={64}
+              color={Colors.light.gray}
+            />
+            <Text style={styles.emptyText}>
+              No hay solicitudes en este momento
+            </Text>
+          </View>
+        ) : (
+          <View
             style={[
-              styles.subtitle,
-              (isMobile || isTablet) && styles.subtitleMobile,
+              styles.cardsContainer,
+              (isMobile || isTablet) && styles.cardsContainerMobile,
             ]}
           >
-            {Array.isArray(solicitudes)
-              ? solicitudes
-                  .filter(
-                    (s) =>
-                      s.Estado === "espera" ||
-                      s.Estado === "pendiente" ||
-                      s.Estado === "En espera",
-                  )
-                  .length.toString()
-              : "0"}{" "}
-            solicitudes en espera
-          </Text>
-        </View>
-      </View>
+            {solicitudes.map((solicitud, index) => (
+              <PrestamoCard
+                key={(solicitud as any).ID || index}
+                solicitud={solicitud}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={Colors.light.secondary}
-          style={styles.loader}
-        />
-      ) : solicitudes.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons
-            name="folder-open-outline"
-            size={64}
-            color={Colors.light.gray}
-          />
-          <Text style={styles.emptyText}>
-            No hay solicitudes en este momento
-          </Text>
+      {/* Modal de confirmación para aprobar */}
+      <Modal
+        visible={confirmModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setConfirmModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={48}
+                color="#28a745"
+              />
+              <Text style={styles.modalTitle}>Aprobar Solicitud</Text>
+            </View>
+            <Text style={styles.modalMessage}>
+              ¿Confirmas que deseas aprobar esta solicitud?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setConfirmModalVisible(false);
+                  setSelectedSolicitud(null);
+                }}
+                disabled={processing}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={confirmarAprobacion}
+                disabled={processing}
+              >
+                {processing ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Aprobar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      ) : (
-        <View
-          style={[
-            styles.cardsContainer,
-            (isMobile || isTablet) && styles.cardsContainerMobile,
-          ]}
-        >
-          {solicitudes.map((solicitud, index) => (
-            <PrestamoCard
-              key={(solicitud as any).ID || index}
-              solicitud={solicitud}
+      </Modal>
+
+      {/* Modal de rechazo con input */}
+      <Modal
+        visible={rejectModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRejectModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons name="close-circle-outline" size={48} color="#dc3545" />
+              <Text style={styles.modalTitle}>Rechazar Solicitud</Text>
+            </View>
+            <Text style={styles.modalMessage}>
+              Ingresa el motivo del rechazo:
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Ej: Equipo no disponible, documentación incompleta..."
+              value={motivoRechazo}
+              onChangeText={setMotivoRechazo}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
             />
-          ))}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setRejectModalVisible(false);
+                  setSelectedSolicitud(null);
+                  setMotivoRechazo("");
+                }}
+                disabled={processing}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonReject]}
+                onPress={confirmarRechazo}
+                disabled={processing}
+              >
+                {processing ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Rechazar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      )}
-    </ScrollView>
+      </Modal>
+    </>
   );
 };
 
@@ -574,6 +677,86 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     fontFamily: "monospace",
     flex: 1,
+  },
+  // Estilos para modales
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 500,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: Colors.light.text,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: Colors.light.gray,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
+    color: Colors.light.text,
+    marginBottom: 20,
+    minHeight: 80,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalButtonCancel: {
+    backgroundColor: "#f0f0f0",
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  modalButtonConfirm: {
+    backgroundColor: "#28a745",
+  },
+  modalButtonReject: {
+    backgroundColor: "#dc3545",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalButtonTextCancel: {
+    color: Colors.light.text,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

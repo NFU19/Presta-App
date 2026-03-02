@@ -21,6 +21,10 @@ export const API_CONFIG = {
     PRESTAMOS_USUARIO: (usuarioId: number) => `/prestamos/usuario/${usuarioId}`,
     ACTUALIZAR_PRESTAMO: (prestamoId: number) =>
       `/prestamos/uriel/${prestamoId}`,
+    APROBAR_PRESTAMO: (prestamoId: number) =>
+      `/prestamos/${prestamoId}/aprobar`,
+    RECHAZAR_PRESTAMO: (prestamoId: number) =>
+      `/prestamos/${prestamoId}/rechazar`,
 
     // Equipos
     EQUIPOS: "/equipos",
