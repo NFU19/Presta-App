@@ -6,20 +6,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-  aprobarPrestamoConNotificacion,
-  rechazarPrestamoConNotificacion,
+    aprobarPrestamoConNotificacion,
+    rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -74,7 +74,9 @@ const PrestamosAdminScreen = () => {
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error al cargar solicitudes:", error);
+        if (__DEV__) {
+          console.error("Error al cargar solicitudes:", error);
+        }
         setSolicitudes([]); // evita undefined
         setLoading(false);
       });
@@ -122,7 +124,9 @@ const PrestamosAdminScreen = () => {
         );
       }
     } catch (error: any) {
-      console.error("Error al aprobar solicitud:", error);
+      if (__DEV__) {
+        console.error("Error al aprobar solicitud:", error);
+      }
       Alert.alert("Error", "No se pudo procesar la solicitud.");
     } finally {
       setProcessing(false);
@@ -182,7 +186,9 @@ const PrestamosAdminScreen = () => {
         );
       }
     } catch (error: any) {
-      console.error("Error al rechazar solicitud:", error);
+      if (__DEV__) {
+        console.error("Error al rechazar solicitud:", error);
+      }
       Alert.alert("Error", "No se pudo procesar la solicitud.");
     } finally {
       setProcessing(false);
@@ -254,7 +260,9 @@ const PrestamosAdminScreen = () => {
 
       return dias > 0 ? dias : 0;
     } catch (error) {
-      console.error("Error al calcular duración:", error);
+      if (__DEV__) {
+        console.error("Error al calcular duración:", error);
+      }
       return 0;
     }
   };

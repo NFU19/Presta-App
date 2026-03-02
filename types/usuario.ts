@@ -8,14 +8,24 @@ export interface Usuario {
   telefono: string;
   correo: string;
   matricula: string;
-  rol: 'Estudiante' | 'Docente' | 'Administrador'; // RF-1
-  
+  rol: "Estudiante" | "Docente" | "Administrador"; // RF-1
+
   // Estado
   activo: boolean;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+
+  // Propiedades del backend (para compatibilidad)
+  ID?: number | string;
+  Nombre?: string;
+  Apellido?: string;
+  Email?: string;
+  Telefono?: string;
+  Matricula?: string;
+  Rol?: string;
+  Activo?: boolean;
 }
 
 export interface RegistroUsuarioData {
@@ -24,5 +34,5 @@ export interface RegistroUsuarioData {
   telefono: string;
   correo: string;
   matricula: string;
-  rol: 'Estudiante' | 'Docente' | 'Administrador'; // RF-1
+  rol: "Estudiante" | "Docente" | "Administrador"; // RF-1
 }

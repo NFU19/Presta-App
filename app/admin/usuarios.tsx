@@ -1,23 +1,23 @@
 import { useResponsive } from "@/hooks/use-responsive";
 import {
-    activarUsuario,
-    desactivarUsuario,
-    eliminarUsuario,
+  activarUsuario,
+  desactivarUsuario,
+  eliminarUsuario,
 } from "@/services/usuarioService";
 import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -50,12 +50,36 @@ const UsuariosAdminScreen = () => {
     fetch("https://prestaapp.site/usuarios")
       .then((response) => response.json())
       .then((data) => {
-        setUsuarios(data);
+        // Mapear los datos del backend al formato de la interfaz Usuario
+        const usuariosMapeados = data.map((user: any, index: number) => ({
+          id: String(user.ID || user.id || `temp-${index}`),
+          nombre: user.Nombre || user.nombre || "",
+          apellido: user.Apellido || user.apellido || "",
+          telefono: user.Telefono || user.telefono || "",
+          correo: user.Email || user.correo || "",
+          matricula: user.Matricula || user.matricula || "",
+          rol: user.Rol || user.rol || "Estudiante",
+          activo: user.Activo !== false,
+          createdAt: user.created_at || user.createdAt || new Date(),
+          updatedAt: user.updated_at || user.updatedAt || new Date(),
+          // Mantener también las propiedades originales para compatibilidad
+          ID: user.ID,
+          Email: user.Email,
+          Telefono: user.Telefono,
+          Matricula: user.Matricula,
+          Rol: user.Rol,
+          Nombre: user.Nombre,
+          Apellido: user.Apellido,
+          Activo: user.Activo,
+        }));
+        setUsuarios(usuariosMapeados);
         setLoading(false);
       })
       .catch((error) => {
         Alert.alert("Error", "No se pudieron cargar los usuarios.");
-        console.error("Error fetching users: ", error);
+        if (__DEV__) {
+          console.error("Error fetching users: ", error);
+        }
         setLoading(false);
       });
   };
@@ -88,7 +112,9 @@ const UsuariosAdminScreen = () => {
       }
     } catch (error) {
       Alert.alert("Error", "No se pudo cambiar el estado del usuario.");
-      console.error("Error toggling user status: ", error);
+      if (__DEV__) {
+        console.error("Error toggling user status: ", error);
+      }
     }
   };
 
@@ -107,7 +133,9 @@ const UsuariosAdminScreen = () => {
               Alert.alert("Éxito", "Usuario eliminado correctamente.");
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el usuario.");
-              console.error("Error deleting user: ", error);
+              if (__DEV__) {
+                console.error("Error deleting user: ", error);
+              }
             }
           },
         },
@@ -142,7 +170,9 @@ const UsuariosAdminScreen = () => {
       });
     } catch (error) {
       Alert.alert("Error", "Ocurrió un error al actualizar el usuario.");
-      console.error("Error updating user: ", error);
+      if (__DEV__) {
+        console.error("Error updating user: ", error);
+      }
     }
   };
 
@@ -167,7 +197,9 @@ const UsuariosAdminScreen = () => {
       });
     } catch (error) {
       Alert.alert("Error", "Ocurrió un error al registrar el usuario.");
-      console.error("Error creating user: ", error);
+      if (__DEV__) {
+        console.error("Error creating user: ", error);
+      }
     }
   };
 
@@ -267,13 +299,15 @@ const UsuariosAdminScreen = () => {
     <View style={styles.userCard}>
       <View style={styles.userCardHeader}>
         <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>{user.Email.charAt(0)}</Text>
+          <Text style={styles.userAvatarText}>
+            {(user.Email || user.correo || "U").charAt(0).toUpperCase()}
+          </Text>
         </View>
         <View style={styles.userCardInfo}>
           <Text style={styles.userCardName}>
             {user.nombre} {user.apellido}
           </Text>
-          <Text style={styles.userCardEmail}>{user.Email}</Text>
+          <Text style={styles.userCardEmail}>{user.Email || user.correo}</Text>
         </View>
         <StatusBadge active={user.activo} />
       </View>
@@ -282,18 +316,24 @@ const UsuariosAdminScreen = () => {
         <View style={styles.userCardRow}>
           <Ionicons name="call-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Teléfono:</Text>
-          <Text style={styles.userCardValue}>{user.Telefono}</Text>
+          <Text style={styles.userCardValue}>
+            {user.Telefono || user.telefono}
+          </Text>
         </View>
         <View style={styles.userCardRow}>
           <Ionicons name="school-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Matrícula:</Text>
-          <Text style={styles.userCardValue}>{user.Matricula}</Text>
+          <Text style={styles.userCardValue}>
+            {user.Matricula || user.matricula}
+          </Text>
         </View>
         <View style={styles.userCardRow}>
           <Ionicons name="shield-checkmark-outline" size={16} color="#6b7280" />
           <Text style={styles.userCardLabel}>Rol:</Text>
           <View style={styles.rolBadge}>
-            <Text style={styles.rolBadgeText}>{user.Rol || "Sin asignar"}</Text>
+            <Text style={styles.rolBadgeText}>
+              {user.Rol || user.rol || "Sin asignar"}
+            </Text>
           </View>
         </View>
       </View>
@@ -323,13 +363,6 @@ const UsuariosAdminScreen = () => {
           <Text style={styles.actionButtonText}>
             {user.activo ? "Desactivar" : "Activar"}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonDanger]}
-          onPress={() => handleDelete(user)}
-        >
-          <Ionicons name="trash" size={16} color="#fff" />
-          <Text style={styles.actionButtonText}>Eliminar</Text>
         </TouchableOpacity>
       </View>
     </View>

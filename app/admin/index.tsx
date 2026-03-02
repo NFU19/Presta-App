@@ -5,20 +5,20 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    DimensionValue,
-    FlatList,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  DimensionValue,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -128,6 +128,67 @@ const StatCard = ({
   );
 };
 
+// Error Boundary para capturar errores de renderizado
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    if (__DEV__) {
+      console.error("Error capturado por ErrorBoundary:", error, errorInfo);
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Ionicons name="warning-outline" size={64} color="#ef4444" />
+          <Text
+            style={[styles.loadingText, { color: "#ef4444", marginTop: 16 }]}
+          >
+            Error al cargar el dashboard
+          </Text>
+          <Text
+            style={{
+              marginTop: 8,
+              color: "#6b7280",
+              textAlign: "center",
+              paddingHorizontal: 32,
+            }}
+          >
+            {this.state.error?.message || "Ha ocurrido un error inesperado"}
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.downloadButton,
+              { marginTop: 24, backgroundColor: "#ef4444" },
+            ]}
+            onPress={() => {
+              this.setState({ hasError: false, error: null });
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "600" }}>
+              Reintentar
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const AdminDashboard = () => {
   const { isMobile, isTablet, isDesktop } = useResponsive();
 
@@ -146,101 +207,175 @@ const AdminDashboard = () => {
   const [scannedPrestamo, setScannedPrestamo] = useState<Prestamo | null>(null);
   const router = useRouter();
 
+  // Verificar permisos cuando se abre el modal
+  useEffect(() => {
+    if (showQrModal && permission && !permission.granted) {
+      requestPermission();
+    }
+  }, [showQrModal]);
+
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Hacer todas las peticiones en paralelo
-    Promise.all([
-      fetch("https://prestaapp.site/prestamos").then((res) => res.json()),
-      fetch("https://prestaapp.site/usuarios").then((res) => res.json()),
-      fetch("https://prestaapp.site/articulos").then((res) => res.json()),
-    ])
-      .then(([prestamosData, usuariosData, articulosData]) => {
+  // Función para cargar datos - funciona en web y mobile
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      // Hacer todas las peticiones en paralelo con timeout
+      const fetchWithTimeout = (url: string, timeout = 10000) => {
+        return Promise.race([
+          fetch(url).then((res) => res.json()),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), timeout),
+          ),
+        ]);
+      };
+
+      const [prestamosData, usuariosData, articulosData] = await Promise.all([
+        fetchWithTimeout("https://prestaapp.site/prestamos").catch(() => ({
+          error: true,
+        })),
+        fetchWithTimeout("https://prestaapp.site/usuarios").catch(() => ({
+          error: true,
+        })),
+        fetchWithTimeout("https://prestaapp.site/articulos").catch(() => ({
+          error: true,
+        })),
+      ]);
+
+      if (__DEV__) {
         console.log("Préstamos recibidos:", prestamosData);
         console.log("Usuarios recibidos:", usuariosData);
         console.log("Artículos recibidos:", articulosData);
+      }
 
-        // Crear mapas para búsqueda rápida
-        const usuariosMap = new Map();
-        const articulosMap = new Map();
+      // Crear mapas para búsqueda rápida
+      const usuariosMap = new Map();
+      const articulosMap = new Map();
 
-        // Mapear usuarios
-        if (Array.isArray(usuariosData)) {
-          usuariosData.forEach((u: any) => {
-            usuariosMap.set(u.ID, {
-              id: u.ID?.toString() || "",
-              nombre: u.Nombre || `Usuario #${u.ID}`,
-              email: u.Email || "",
-              telefono: u.Telefono || "",
-              carrera: u.Carrera || "",
-              matricula: u.Matricula || "",
-              activo: u.Activo !== false,
-              fechaRegistro: u["Fecha Registro"] || null,
-            });
-          });
+      // Mapear usuarios
+      if (Array.isArray(usuariosData) && usuariosData.length > 0) {
+        usuariosData.forEach((u: any) => {
+          try {
+            if (u && u.ID) {
+              usuariosMap.set(u.ID, {
+                id: u.ID?.toString() || "",
+                nombre: u.Nombre || `Usuario #${u.ID}`,
+                email: u.Email || "",
+                telefono: u.Telefono || "",
+                carrera: u.Carrera || "",
+                matricula: u.Matricula || "",
+                activo: u.Activo !== false,
+                fechaRegistro: u["Fecha Registro"] || null,
+              });
+            }
+          } catch (err) {
+            // Ignorar usuario inválido
+          }
+        });
 
-          setUsuarios(Array.from(usuariosMap.values()));
+        setUsuarios(Array.from(usuariosMap.values()));
+      } else {
+        setUsuarios([]);
+      }
+
+      // Mapear artículos/equipos
+      if (Array.isArray(articulosData) && articulosData.length > 0) {
+        articulosData.forEach((a: any) => {
+          try {
+            if (a && a.ID) {
+              articulosMap.set(a.ID, {
+                id: a.ID?.toString() || "",
+                nombre: a.Nombre || `Artículo #${a.ID}`,
+                categoria: a.Categoria || "",
+                tipo: a.Tipo || "",
+                estado: a.Disponible !== false,
+              });
+            }
+          } catch (err) {
+            // Ignorar artículo inválido
+          }
+        });
+
+        setEquipos(Array.from(articulosMap.values()));
+      } else {
+        setEquipos([]);
+      }
+
+      // Mapear préstamos con nombres reales
+      if (Array.isArray(prestamosData) && prestamosData.length > 0) {
+        const prestamosMapeados: Prestamo[] = prestamosData
+          .map((p: any) => {
+            try {
+              if (!p || !p.ID) return null;
+
+              const usuario = usuariosMap.get(p["ID Usuario"]);
+              const articulo = articulosMap.get(p["ID Articulo"]);
+              const prestamo = prestamosData.find((pr: any) => pr.ID === p.ID);
+
+              return {
+                id: String(p.ID || ""),
+                equipoNombre: articulo?.nombre || `Equipo #${p.ID}`,
+                usuarioNombre:
+                  prestamo?.Email_Usuario ||
+                  usuario?.nombre ||
+                  `Usuario #${p["ID Usuario"]}`,
+                estado: String(p.Estado || "espera").toLowerCase(),
+                fechaSolicitud: p.Fecha_Solicitud || null,
+                fechaAprobacion: p.Fecha_Aprobacion || null,
+                fechaDevolucionEsperada: p["Fecha Fin"] || null,
+                proposito: p.Proposito || p.Nota || "",
+                codigoQR: p.QR || null,
+                QR: p.QR || null,
+              } as Prestamo;
+            } catch (err) {
+              return null;
+            }
+          })
+          .filter((p): p is Prestamo => p !== null);
+
+        if (__DEV__) {
+          console.log("Préstamos mapeados:", prestamosMapeados.length);
         }
 
-        // Mapear artículos/equipos
-        if (Array.isArray(articulosData)) {
-          articulosData.forEach((a: any) => {
-            articulosMap.set(a.ID, {
-              id: a.ID?.toString() || "",
-              nombre: a.Nombre || `Artículo #${a.ID}`,
-              categoria: a.Categoria || "",
-              tipo: a.Tipo || "",
-              estado: a.Disponible !== false,
-            });
-          });
+        // Filtrar préstamos activos (aprobados/pendientes)
+        const activos = prestamosMapeados.filter(
+          (p) =>
+            p.estado === "aceptado" ||
+            p.estado === "aprobado" ||
+            p.estado === "pendiente",
+        );
 
-          setEquipos(Array.from(articulosMap.values()));
-        }
+        setPrestamosActivos(activos);
+        setPrestamosHoy(prestamosMapeados);
+      } else {
+        setPrestamosActivos([]);
+        setPrestamosHoy([]);
+      }
 
-        // Mapear préstamos con nombres reales
-        if (Array.isArray(prestamosData)) {
-          const prestamosMapeados = prestamosData.map((p: any) => {
-            const usuario = usuariosMap.get(p["ID Usuario"]);
-            const articulo = articulosMap.get(p["ID Articulo"]);
-            const prestamo = prestamosData.find((pr: any) => pr.ID === p.ID);
-
-            return {
-              id: p.ID || "",
-              equipoNombre: articulo?.nombre || `Equipo #${p.ID}`,
-              usuarioNombre: prestamo?.Email_Usuario || `Usuario #${p.nombre}`,
-              estado: (p.Estado || "").toLowerCase(),
-              fechaSolicitud: p.Fecha_Solicitud || null,
-              fechaAprobacion: p.Fecha_Aprobacion || null,
-              fechaDevolucionEsperada: p["Fecha Fin"] || null,
-              proposito: p.Proposito || p.Nota || "",
-              codigoQR: p.QR || null,
-              QR: p.QR || null,
-            };
-          });
-
-          console.log("Préstamos mapeados:", prestamosMapeados);
-
-          // Filtrar préstamos activos (aprobados/pendientes)
-          const activos = prestamosMapeados.filter(
-            (p: any) =>
-              p.estado === "aceptado" ||
-              p.estado === "aprobado" ||
-              p.estado === "pendiente",
-          );
-
-          setPrestamosActivos(activos);
-          setPrestamosHoy(prestamosMapeados);
-        }
-
-        setLoading(false);
-      })
-      .catch((error) => {
+      setLoading(false);
+    } catch (error) {
+      if (__DEV__) {
         console.error("Error fetching data:", error);
-        setLoading(false);
-      });
+      }
+      // Establecer valores por defecto seguros
+      setUsuarios([]);
+      setEquipos([]);
+      setPrestamosActivos([]);
+      setPrestamosHoy([]);
+      setLoading(false);
+
+      Alert.alert(
+        "Error de conexión",
+        "No se pudieron cargar los datos. Por favor, verifica tu conexión a internet.",
+      );
+    }
+  };
+
+  useEffect(() => {
+    cargarDatos();
   }, []);
 
   const openModal = (modalKey: string) => {
@@ -287,7 +422,9 @@ const AdminDashboard = () => {
         "Error",
         "No se pudo actualizar el estado del préstamo. Por favor, inténtalo de nuevo.",
       );
-      console.error("Error al actualizar el estado del préstamo:", error);
+      if (__DEV__) {
+        console.error("Error al actualizar el estado del préstamo:", error);
+      }
     }
 
     setPrestamosHoy((prev) =>
@@ -353,8 +490,8 @@ const AdminDashboard = () => {
                   setShowQrModal(false);
                   setScannedData(null);
                   setScannedPrestamo(null);
-                  // Recargar lista de préstamos
-                  window.location.reload();
+                  // Recargar lista de préstamos (funciona en web y mobile)
+                  cargarDatos();
                 } else {
                   Alert.alert(
                     "Error",
@@ -373,7 +510,9 @@ const AdminDashboard = () => {
         ],
       );
     } catch (error) {
-      console.error("Error:", error);
+      if (__DEV__) {
+        console.error("Error entregarEquipo:", error);
+      }
     }
   };
 
@@ -412,8 +551,8 @@ const AdminDashboard = () => {
                   setShowQrModal(false);
                   setScannedData(null);
                   setScannedPrestamo(null);
-                  // Recargar lista de préstamos
-                  window.location.reload();
+                  // Recargar lista de préstamos (funciona en web y mobile)
+                  cargarDatos();
                 } else {
                   Alert.alert(
                     "Error",
@@ -432,7 +571,9 @@ const AdminDashboard = () => {
         ],
       );
     } catch (error) {
-      console.error("Error:", error);
+      if (__DEV__) {
+        console.error("Error recibirDevolucion:", error);
+      }
     }
   };
 
@@ -937,43 +1078,42 @@ const AdminDashboard = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
-        <Text style={styles.loadingText}>Cargando datos...</Text>
-      </View>
-    );
-  }
-
+  // CALCULAR DATOS DINÁMICOS Y CONSTANTES - ANTES DEL RETURN CONDICIONAL
+  // (Los hooks deben ejecutarse en cada render, no pueden estar después de un return)
   const containerPadding = isMobile ? 16 : isTablet ? 20 : 24;
   const titleSize = isMobile ? 22 : isTablet ? 26 : 32;
 
-  // CALCULAR DATOS DINÁMICOS DESDE EL BACKEND
-
   // Préstamos por mes (últimos 6 meses)
   const lineChartData = React.useMemo(() => {
-    if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0)
-      return [0, 0, 0, 0, 0, 0];
+    try {
+      if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0)
+        return [0, 0, 0, 0, 0, 0];
 
-    const now = new Date();
-    const monthCounts = [0, 0, 0, 0, 0, 0];
+      const now = new Date();
+      const monthCounts = [0, 0, 0, 0, 0, 0];
 
-    prestamosHoy.forEach((prestamo) => {
-      const fechaSolicitud = prestamo.fechaSolicitud
-        ? new Date(prestamo.fechaSolicitud)
-        : null;
-      if (fechaSolicitud && !isNaN(fechaSolicitud.getTime())) {
-        const monthsAgo =
-          (now.getFullYear() - fechaSolicitud.getFullYear()) * 12 +
-          (now.getMonth() - fechaSolicitud.getMonth());
-        if (monthsAgo >= 0 && monthsAgo < 6) {
-          monthCounts[5 - monthsAgo]++;
+      prestamosHoy.forEach((prestamo) => {
+        try {
+          const fechaSolicitud = prestamo.fechaSolicitud
+            ? new Date(prestamo.fechaSolicitud)
+            : null;
+          if (fechaSolicitud && !isNaN(fechaSolicitud.getTime())) {
+            const monthsAgo =
+              (now.getFullYear() - fechaSolicitud.getFullYear()) * 12 +
+              (now.getMonth() - fechaSolicitud.getMonth());
+            if (monthsAgo >= 0 && monthsAgo < 6) {
+              monthCounts[5 - monthsAgo]++;
+            }
+          }
+        } catch (err) {
+          // Ignorar errores individuales
         }
-      }
-    });
+      });
 
-    return monthCounts;
+      return monthCounts;
+    } catch (error) {
+      return [0, 0, 0, 0, 0, 0];
+    }
   }, [prestamosHoy]);
 
   const lineChartLabels = React.useMemo(() => {
@@ -1004,114 +1144,156 @@ const AdminDashboard = () => {
 
   // Equipos por categoría
   const barChartData = React.useMemo(() => {
-    if (!Array.isArray(equipos) || equipos.length === 0) return [];
+    try {
+      if (!Array.isArray(equipos) || equipos.length === 0) return [];
 
-    const categorias: { [key: string]: number } = {};
-    equipos.forEach((equipo) => {
-      const categoria = equipo.categoria || equipo.tipo || "Otros";
-      categorias[categoria] = (categorias[categoria] || 0) + 1;
-    });
+      const categorias: { [key: string]: number } = {};
+      equipos.forEach((equipo) => {
+        try {
+          if (!equipo) return;
+          const categoria = equipo.categoria || equipo.tipo || "Otros";
+          categorias[categoria] = (categorias[categoria] || 0) + 1;
+        } catch (err) {
+          // Ignorar errores individuales
+        }
+      });
 
-    const colores = [
-      "#3b82f6",
-      "#8b5cf6",
-      "#ec4899",
-      "#10b981",
-      "#f59e0b",
-      "#06b6d4",
-      "#f43f5e",
-    ];
+      const colores = [
+        "#3b82f6",
+        "#8b5cf6",
+        "#ec4899",
+        "#10b981",
+        "#f59e0b",
+        "#06b6d4",
+        "#f43f5e",
+      ];
 
-    return Object.entries(categorias)
-      .map(([label, value], index) => ({
-        label,
-        value,
-        color: colores[index % colores.length],
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 7);
+      return Object.entries(categorias)
+        .map(([label, value], index) => ({
+          label,
+          value,
+          color: colores[index % colores.length],
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 7);
+    } catch (error) {
+      return [];
+    }
   }, [equipos]);
 
   // Estados de préstamos
   const pieChartData = React.useMemo(() => {
-    if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0) {
+    try {
+      if (!Array.isArray(prestamosHoy) || prestamosHoy.length === 0) {
+        return [{ name: "Sin datos", value: 1, color: "#e5e7eb" }];
+      }
+
+      const estados: { [key: string]: number } = {};
+      prestamosHoy.forEach((prestamo) => {
+        try {
+          const estado = prestamo?.estado || "desconocido";
+          estados[estado] = (estados[estado] || 0) + 1;
+        } catch (err) {
+          // Ignorar préstamo inválido
+        }
+      });
+
+      const estadoMap: { [key: string]: { name: string; color: string } } = {
+        aceptado: { name: "Activos", color: "#10b981" },
+        aprobado: { name: "Activos", color: "#10b981" },
+        pendiente: { name: "Pendientes", color: "#fbbf24" },
+        devuelto: { name: "Devueltos", color: "#6b7280" },
+        rechazado: { name: "Rechazados", color: "#ef4444" },
+        vencido: { name: "Vencidos", color: "#dc2626" },
+      };
+
+      const consolidado: { [key: string]: { value: number; color: string } } =
+        {};
+      Object.entries(estados).forEach(([estado, count]) => {
+        try {
+          const mapped = estadoMap[estado] || {
+            name: estado.charAt(0).toUpperCase() + estado.slice(1),
+            color: "#9ca3af",
+          };
+          if (consolidado[mapped.name]) {
+            consolidado[mapped.name].value += count;
+          } else {
+            consolidado[mapped.name] = { value: count, color: mapped.color };
+          }
+        } catch (err) {
+          // Ignorar estado inválido
+        }
+      });
+
+      return Object.entries(consolidado).map(([name, data]) => ({
+        name,
+        value: data.value,
+        color: data.color,
+      }));
+    } catch (error) {
       return [{ name: "Sin datos", value: 1, color: "#e5e7eb" }];
     }
-
-    const estados: { [key: string]: number } = {};
-    prestamosHoy.forEach((prestamo) => {
-      const estado = prestamo.estado || "desconocido";
-      estados[estado] = (estados[estado] || 0) + 1;
-    });
-
-    const estadoMap: { [key: string]: { name: string; color: string } } = {
-      aceptado: { name: "Activos", color: "#10b981" },
-      aprobado: { name: "Activos", color: "#10b981" },
-      pendiente: { name: "Pendientes", color: "#fbbf24" },
-      devuelto: { name: "Devueltos", color: "#6b7280" },
-      rechazado: { name: "Rechazados", color: "#ef4444" },
-      vencido: { name: "Vencidos", color: "#dc2626" },
-    };
-
-    const consolidado: { [key: string]: { value: number; color: string } } = {};
-    Object.entries(estados).forEach(([estado, count]) => {
-      const mapped = estadoMap[estado] || {
-        name: estado.charAt(0).toUpperCase() + estado.slice(1),
-        color: "#9ca3af",
-      };
-      if (consolidado[mapped.name]) {
-        consolidado[mapped.name].value += count;
-      } else {
-        consolidado[mapped.name] = { value: count, color: mapped.color };
-      }
-    });
-
-    return Object.entries(consolidado).map(([name, data]) => ({
-      name,
-      value: data.value,
-      color: data.color,
-    }));
   }, [prestamosHoy]);
 
   // Métricas de progreso
   const progressData = React.useMemo(() => {
-    const totalEquipos = equipos.length || 1;
-    const equiposDisponibles = equipos.filter((e) => e.estado).length;
-    const disponibilidad = equiposDisponibles / totalEquipos;
+    try {
+      const totalEquipos = Math.max(equipos?.length || 0, 1);
+      const equiposDisponibles = Array.isArray(equipos)
+        ? equipos.filter((e) => e?.estado).length
+        : 0;
+      const disponibilidad = equiposDisponibles / totalEquipos;
 
-    const utilizacion = prestamosActivos.length / totalEquipos;
+      const utilizacion = (prestamosActivos?.length || 0) / totalEquipos;
 
-    // Calcular satisfacción basado en préstamos completados vs rechazados
-    const completados =
-      prestamosHoy.filter(
-        (p) =>
-          p.estado === "devuelto" ||
-          p.estado === "aprobado" ||
-          p.estado === "aceptado",
-      ).length || 1;
-    const rechazados = prestamosHoy.filter(
-      (p) => p.estado === "rechazado",
-    ).length;
-    const satisfaccion = completados / (completados + rechazados);
+      // Calcular satisfacción basado en préstamos completados vs rechazados
+      const completados = Array.isArray(prestamosHoy)
+        ? prestamosHoy.filter(
+            (p) =>
+              p?.estado === "devuelto" ||
+              p?.estado === "aprobado" ||
+              p?.estado === "aceptado",
+          ).length || 1
+        : 1;
+      const rechazados = Array.isArray(prestamosHoy)
+        ? prestamosHoy.filter((p) => p?.estado === "rechazado").length
+        : 0;
+      const satisfaccion = completados / (completados + rechazados);
 
-    return [
-      {
-        label: "Disponibilidad",
-        value: Math.min(disponibilidad, 1),
-        color: "#3b82f6",
-      },
-      {
-        label: "Utilización",
-        value: Math.min(utilizacion, 1),
-        color: "#8b5cf6",
-      },
-      {
-        label: "Satisfacción",
-        value: Math.min(satisfaccion, 1),
-        color: "#10b981",
-      },
-    ];
+      return [
+        {
+          label: "Disponibilidad",
+          value: Math.min(Math.max(disponibilidad, 0), 1) || 0,
+          color: "#3b82f6",
+        },
+        {
+          label: "Utilización",
+          value: Math.min(Math.max(utilizacion, 0), 1) || 0,
+          color: "#8b5cf6",
+        },
+        {
+          label: "Satisfacción",
+          value: Math.min(Math.max(satisfaccion, 0), 1) || 0,
+          color: "#10b981",
+        },
+      ];
+    } catch (error) {
+      return [
+        { label: "Disponibilidad", value: 0, color: "#3b82f6" },
+        { label: "Utilización", value: 0, color: "#8b5cf6" },
+        { label: "Satisfacción", value: 0, color: "#10b981" },
+      ];
+    }
   }, [equipos, prestamosActivos, prestamosHoy]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <Text style={styles.loadingText}>Cargando datos...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -1586,7 +1768,12 @@ const AdminDashboard = () => {
               </TouchableOpacity>
             </View>
 
-            {!permission?.granted ? (
+            {!permission ? (
+              <View style={styles.qrMockCamera}>
+                <ActivityIndicator size="large" color="#0A66FF" />
+                <Text style={styles.qrMockText}>Verificando permisos...</Text>
+              </View>
+            ) : !permission.granted ? (
               <View style={styles.qrMockCamera}>
                 <Ionicons name="camera-outline" size={64} color="#0A66FF" />
                 <Text style={styles.qrMockText}>
@@ -2591,4 +2778,13 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: "#888", marginTop: 10 },
 });
 
-export default AdminDashboard;
+// Wrapper con ErrorBoundary
+const AdminDashboardWithErrorBoundary = () => {
+  return (
+    <ErrorBoundary>
+      <AdminDashboard />
+    </ErrorBoundary>
+  );
+};
+
+export default AdminDashboardWithErrorBoundary;

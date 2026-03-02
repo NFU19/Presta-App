@@ -76,7 +76,9 @@ const EquiposAdminScreen = () => {
       })
       .catch((error) => {
         Alert.alert("Error", "No se pudieron cargar los equipos.");
-        console.error("Error fetching equipos: ", error);
+        if (__DEV__) {
+          console.error("Error fetching equipos: ", error);
+        }
         setLoading(false);
       });
   };
@@ -100,7 +102,9 @@ const EquiposAdminScreen = () => {
               Alert.alert("Éxito", "Equipo eliminado correctamente.");
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el equipo.");
-              console.error("Error deleting document: ", error);
+              if (__DEV__) {
+                console.error("Error deleting document: ", error);
+              }
             }
           },
         },
