@@ -5,20 +5,20 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  DimensionValue,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    DimensionValue,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -30,6 +30,7 @@ interface Prestamo {
   fechaAprobacion?: any;
   fechaDevolucionEsperada?: any;
   proposito?: string;
+  codigoQR?: string;
   // Campos de la API
   ID?: number;
   "ID Articulo"?: number;
@@ -215,6 +216,8 @@ const AdminDashboard = () => {
               fechaAprobacion: p.Fecha_Aprobacion || null,
               fechaDevolucionEsperada: p["Fecha Fin"] || null,
               proposito: p.Proposito || p.Nota || "",
+              codigoQR: p.QR || null,
+              QR: p.QR || null,
             };
           });
 
@@ -313,6 +316,124 @@ const AdminDashboard = () => {
       "En la versión completa, esto marcaría el préstamo como devuelto",
     );
     setPrestamosActivos((prev) => prev.filter((p) => p.id !== prestamoId));
+  };
+
+  const entregarEquipo = async (codigoQR: string) => {
+    try {
+      Alert.alert(
+        "Confirmar entrega",
+        "¿Confirmas la entrega del equipo al usuario?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Confirmar",
+            onPress: async () => {
+              try {
+                const response = await fetch(
+                  "https://prestaapp.site/prestamos/entregar",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      codigoQR: codigoQR,
+                    }),
+                  },
+                );
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                  Alert.alert(
+                    "Éxito",
+                    `Equipo entregado correctamente: ${data.equipoNombre}`,
+                  );
+                  // Recargar datos
+                  setShowQrModal(false);
+                  setScannedData(null);
+                  setScannedPrestamo(null);
+                  // Recargar lista de préstamos
+                  window.location.reload();
+                } else {
+                  Alert.alert(
+                    "Error",
+                    data.error || "Error al registrar entrega",
+                  );
+                }
+              } catch (error) {
+                const mensaje =
+                  error instanceof Error
+                    ? error.message
+                    : "Error al registrar entrega";
+                Alert.alert("Error", mensaje);
+              }
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const recibirDevolucion = async (codigoQR: string) => {
+    try {
+      Alert.alert(
+        "Confirmar devolución",
+        "¿Confirmas la devolución del equipo?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Confirmar",
+            onPress: async () => {
+              try {
+                const response = await fetch(
+                  "https://prestaapp.site/prestamos/devolver",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      codigoQR: codigoQR,
+                    }),
+                  },
+                );
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                  const mensaje = data.devolucionTardia
+                    ? `Devolución registrada (tardía): ${data.equipoNombre}`
+                    : `Devolución registrada correctamente: ${data.equipoNombre}`;
+                  Alert.alert("Éxito", mensaje);
+                  // Recargar datos
+                  setShowQrModal(false);
+                  setScannedData(null);
+                  setScannedPrestamo(null);
+                  // Recargar lista de préstamos
+                  window.location.reload();
+                } else {
+                  Alert.alert(
+                    "Error",
+                    data.error || "Error al registrar devolución",
+                  );
+                }
+              } catch (error) {
+                const mensaje =
+                  error instanceof Error
+                    ? error.message
+                    : "Error al registrar devolución";
+                Alert.alert("Error", mensaje);
+              }
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const toggleUsuarioStatus = async (
@@ -1537,6 +1658,19 @@ const AdminDashboard = () => {
                       </Text>
                     </View>
                   )}
+                  {scannedPrestamo.codigoQR && (
+                    <View style={styles.qrResultRow}>
+                      <Text style={styles.qrResultLabel}>Código QR:</Text>
+                      <Text
+                        style={[
+                          styles.qrResultValue,
+                          { fontFamily: "monospace", fontSize: 11 },
+                        ]}
+                      >
+                        {scannedPrestamo.codigoQR}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {scannedPrestamo.estado === "pendiente" && (
@@ -1576,6 +1710,52 @@ const AdminDashboard = () => {
                   </View>
                 )}
 
+                {(scannedPrestamo.estado === "aprobado" ||
+                  scannedPrestamo.estado === "aceptado") &&
+                  scannedPrestamo.codigoQR && (
+                    <View style={styles.qrActionsContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          styles.actionButtonSuccess,
+                          { width: "100%" },
+                        ]}
+                        onPress={() => {
+                          entregarEquipo(scannedPrestamo.codigoQR!);
+                        }}
+                      >
+                        <Ionicons name="cube-outline" size={18} color="#fff" />
+                        <Text style={styles.actionButtonText}>
+                          Entregar Equipo
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                {scannedPrestamo.estado === "activo" &&
+                  scannedPrestamo.codigoQR && (
+                    <View style={styles.qrActionsContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: "#0A66FF", width: "100%" },
+                        ]}
+                        onPress={() => {
+                          recibirDevolucion(scannedPrestamo.codigoQR!);
+                        }}
+                      >
+                        <Ionicons
+                          name="return-up-back-outline"
+                          size={18}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionButtonText}>
+                          Recibir Devolución
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
@@ -1603,22 +1783,33 @@ const AdminDashboard = () => {
 
                     setScannedData(result.data);
 
-                    // Buscar el préstamo por ID o QR
-                    const prestamoId = result.data;
+                    // Buscar el préstamo por ID, QR code, o contenido del QR
+                    const scannedValue = result.data;
                     const prestamo = [
                       ...prestamosActivos,
                       ...prestamosHoy,
                     ].find(
                       (p) =>
-                        p.id === prestamoId || p.id.toString() === prestamoId,
+                        p.id === scannedValue ||
+                        p.id.toString() === scannedValue ||
+                        p.QR === scannedValue ||
+                        (p as any).codigoQR === scannedValue,
                     );
 
                     if (prestamo) {
-                      setScannedPrestamo(prestamo);
+                      // Si existe QR, agregarlo al objeto para las funciones de entrega/devolución
+                      const prestamoConQR = {
+                        ...prestamo,
+                        codigoQR:
+                          prestamo.QR ||
+                          (prestamo as any).codigoQR ||
+                          scannedValue,
+                      };
+                      setScannedPrestamo(prestamoConQR);
                     } else {
                       Alert.alert(
                         "Préstamo no encontrado",
-                        `No se encontró el préstamo con ID: ${prestamoId}`,
+                        `No se encontró el préstamo con el código escaneado`,
                         [
                           {
                             text: "OK",

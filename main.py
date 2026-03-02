@@ -30,6 +30,9 @@ class EstadoPrestamo(enum.Enum):
 	aceptado = "aceptado"
 	denegado = "denegado"
 	espera = "espera"
+	activo = "activo"
+	devuelto = "devuelto"
+	vencido = "vencido"
 
 # Modelo de SQLAlchemy para la DB
 class UsuarioDB(Base):
@@ -179,6 +182,14 @@ class PrestamoAprobar(BaseModel):
 class PrestamoRechazar(BaseModel):
 	adminId: str
 	motivoRechazo: str
+
+# Esquema de Pydantic para entregar equipo
+class PrestamoEntregar(BaseModel):
+	codigoQR: str
+
+# Esquema de Pydantic para devolver equipo
+class PrestamoDevolver(BaseModel):
+	codigoQR: str
 
 app = FastAPI()
 
@@ -820,6 +831,190 @@ def cron_recordatorios_prestamos():
 			
 		except Exception as e:
 			print(f"Error en cron de recordatorios: {e}")
+
+# =========================
+# ENDPOINTS DE ENTREGA Y DEVOLUCIÓN CON QR
+# =========================
+
+@app.post("/prestamos/entregar")
+def entregar_equipo(data: PrestamoEntregar, db: Session = Depends(get_db)):
+	"""Registra la entrega de equipo mediante escaneo de QR"""
+	try:
+		print(f"Registrando entrega con QR: {data.codigoQR}")
+		
+		# Buscar préstamo por código QR en estado 'aceptado'
+		prestamo = db.query(PrestamosDB).filter(
+			PrestamosDB.qr == data.codigoQR,
+			PrestamosDB.estado == EstadoPrestamo.aceptado
+		).first()
+		
+		if not prestamo:
+			print(f"Préstamo no encontrado o ya procesado")
+			return JSONResponse(
+				status_code=404,
+				content={"error": "Código QR inválido o préstamo ya procesado"}
+			)
+		
+		# Obtener artículo
+		articulo = db.query(ArticulosDB).filter(ArticulosDB.id == prestamo.id_articulo).first()
+		nombre_articulo = articulo.nombre if articulo else "Equipo"
+		
+		# Actualizar estado a 'activo'
+		prestamo.estado = EstadoPrestamo.activo
+		prestamo.fecha_inicio = date.today()
+		db.commit()
+		db.refresh(prestamo)
+		print(f"Préstamo {prestamo.id} actualizado a estado activo")
+		
+		# Enviar notificación al usuario
+		print(f"Enviando notificación al usuario {prestamo.id_usuario}")
+		notificar_usuario(
+			db,
+			prestamo.id_usuario,
+			"equipo_entregado",
+			"📦 Equipo Entregado",
+			f'Has recibido "{nombre_articulo}". Recuerda devolverlo antes del {prestamo.fecha_fin.strftime("%d/%m/%Y")}.',
+			{
+				"prestamoId": prestamo.id,
+				"equipoId": prestamo.id_articulo,
+				"equipoNombre": nombre_articulo,
+				"fechaDevolucion": prestamo.fecha_fin.isoformat() if prestamo.fecha_fin else None,
+				"screen": "history"
+			}
+		)
+		print(f"Entrega registrada exitosamente")
+		
+		return {
+			"success": True,
+			"prestamoId": prestamo.id,
+			"equipoNombre": nombre_articulo,
+			"fechaDevolucion": prestamo.fecha_fin.isoformat() if prestamo.fecha_fin else None
+		}
+	
+	except Exception as e:
+		print(f"Error al registrar entrega: {e}")
+		import traceback
+		traceback.print_exc()
+		return JSONResponse(
+			status_code=500,
+			content={"error": "Error al registrar entrega", "message": str(e)}
+		)
+
+@app.post("/prestamos/devolver")
+def devolver_equipo(data: PrestamoDevolver, db: Session = Depends(get_db)):
+	"""Registra la devolución de equipo mediante escaneo de QR"""
+	try:
+		print(f"Registrando devolución con QR: {data.codigoQR}")
+		
+		# Buscar préstamo por código QR en estado 'activo'
+		prestamo = db.query(PrestamosDB).filter(
+			PrestamosDB.qr == data.codigoQR,
+			PrestamosDB.estado == EstadoPrestamo.activo
+		).first()
+		
+		if not prestamo:
+			print(f"Préstamo no encontrado o no está activo")
+			return JSONResponse(
+				status_code=404,
+				content={"error": "Código QR inválido o préstamo no activo"}
+			)
+		
+		# Obtener artículo
+		articulo = db.query(ArticulosDB).filter(ArticulosDB.id == prestamo.id_articulo).first()
+		nombre_articulo = articulo.nombre if articulo else "Equipo"
+		
+		# Calcular si fue devuelto a tiempo
+		hoy = date.today()
+		devolucion_tardia = hoy > prestamo.fecha_fin if prestamo.fecha_fin else False
+		
+		# Actualizar estado a 'devuelto'
+		prestamo.estado = EstadoPrestamo.devuelto
+		db.commit()
+		db.refresh(prestamo)
+		print(f"Préstamo {prestamo.id} actualizado a estado devuelto")
+		
+		# Marcar artículo como disponible nuevamente
+		if articulo:
+			articulo.estado = EstadoArticulo.disponible
+			db.commit()
+			print(f"Artículo {articulo.id} marcado como disponible")
+		
+		# Enviar notificación al usuario
+		print(f"Enviando notificación al usuario {prestamo.id_usuario}")
+		mensaje_titulo = "✅ Devolución Confirmada" if not devolucion_tardia else "⚠️ Devolución Tardía Registrada"
+		mensaje_body = f'Has devuelto "{nombre_articulo}" correctamente.' if not devolucion_tardia else f'Se registró la devolución de "{nombre_articulo}". La devolución fue tardía.'
+		
+		notificar_usuario(
+			db,
+			prestamo.id_usuario,
+			"equipo_devuelto",
+			mensaje_titulo,
+			mensaje_body,
+			{
+				"prestamoId": prestamo.id,
+				"equipoId": prestamo.id_articulo,
+				"equipoNombre": nombre_articulo,
+				"devolucionTardia": devolucion_tardia,
+				"screen": "history"
+			}
+		)
+		print(f"Devolución registrada exitosamente")
+		
+		return {
+			"success": True,
+			"prestamoId": prestamo.id,
+			"equipoNombre": nombre_articulo,
+			"devolucionTardia": devolucion_tardia
+		}
+	
+	except Exception as e:
+		print(f"Error al registrar devolución: {e}")
+		import traceback
+		traceback.print_exc()
+		return JSONResponse(
+			status_code=500,
+			content={"error": "Error al registrar devolución", "message": str(e)}
+		)
+
+@app.get("/prestamos/qr/{codigo_qr}")
+def obtener_prestamo_por_qr(codigo_qr: str, db: Session = Depends(get_db)):
+	"""Obtiene información de un préstamo por código QR"""
+	try:
+		prestamo = db.query(PrestamosDB).filter(PrestamosDB.qr == codigo_qr).first()
+		
+		if not prestamo:
+			return JSONResponse(
+				status_code=404,
+				content={"error": "Préstamo no encontrado"}
+			)
+		
+		# Obtener información del artículo y usuario
+		articulo = db.query(ArticulosDB).filter(ArticulosDB.id == prestamo.id_articulo).first()
+		usuario = db.query(UsuarioDB).filter(UsuarioDB.id == prestamo.id_usuario).first()
+		
+		return {
+			"ID": prestamo.id,
+			"ID_Usuario": prestamo.id_usuario,
+			"Email_Usuario": usuario.email if usuario else None,
+			"Nombre_Usuario": f"{usuario.nombre} {usuario.apellido}" if usuario else None,
+			"ID_Articulo": prestamo.id_articulo,
+			"Articulo_Nombre": articulo.nombre if articulo else None,
+			"Fecha_Inicio": prestamo.fecha_inicio,
+			"Fecha_Fin": prestamo.fecha_fin,
+			"Fecha_Solicitud": prestamo.fecha_solicitud,
+			"Fecha_Aprobacion": prestamo.fecha_aprobacion,
+			"Nota": prestamo.nota,
+			"Proposito": prestamo.proposito,
+			"Estado": prestamo.estado.value,
+			"QR": prestamo.qr
+		}
+	
+	except Exception as e:
+		print(f"Error al obtener préstamo por QR: {e}")
+		return JSONResponse(
+			status_code=500,
+			content={"error": "Error al obtener préstamo"}
+		)
 
 # Iniciar cron en un hilo separado
 def iniciar_cron():
