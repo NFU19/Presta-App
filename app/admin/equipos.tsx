@@ -1,22 +1,20 @@
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    DimensionValue,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  DimensionValue,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
-import { db } from "../../firebaseConfig";
 
 // Define the structure of an Equipo
 interface Equipo {
@@ -98,8 +96,17 @@ const EquiposAdminScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, "equipos", item.id));
-              Alert.alert("Éxito", "Equipo eliminado correctamente.");
+              const response = await fetch(
+                `https://prestaapp.site/articulos/eliminar/${item.id}`,
+                { method: "DELETE" },
+              );
+
+              if (response.ok) {
+                Alert.alert("Éxito", "Equipo eliminado correctamente.");
+                fetchArticulos(); // Refrescar lista después de eliminar
+              } else {
+                Alert.alert("Error", "No se pudo eliminar el equipo.");
+              }
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el equipo.");
               if (__DEV__) {
@@ -190,7 +197,7 @@ const EquiposAdminScreen = () => {
             style={{ marginRight: 6 }}
           />
           <Text style={styles.metaChipText}>
-            {item.tipo || "Tipo no especificado"}
+            {item.categoria || "Tipo no especificado"}
           </Text>
         </View>
       </View>

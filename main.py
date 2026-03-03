@@ -268,6 +268,17 @@ def modificar_ubicacion(id: int, ubicacion: UsuarioUpdate, db: Session = Depends
 	db.refresh(usuario)
 	return usuario
 
+@app.delete("/usuarios/eliminar/{id}") # Eliminar usuario
+def eliminar_usuario(id: int, db: Session = Depends(get_db)):
+	usuario = db.query(UsuarioDB).filter(UsuarioDB.id == id).first()
+
+	if not usuario:
+		return {"error": "Usuario no encontrado"}
+
+	db.delete(usuario)
+	db.commit()
+	return {"message": "Usuario eliminado correctamente"}
+
 # SECCION DE ARTICULOS
 
 @app.get("/articulos") # Todos
@@ -313,6 +324,17 @@ def crear_articulo(articulo: ArticuloCreate, db: Session = Depends(get_db)):
 	db.refresh(nuevo_articulo)
 	return nuevo_articulo
 
+@app.delete("/articulos/eliminar/{id}") # Eliminar articulo
+def eliminar_articulo(id: int, db: Session = Depends(get_db)):
+	articulo = db.query(ArticulosDB).filter(ArticulosDB.id == id).first()
+
+	if not articulo:
+		return {"error": "Articulo no encontrado"}
+
+	db.delete(articulo)
+	db.commit()
+	return {"message": "Articulo eliminado correctamente"}
+
 # SECCION DE PRESTAMOS
 @app.get("/prestamos") # Todos
 def obtener_prestamos(db: Session = Depends(get_db)):
@@ -321,9 +343,12 @@ def obtener_prestamos(db: Session = Depends(get_db)):
 	if not prestamos:
 		return {"error":"No hay prestamos"}
 
-	return [{"ID":p.id, "ID_Usuario":p.id_usuario, "Email_Usuario":p.usuario.email, "ID_Articulo":p.id_articulo, "Fecha_Inicio":p.fecha_inicio,
+	return [{"ID":p.id, "ID_Usuario":p.id_usuario, 
+		"Email_Usuario":p.usuario.email if p.usuario else "Usuario eliminado", 
+		"ID_Articulo":p.id_articulo, "Fecha_Inicio":p.fecha_inicio,
 		"Fecha_Fin":p.fecha_fin, "Fecha_Solicitud":p.fecha_solicitud, "Nota":p.nota, "Proposito":p.proposito,
-		"Estado":p.estado, "QR":p.qr, "Articulo_Nombre":p.articulo.nombre
+		"Estado":p.estado, "QR":p.qr, 
+		"Articulo_Nombre":p.articulo.nombre if p.articulo else "Artículo eliminado"
 		} for p in prestamos]
 
 @app.get("/prestamos/id/{id}") # Por ID

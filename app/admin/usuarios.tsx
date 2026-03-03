@@ -1,9 +1,6 @@
+import { auth } from "@/firebaseConfig";
 import { useResponsive } from "@/hooks/use-responsive";
-import {
-  activarUsuario,
-  desactivarUsuario,
-  eliminarUsuario,
-} from "@/services/usuarioService";
+import { activarUsuario, desactivarUsuario } from "@/services/usuarioService";
 import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
@@ -50,28 +47,36 @@ const UsuariosAdminScreen = () => {
     fetch("https://prestaapp.site/usuarios")
       .then((response) => response.json())
       .then((data) => {
+        const currentUserEmail = auth.currentUser?.email?.toLowerCase();
+
         // Mapear los datos del backend al formato de la interfaz Usuario
-        const usuariosMapeados = data.map((user: any, index: number) => ({
-          id: String(user.ID || user.id || `temp-${index}`),
-          nombre: user.Nombre || user.nombre || "",
-          apellido: user.Apellido || user.apellido || "",
-          telefono: user.Telefono || user.telefono || "",
-          correo: user.Email || user.correo || "",
-          matricula: user.Matricula || user.matricula || "",
-          rol: user.Rol || user.rol || "Estudiante",
-          activo: user.Activo !== false,
-          createdAt: user.created_at || user.createdAt || new Date(),
-          updatedAt: user.updated_at || user.updatedAt || new Date(),
-          // Mantener también las propiedades originales para compatibilidad
-          ID: user.ID,
-          Email: user.Email,
-          Telefono: user.Telefono,
-          Matricula: user.Matricula,
-          Rol: user.Rol,
-          Nombre: user.Nombre,
-          Apellido: user.Apellido,
-          Activo: user.Activo,
-        }));
+        const usuariosMapeados = data
+          .filter((user: any) => {
+            // Filtrar el usuario actual si es admin
+            const userEmail = (user.Email || user.correo || "").toLowerCase();
+            return userEmail !== currentUserEmail;
+          })
+          .map((user: any, index: number) => ({
+            id: String(user.ID || user.id || `temp-${index}`),
+            nombre: user.Nombre || user.nombre || "",
+            apellido: user.Apellido || user.apellido || "",
+            telefono: user.Telefono || user.telefono || "",
+            correo: user.Email || user.correo || "",
+            matricula: user.Matricula || user.matricula || "",
+            rol: user.Rol || user.rol || "Estudiante",
+            activo: user.Activo !== false,
+            createdAt: user.created_at || user.createdAt || new Date(),
+            updatedAt: user.updated_at || user.updatedAt || new Date(),
+            // Mantener también las propiedades originales para compatibilidad
+            ID: user.ID,
+            Email: user.Email,
+            Telefono: user.Telefono,
+            Matricula: user.Matricula,
+            Rol: user.Rol,
+            Nombre: user.Nombre,
+            Apellido: user.Apellido,
+            Activo: user.Activo,
+          }));
         setUsuarios(usuariosMapeados);
         setLoading(false);
       })
@@ -129,8 +134,17 @@ const UsuariosAdminScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await eliminarUsuario(user.id);
-              Alert.alert("Éxito", "Usuario eliminado correctamente.");
+              const response = await fetch(
+                `https://prestaapp.site/usuarios/eliminar/${user.id}`,
+                { method: "DELETE" },
+              );
+
+              if (response.ok) {
+                Alert.alert("Éxito", "Usuario eliminado correctamente.");
+                fetchUsuarios(); // Refrescar lista después de eliminar
+              } else {
+                Alert.alert("Error", "No se pudo eliminar el usuario.");
+              }
             } catch (error) {
               Alert.alert("Error", "No se pudo eliminar el usuario.");
               if (__DEV__) {
@@ -347,22 +361,11 @@ const UsuariosAdminScreen = () => {
           <Text style={styles.actionButtonText}>Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.actionButton,
-            user.activo
-              ? styles.actionButtonWarning
-              : styles.actionButtonSuccess,
-          ]}
-          onPress={() => handleToggleActive(user)}
+          style={[styles.actionButton, styles.actionButtonDanger]}
+          onPress={() => handleDelete(user)}
         >
-          <Ionicons
-            name={user.activo ? "ban" : "checkmark-circle"}
-            size={16}
-            color="#fff"
-          />
-          <Text style={styles.actionButtonText}>
-            {user.activo ? "Desactivar" : "Activar"}
-          </Text>
+          <Ionicons name="trash" size={16} color="#fff" />
+          <Text style={styles.actionButtonText}>Eliminar</Text>
         </TouchableOpacity>
       </View>
     </View>

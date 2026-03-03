@@ -5,19 +5,20 @@ import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../firebaseConfig";
+import { inicializarNotificaciones } from "../services/notificacionService";
 import { obtenerUsuarioPorCorreo } from "../services/usuarioService";
 
 const { width } = Dimensions.get("window");
@@ -49,6 +50,21 @@ const LoginScreen = () => {
       if (usuarioVPS) {
         await setVpsUserId(usuarioVPS.id.toString());
         console.log("ID guardado en contexto:", usuarioVPS.id);
+
+        // Inicializar notificaciones push después de login exitoso
+        try {
+          const token = await inicializarNotificaciones(usuarioVPS.id);
+          if (token) {
+            console.log("✓ Push token generado y registrado al iniciar sesión");
+          } else {
+            console.warn(
+              "No se pudo generar push token (puede ser simulador o faltan permisos)",
+            );
+          }
+        } catch (notifError) {
+          console.error("Error al inicializar notificaciones:", notifError);
+          // No bloqueamos el login si falla la inicialización de notificaciones
+        }
       } else {
         console.warn("No se encontró el usuario en VPS, continuando sin ID");
         Alert.alert(

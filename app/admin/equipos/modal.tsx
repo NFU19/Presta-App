@@ -2,15 +2,15 @@ import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const EquipoModalScreen = () => {
@@ -82,8 +82,13 @@ const EquipoModalScreen = () => {
 
     // Validar cantidad
     const cantidadNum = parseInt(cantidad);
-    if (isNaN(cantidadNum) || cantidadNum < 1) {
-      Alert.alert("Error", "La cantidad debe ser un número mayor a 0.");
+    if (
+      isNaN(cantidadNum) ||
+      cantidadNum < 1 ||
+      !Number.isInteger(parseFloat(cantidad)) ||
+      parseFloat(cantidad) !== cantidadNum
+    ) {
+      Alert.alert("Error", "La cantidad debe ser un número entero mayor a 0.");
       return;
     }
 

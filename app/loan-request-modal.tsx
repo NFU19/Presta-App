@@ -105,6 +105,17 @@ const LoanRequestModal = () => {
     const qrCode = vpsUserId.toString();
     console.log("Código QR generado:", qrCode);
 
+    // Determinar la duración en días (usar customDays si es "custom")
+    const duracionDias =
+      selectedDuration === "custom"
+        ? parseInt(customDays)
+        : parseInt(selectedDuration);
+
+    if (isNaN(duracionDias) || duracionDias < 1) {
+      Alert.alert("Error", "Duración de préstamo inválida");
+      return;
+    }
+
     // crear prestamo en vps
     fetch("https://prestaapp.site/prestamos/crear", {
       method: "POST",
@@ -115,9 +126,7 @@ const LoanRequestModal = () => {
         id_usuario: idUsuarioNumerico,
         id_articulo: product.id as string,
         fecha_inicio: new Date().toISOString().split("T")[0], // Solo fecha sin hora
-        fecha_fin: new Date(
-          Date.now() + parseInt(selectedDuration) * 24 * 60 * 60 * 1000,
-        )
+        fecha_fin: new Date(Date.now() + duracionDias * 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0], // Solo fecha sin hora
         fecha_solicitud: new Date().toISOString().split("T")[0], // Solo fecha sin hora
@@ -137,7 +146,7 @@ const LoanRequestModal = () => {
         router.back();
         Alert.alert(
           "Solicitud Enviada",
-          `Tu solicitud para ${product.nombre} por ${selectedDuration} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
+          `Tu solicitud para ${product.nombre} por ${duracionDias} día(s) ha sido enviada correctamente.\n\nPropósito: ${selectedPurpose === "other" ? customPurposeDescription.trim() : selectedPurpose}\n\nRecibirás una notificación cuando sea revisada por un administrador.`,
         );
       })
       .catch((error) => {
