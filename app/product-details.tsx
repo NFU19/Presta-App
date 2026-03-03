@@ -33,6 +33,13 @@ interface ProductData {
   categoria: string;
   imagen: string;
   estado: boolean;
+  marca?: string;
+  modelo?: string;
+  serie?: string;
+  ubicacion?: string;
+  cantidad?: number;
+  foto?: string;
+  especificaciones?: string;
 }
 
 const ProductDetailsScreen = () => {
@@ -82,7 +89,21 @@ const ProductDetailsScreen = () => {
       .then((response) => response.json())
       .then((data) => {
         console.log("Datos del equipozzzzzzzzzzz:", data);
-        setProductData(data);
+        setProductData({
+          id: data.id || product.id,
+          nombre: data.nombre || data.Nombre || "",
+          categoria: data.categoria || data.Categoria || "",
+          imagen: data.foto || data.Foto || "",
+          estado: data.estado === "disponible" || data.Estado === "disponible",
+          marca: data.marca || data.Marca || "",
+          modelo: data.modelo || data.Modelo || "",
+          serie: data.serie || data.Serie || "",
+          ubicacion: data.ubicacion || data.Ubicacion || "",
+          cantidad: data.cantidad || data.Cantidad || 0,
+          foto: data.foto || data.Foto || "",
+          especificaciones:
+            data.especificaciones || data.Especificaciones || "",
+        });
       })
       .catch((error) => {
         console.error("Error al obtener datos del equipo:", error);
@@ -238,54 +259,76 @@ const ProductDetailsScreen = () => {
           <View style={styles.detailsSection}>
             <Text style={styles.sectionTitle}>Especificaciones</Text>
             <View style={styles.specsContainer}>
-              <View style={styles.specRowAlt}>
-                <View style={styles.specLabelGroup}>
-                  <Ionicons
-                    name="pulse-outline"
-                    size={16}
-                    color={Colors.light.gray}
-                    style={styles.specIcon}
-                  />
-                  <Text style={styles.specLabel}>Estado</Text>
+              {productData?.marca && (
+                <View style={styles.specRowAlt}>
+                  <View style={styles.specLabelGroup}>
+                    <Ionicons
+                      name="pricetag-outline"
+                      size={16}
+                      color={Colors.light.gray}
+                      style={styles.specIcon}
+                    />
+                    <Text style={styles.specLabel}>Marca</Text>
+                  </View>
+                  <Text style={styles.specValue}>{productData.marca}</Text>
                 </View>
-                <Text style={styles.specValue}>Excelente</Text>
-              </View>
-              <View style={styles.specRowAlt}>
-                <View style={styles.specLabelGroup}>
-                  <Ionicons
-                    name="build-outline"
-                    size={16}
-                    color={Colors.light.gray}
-                    style={styles.specIcon}
-                  />
-                  <Text style={styles.specLabel}>Último mantenimiento</Text>
+              )}
+              {productData?.modelo && (
+                <View style={styles.specRowAlt}>
+                  <View style={styles.specLabelGroup}>
+                    <Ionicons
+                      name="cube-outline"
+                      size={16}
+                      color={Colors.light.gray}
+                      style={styles.specIcon}
+                    />
+                    <Text style={styles.specLabel}>Modelo</Text>
+                  </View>
+                  <Text style={styles.specValue}>{productData.modelo}</Text>
                 </View>
-                <Text style={styles.specValue}>15/10/2024</Text>
-              </View>
-              <View style={styles.specRowAlt}>
-                <View style={styles.specLabelGroup}>
-                  <Ionicons
-                    name="location-outline"
-                    size={16}
-                    color={Colors.light.gray}
-                    style={styles.specIcon}
-                  />
-                  <Text style={styles.specLabel}>Ubicación</Text>
+              )}
+              {productData?.serie && (
+                <View style={styles.specRowAlt}>
+                  <View style={styles.specLabelGroup}>
+                    <Ionicons
+                      name="barcode-outline"
+                      size={16}
+                      color={Colors.light.gray}
+                      style={styles.specIcon}
+                    />
+                    <Text style={styles.specLabel}>Serie</Text>
+                  </View>
+                  <Text style={styles.specValue}>{productData.serie}</Text>
                 </View>
-                <Text style={styles.specValue}>Laboratorio A-201</Text>
-              </View>
-              <View style={styles.specRowAlt}>
-                <View style={styles.specLabelGroup}>
-                  <Ionicons
-                    name="person-outline"
-                    size={16}
-                    color={Colors.light.gray}
-                    style={styles.specIcon}
-                  />
-                  <Text style={styles.specLabel}>Responsable</Text>
+              )}
+              {productData?.ubicacion && (
+                <View style={styles.specRowAlt}>
+                  <View style={styles.specLabelGroup}>
+                    <Ionicons
+                      name="location-outline"
+                      size={16}
+                      color={Colors.light.gray}
+                      style={styles.specIcon}
+                    />
+                    <Text style={styles.specLabel}>Ubicación</Text>
+                  </View>
+                  <Text style={styles.specValue}>{productData.ubicacion}</Text>
                 </View>
-                <Text style={styles.specValue}>Administrador</Text>
-              </View>
+              )}
+              {productData?.cantidad !== undefined && (
+                <View style={styles.specRowAlt}>
+                  <View style={styles.specLabelGroup}>
+                    <Ionicons
+                      name="layers-outline"
+                      size={16}
+                      color={Colors.light.gray}
+                      style={styles.specIcon}
+                    />
+                    <Text style={styles.specLabel}>Disponibles</Text>
+                  </View>
+                  <Text style={styles.specValue}>{productData.cantidad}</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -293,24 +336,18 @@ const ProductDetailsScreen = () => {
           <View style={styles.detailsSection}>
             <Text style={styles.sectionTitle}>Características</Text>
             <View style={styles.featuresContainer}>
+              {productData?.especificaciones ? (
+                <View style={styles.featureItem}>
+                  <Ionicons name="list-outline" size={16} color="#28a745" />
+                  <Text style={styles.featureText}>
+                    {productData.especificaciones}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#28a745" />
                 <Text style={styles.featureText}>
-                  Estado: {productData?.estado}
-                </Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>Mantenimiento al día</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>Incluye accesorios</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#28a745" />
-                <Text style={styles.featureText}>
-                  Manual de usuario disponible
+                  Estado: {productData?.estado ? "Disponible" : "No disponible"}
                 </Text>
               </View>
             </View>

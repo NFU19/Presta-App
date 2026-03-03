@@ -2,15 +2,15 @@ import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const EquipoModalScreen = () => {
@@ -107,13 +107,13 @@ const EquipoModalScreen = () => {
 
     try {
       if (isEditMode) {
-        // make a post request to create articulo
-        await fetch(`https://prestaapp.site/articulos/crear`, {
-          method: "POST",
+        // Actualizar artículo existente con PUT
+        await fetch(`https://prestaapp.site/articulos/modificar/${id}`, {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ id, ...equipoData }),
+          body: JSON.stringify(equipoData),
         });
         Alert.alert("Éxito", "Equipo actualizado correctamente.");
       } else {

@@ -5,16 +5,16 @@ import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -485,6 +485,7 @@ const UsuariosAdminScreen = () => {
                   onChangeText={setNombre}
                   placeholder="Ingrese el nombre"
                   placeholderTextColor="#9ca3af"
+                  maxLength={50}
                 />
               </View>
 
@@ -497,6 +498,7 @@ const UsuariosAdminScreen = () => {
                   placeholder="Ingrese el password"
                   placeholderTextColor="#9ca3af"
                   secureTextEntry={true}
+                  maxLength={50}
                 />
               </View>
 
@@ -508,6 +510,7 @@ const UsuariosAdminScreen = () => {
                   onChangeText={setApellido}
                   placeholder="Ingrese el apellido"
                   placeholderTextColor="#9ca3af"
+                  maxLength={50}
                 />
               </View>
 
@@ -520,6 +523,7 @@ const UsuariosAdminScreen = () => {
                   placeholder="Ingrese el teléfono"
                   placeholderTextColor="#9ca3af"
                   keyboardType="phone-pad"
+                  maxLength={15}
                 />
               </View>
 
@@ -533,6 +537,7 @@ const UsuariosAdminScreen = () => {
                   placeholderTextColor="#9ca3af"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  maxLength={100}
                 />
               </View>
 
@@ -544,6 +549,7 @@ const UsuariosAdminScreen = () => {
                   onChangeText={setMatricula}
                   placeholder="Ingrese la matrícula"
                   placeholderTextColor="#9ca3af"
+                  maxLength={20}
                 />
               </View>
 

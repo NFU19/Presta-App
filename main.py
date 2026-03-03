@@ -140,6 +140,19 @@ class ArticuloCreate(BaseModel):
 	foto: str
 	especificaciones: str
 
+# Esquema de Pydantic para actualizar articulos
+class ArticuloUpdate(BaseModel):
+	nombre: Optional[str] = None
+	categoria: Optional[str] = None
+	marca: Optional[str] = None
+	modelo: Optional[str] = None
+	serie: Optional[str] = None
+	estado: Optional[str] = None
+	ubicacion: Optional[str] = None
+	cantidad: Optional[int] = None
+	foto: Optional[str] = None
+	especificaciones: Optional[str] = None
+
 # Esquema de Pydantic para recibir datos para prestamos
 class PrestamoCreate(BaseModel):
 	id_usuario: int
@@ -323,6 +336,23 @@ def crear_articulo(articulo: ArticuloCreate, db: Session = Depends(get_db)):
 	db.commit()
 	db.refresh(nuevo_articulo)
 	return nuevo_articulo
+
+@app.put("/articulos/modificar/{id}") # Modificar articulo
+def modificar_articulo(id: int, data: ArticuloUpdate, db: Session = Depends(get_db)):
+	articulo = db.query(ArticulosDB).filter(ArticulosDB.id == id).first()
+
+	if not articulo:
+		return JSONResponse(
+			status_code=404,
+			content={"error": "Artículo no encontrado"}
+		)
+
+	for key, value in data.dict(exclude_unset=True).items():
+		setattr(articulo, key, value)
+
+	db.commit()
+	db.refresh(articulo)
+	return articulo
 
 @app.delete("/articulos/eliminar/{id}") # Eliminar articulo
 def eliminar_articulo(id: int, db: Session = Depends(get_db)):

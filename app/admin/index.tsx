@@ -344,16 +344,26 @@ const AdminDashboard = () => {
           console.log("Préstamos mapeados:", prestamosMapeados.length);
         }
 
-        // Filtrar préstamos activos (aprobados/pendientes)
+        // Filtrar préstamos activos (solo los que están en préstamo actualmente)
         const activos = prestamosMapeados.filter(
           (p) =>
+            p.estado === "activo" ||
             p.estado === "aceptado" ||
-            p.estado === "aprobado" ||
-            p.estado === "pendiente",
+            p.estado === "aprobado",
         );
 
+        // Filtrar préstamos de hoy (solicitados hoy)
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const prestamosDehoy = prestamosMapeados.filter((p) => {
+          if (!p.fechaSolicitud) return false;
+          const fechaSolicitud = new Date(p.fechaSolicitud);
+          fechaSolicitud.setHours(0, 0, 0, 0);
+          return fechaSolicitud.getTime() === hoy.getTime();
+        });
+
         setPrestamosActivos(activos);
-        setPrestamosHoy(prestamosMapeados);
+        setPrestamosHoy(prestamosDehoy);
       } else {
         setPrestamosActivos([]);
         setPrestamosHoy([]);
