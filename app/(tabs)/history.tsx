@@ -5,20 +5,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Easing,
-    FlatList,
-    Image,
-    Modal,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SideMenu } from "../../components/shared/side-menu";
@@ -152,48 +152,58 @@ const HistoryScreen = () => {
 
       // Mapear los datos del VPS a la estructura de Prestamo
       const prestamosData: Prestamo[] = Array.isArray(data)
-        ? data.map((p: any, index: number) => {
-            // Calcular duración en días
-            let duracionDias = 7; // valor por defecto
-            if (p.Fecha_Inicio && p.Fecha_Fin) {
-              const fechaInicio = new Date(p.Fecha_Inicio);
-              const fechaFin = new Date(p.Fecha_Fin);
-              const diffTime = Math.abs(
-                fechaFin.getTime() - fechaInicio.getTime(),
-              );
-              duracionDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            }
+        ? data
+            .filter((p: any) => {
+              // Filtro adicional de seguridad: asegurar que el préstamo pertenece al usuario
+              const prestamoUserId =
+                p.ID_Usuario?.toString() || p.id_usuario?.toString();
+              return prestamoUserId === vpsUserId.toString();
+            })
+            .map((p: any, index: number) => {
+              // Calcular duración en días
+              let duracionDias = 7; // valor por defecto
+              if (p.Fecha_Inicio && p.Fecha_Fin) {
+                const fechaInicio = new Date(p.Fecha_Inicio);
+                const fechaFin = new Date(p.Fecha_Fin);
+                const diffTime = Math.abs(
+                  fechaFin.getTime() - fechaInicio.getTime(),
+                );
+                duracionDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              }
 
-            return {
-              id:
-                p.ID?.toString() ||
-                `prestamo-${vpsUserId}-${index}-${Date.now()}`,
-              usuarioId: p.ID_Usuario?.toString() || vpsUserId,
-              usuarioNombre: "",
-              usuarioEmail: "",
-              equipoId: p.ID_Articulo?.toString() || "",
-              equipoNombre: "Artículo",
-              equipoImagen: "",
-              fechaSolicitud: p.Fecha_Solicitud
-                ? new Date(p.Fecha_Solicitud)
-                : new Date(),
-              fechaAprobacion: p.Fecha_Aprobacion
-                ? new Date(p.Fecha_Aprobacion)
-                : undefined,
-              fechaPrestamo: p.Fecha_Inicio
-                ? new Date(p.Fecha_Inicio)
-                : undefined,
-              fechaDevolucion: p.Fecha_Fin ? new Date(p.Fecha_Fin) : undefined,
-              duracionDias: duracionDias,
-              proposito: p.Proposito || "",
-              estado: (p.Estado?.toLowerCase() ||
-                "pendiente") as EstadoPrestamo,
-              codigoQR: p.QR || "",
-              notas: p.Nota || "",
-              createdAt: new Date().toISOString().split("T")[0],
-              updatedAt: new Date().toISOString().split("T")[0],
-            };
-          })
+              return {
+                id:
+                  p.ID?.toString() ||
+                  `prestamo-${vpsUserId}-${index}-${Date.now()}`,
+                usuarioId: p.ID_Usuario?.toString() || vpsUserId,
+                usuarioNombre: "",
+                usuarioEmail: "",
+                equipoId: p.ID_Articulo?.toString() || "",
+                equipoNombre: p.Articulo_Nombre || "Artículo",
+                equipoImagen: "",
+                fechaSolicitud: p.Fecha_Solicitud
+                  ? new Date(p.Fecha_Solicitud)
+                  : new Date(),
+                fechaAprobacion: p.Fecha_Aprobacion
+                  ? new Date(p.Fecha_Aprobacion)
+                  : undefined,
+                fechaPrestamo: p.Fecha_Inicio
+                  ? new Date(p.Fecha_Inicio)
+                  : undefined,
+                fechaDevolucion: p.Fecha_Fin
+                  ? new Date(p.Fecha_Fin)
+                  : undefined,
+                duracionDias: duracionDias,
+                proposito: p.Proposito || "",
+                estado: (p.Estado?.toLowerCase() || "espera") as EstadoPrestamo,
+                codigoQR: p.QR || "",
+                // Log para debug
+                _rawEstado: p.Estado,
+                notas: p.Nota || "",
+                createdAt: new Date().toISOString().split("T")[0],
+                updatedAt: new Date().toISOString().split("T")[0],
+              };
+            })
         : [];
 
       console.log("Préstamos mapeados:", prestamosData);
@@ -263,6 +273,7 @@ const HistoryScreen = () => {
       aprobado: { bg: "#e6f4ff", text: "#1b74d4" },
       aceptado: { bg: "#e6f4ff", text: "#1b74d4" },
       rechazado: { bg: "#f1f2f4", text: "#6c757d" },
+      denegado: { bg: "#f1f2f4", text: "#6c757d" },
     };
     return map[estado] || { bg: "#edf0f7", text: Colors.light.gray };
   };
@@ -277,6 +288,7 @@ const HistoryScreen = () => {
       devuelto: "Devuelto",
       vencido: "Vencido",
       rechazado: "Rechazado",
+      denegado: "Rechazado",
     };
     return labels[estado] || estado;
   };
@@ -376,7 +388,16 @@ const HistoryScreen = () => {
     ].includes(p.estado),
   );
   const prestamosHistoricos = prestamos.filter((p) =>
-    ["devuelto", "rechazado"].includes(p.estado),
+    ["devuelto", "denegado", "rechazado"].includes(p.estado),
+  );
+
+  // Debug logs
+  console.log("Total préstamos:", prestamos.length);
+  console.log("Préstamos activos:", prestamosActivos.length);
+  console.log("Préstamos históricos:", prestamosHistoricos.length);
+  console.log(
+    "Estados:",
+    prestamos.map((p) => p.estado),
   );
 
   const renderItem = ({ item }: { item: Prestamo }) => {
@@ -663,7 +684,7 @@ const HistoryScreen = () => {
         ) : (
           <View style={{ flex: 1, width: "100%" }}>
             <FlatList
-              data={prestamos}
+              data={listData}
               renderItem={renderItem}
               keyExtractor={(item, index) => `${item.id}-${index}`}
               key={numColumns + selectedTab}

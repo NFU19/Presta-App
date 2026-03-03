@@ -40,13 +40,15 @@ export interface Prestamo {
 }
 
 export type EstadoPrestamo =
-  | "pendiente" // Usuario solicitó, esperando aprobación admin
-  | "aprobado" // Admin aprobó, esperando entrega
-  | "aceptado" // Alias legacy si backend usa "aceptado"
+  | "espera" // Usuario solicitó, esperando aprobación admin (backend usa "espera")
+  | "pendiente" // Alias para "espera"
+  | "aceptado" // Admin aprobó, esperando entrega (backend usa "aceptado")
+  | "aprobado" // Alias para "aceptado"
   | "activo" // Equipo prestado (QR escaneado en entrega)
   | "devuelto" // Equipo devuelto (QR escaneado en devolución)
   | "vencido" // Fecha de devolución pasada y no devuelto
-  | "rechazado"; // Admin rechazó la solicitud
+  | "denegado" // Admin rechazó la solicitud (backend usa "denegado")
+  | "rechazado"; // Alias para "denegado"
 
 export interface SolicitudPrestamoData {
   usuarioId: string;

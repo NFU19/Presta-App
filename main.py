@@ -407,11 +407,18 @@ def obtener_prestamos_por_usuario(id_usuario: int, db: Session = Depends(get_db)
 	prestamos = db.query(PrestamosDB).filter(PrestamosDB.id_usuario == id_usuario).all()
 
 	if not prestamos:
-		return {"error":"Este usuario no tiene prestamos"}
+		return []
 
-	return [{"ID":p.id, "ID_Usuario":p.id_usuario, "ID_Articulo":p.id_articulo, "Fecha_Inicio":p.fecha_inicio,
-		"Fecha_Fin":p.fecha_fin, "Fecha_Solicitud":p.fecha_solicitud, "Nota":p.nota, "Proposito":p.proposito,
-		"Estado":p.estado, "QR":p.qr
+	return [{"ID":p.id, "ID_Usuario":p.id_usuario, 
+		"Email_Usuario":p.usuario.email if p.usuario else "Usuario eliminado",
+		"ID_Articulo":p.id_articulo, 
+		"Articulo_Nombre":p.articulo.nombre if p.articulo else "Artículo eliminado",
+		"Fecha_Inicio":p.fecha_inicio,
+		"Fecha_Fin":p.fecha_fin, "Fecha_Solicitud":p.fecha_solicitud, 
+		"Fecha_Aprobacion":p.fecha_aprobacion,
+		"Nota":p.nota, "Proposito":p.proposito,
+		"Estado":p.estado.value if hasattr(p.estado, 'value') else p.estado, 
+		"QR":p.qr
 		} for p in prestamos]
 
 
