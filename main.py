@@ -126,6 +126,8 @@ class UsuarioCreate(BaseModel):
     nombre: str
     apellido: str
     matricula: str
+    telefono: Optional[str] = None
+    carrera: Optional[str] = None
 
 # Esquema de Pydantic para recibir datos de articulos
 class ArticuloCreate(BaseModel):
@@ -219,7 +221,17 @@ app.add_middleware(
 
 @app.post("/usuarios/crear")
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
-    nuevo_usuario = UsuarioDB(nombre=usuario.nombre, apellido=usuario.apellido, matricula=usuario.matricula, email=usuario.email, rol='user', password=usuario.password, created_at=usuario.created_at)
+    nuevo_usuario = UsuarioDB(
+        nombre=usuario.nombre, 
+        apellido=usuario.apellido, 
+        matricula=usuario.matricula, 
+        email=usuario.email, 
+        rol=usuario.rol, 
+        telefono=usuario.telefono,
+        carrera=usuario.carrera,
+        password=usuario.password, 
+        created_at=usuario.created_at
+    )
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
@@ -232,7 +244,7 @@ def obtener_usuarios(db: Session = Depends(get_db)):
 	if not usuarios:
 		return {"error":"No hay usuarios"}
 
-	return [{"ID":u.id, "Email":u.email,"Telefono":u.telefono, "Rol":u.rol, "Matricula":u.matricula, "Carrera":u.carrera} for u in usuarios]
+	return [{"ID":u.id, "Email":u.email, "Nombre":u.nombre, "Apellido":u.apellido, "Telefono":u.telefono, "Rol":u.rol, "Matricula":u.matricula, "Carrera":u.carrera, "Activo":True} for u in usuarios]
 
 @app.get("/usuarios/email/{email}")
 def obtener_usuario_por_correo(email, db: Session = Depends(get_db)):

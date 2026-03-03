@@ -5,16 +5,16 @@ import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -38,6 +38,33 @@ const UsuariosAdminScreen = () => {
   const [password, setPassword] = useState(""); // Campo para password (RF-1)
 
   const { isMobile, isTablet } = useResponsive();
+
+  // Helper para mostrar confirmaciones que funcione en web y móvil
+  const showConfirmDialog = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+  ) => {
+    if (Platform.OS === "web") {
+      if (window.confirm(`${title}\n\n${message}`)) {
+        onConfirm();
+      }
+    } else {
+      Alert.alert(title, message, [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: onConfirm },
+      ]);
+    }
+  };
+
+  // Helper para mostrar alertas simples que funcionen en web y móvil
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === "web") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
 
   useEffect(() => {
     fetchUsuarios();
@@ -81,7 +108,7 @@ const UsuariosAdminScreen = () => {
         setLoading(false);
       })
       .catch((error) => {
-        Alert.alert("Error", "No se pudieron cargar los usuarios.");
+        showAlert("Error", "No se pudieron cargar los usuarios.");
         if (__DEV__) {
           console.error("Error fetching users: ", error);
         }
@@ -110,13 +137,13 @@ const UsuariosAdminScreen = () => {
     try {
       if (user.activo) {
         await desactivarUsuario(user.id);
-        Alert.alert("Éxito", "Usuario desactivado correctamente.");
+        showAlert("Éxito", "Usuario desactivado correctamente.");
       } else {
         await activarUsuario(user.id);
-        Alert.alert("Éxito", "Usuario activado correctamente.");
+        showAlert("Éxito", "Usuario activado correctamente.");
       }
     } catch (error) {
-      Alert.alert("Error", "No se pudo cambiar el estado del usuario.");
+      showAlert("Error", "No se pudo cambiar el estado del usuario.");
       if (__DEV__) {
         console.error("Error toggling user status: ", error);
       }
@@ -124,36 +151,29 @@ const UsuariosAdminScreen = () => {
   };
 
   const handleDelete = (user: Usuario) => {
-    Alert.alert(
+    showConfirmDialog(
       "Confirmar Eliminación",
       `¿Estás seguro de que quieres eliminar a "${user.nombre} ${user.apellido}"? Esta acción no se puede deshacer.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await fetch(
-                `https://prestaapp.site/usuarios/eliminar/${user.id}`,
-                { method: "DELETE" },
-              );
+      async () => {
+        try {
+          const response = await fetch(
+            `https://prestaapp.site/usuarios/eliminar/${user.id}`,
+            { method: "DELETE" },
+          );
 
-              if (response.ok) {
-                Alert.alert("Éxito", "Usuario eliminado correctamente.");
-                fetchUsuarios(); // Refrescar lista después de eliminar
-              } else {
-                Alert.alert("Error", "No se pudo eliminar el usuario.");
-              }
-            } catch (error) {
-              Alert.alert("Error", "No se pudo eliminar el usuario.");
-              if (__DEV__) {
-                console.error("Error deleting user: ", error);
-              }
-            }
-          },
-        },
-      ],
+          if (response.ok) {
+            showAlert("Éxito", "Usuario eliminado correctamente.");
+            fetchUsuarios(); // Refrescar lista después de eliminar
+          } else {
+            showAlert("Error", "No se pudo eliminar el usuario.");
+          }
+        } catch (error) {
+          showAlert("Error", "No se pudo eliminar el usuario.");
+          if (__DEV__) {
+            console.error("Error deleting user: ", error);
+          }
+        }
+      },
     );
   };
 
@@ -183,7 +203,7 @@ const UsuariosAdminScreen = () => {
         }),
       });
     } catch (error) {
-      Alert.alert("Error", "Ocurrió un error al actualizar el usuario.");
+      showAlert("Error", "Ocurrió un error al actualizar el usuario.");
       if (__DEV__) {
         console.error("Error updating user: ", error);
       }
@@ -203,14 +223,14 @@ const UsuariosAdminScreen = () => {
           matricula: matricula.trim(),
           telefono: telefono.trim(),
           email: correo.trim(),
-          rol: "user",
+          rol: rol, // RF-1
           carrera: "Sin asignar",
           password: password.trim(), // RF-1
           created_at: new Date().toISOString().split("T")[0], // Solo fecha en formato YYYY-MM-DD
         }),
       });
     } catch (error) {
-      Alert.alert("Error", "Ocurrió un error al registrar el usuario.");
+      showAlert("Error", "Ocurrió un error al registrar el usuario.");
       if (__DEV__) {
         console.error("Error creating user: ", error);
       }
@@ -220,34 +240,34 @@ const UsuariosAdminScreen = () => {
   const handleSubmit = async () => {
     // Validaciones
     if (!nombre.trim()) {
-      Alert.alert("Error", "El nombre es requerido");
+      showAlert("Error", "El nombre es requerido");
       return;
     }
     if (!apellido.trim()) {
-      Alert.alert("Error", "El apellido es requerido");
+      showAlert("Error", "El apellido es requerido");
       return;
     }
     if (!telefono.trim()) {
-      Alert.alert("Error", "El teléfono es requerido");
+      showAlert("Error", "El teléfono es requerido");
       return;
     }
     if (!correo.trim()) {
-      Alert.alert("Error", "El correo es requerido");
+      showAlert("Error", "El correo es requerido");
       return;
     }
     if (!matricula.trim()) {
-      Alert.alert("Error", "La matrícula es requerida");
+      showAlert("Error", "La matrícula es requerida");
       return;
     }
     if (!rol) {
-      Alert.alert("Error", "El rol es requerido");
+      showAlert("Error", "El rol es requerido");
       return;
     }
 
     // Validar formato de correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(correo)) {
-      Alert.alert("Error", "El correo no tiene un formato válido");
+      showAlert("Error", "El correo no tiene un formato válido");
       return;
     }
 
@@ -257,11 +277,11 @@ const UsuariosAdminScreen = () => {
       if (editingUser) {
         // Actualizar usuario existente
         actualizarUsuario();
-        Alert.alert("Éxito", "Usuario actualizado correctamente.");
+        showAlert("Éxito", "Usuario actualizado correctamente.");
       } else {
         // Crear nuevo usuario
         crearUsuario();
-        Alert.alert("Éxito", "Usuario registrado correctamente.");
+        showAlert("Éxito", "Usuario registrado correctamente.");
       }
       setModalVisible(false);
       resetForm();
@@ -270,7 +290,7 @@ const UsuariosAdminScreen = () => {
         error instanceof Error
           ? error.message
           : "Ocurrió un error al guardar el usuario";
-      Alert.alert("Error", message);
+      showAlert("Error", message);
     } finally {
       setSubmitting(false);
     }
