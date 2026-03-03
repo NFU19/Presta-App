@@ -1,5 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { useResponsive } from "@/hooks/use-responsive";
+import { downloadReport } from "@/utils/reportGenerator";
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
@@ -206,6 +207,9 @@ const AdminDashboard = () => {
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [scannedPrestamo, setScannedPrestamo] = useState<Prestamo | null>(null);
   const router = useRouter();
+
+  // Modal para exportar reportes
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Verificar permisos cuando se abre el modal
   useEffect(() => {
@@ -1321,32 +1325,8 @@ const AdminDashboard = () => {
             <TouchableOpacity
               style={styles.downloadButton}
               onPress={() => {
-                Alert.alert(
-                  "Descargar Reporte",
-                  "¿En qué formato deseas descargar el reporte?",
-                  [
-                    {
-                      text: "PDF",
-                      onPress: () =>
-                        Alert.alert(
-                          "Descargando...",
-                          "Reporte en formato PDF generado correctamente",
-                        ),
-                    },
-                    {
-                      text: "CSV",
-                      onPress: () =>
-                        Alert.alert(
-                          "Descargando...",
-                          "Reporte en formato CSV generado correctamente",
-                        ),
-                    },
-                    {
-                      text: "Cancelar",
-                      style: "cancel",
-                    },
-                  ],
-                );
+                console.log("Botón de reporte presionado");
+                setShowExportModal(true);
               }}
             >
               <Ionicons
@@ -2020,6 +2000,182 @@ const AdminDashboard = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Modal para exportar reportes */}
+      <Modal
+        visible={showExportModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowExportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: isMobile ? "90%" : isTablet ? 400 : 450,
+                padding: isMobile ? 20 : 32,
+              },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text
+                style={[styles.modalTitle, { fontSize: isMobile ? 20 : 24 }]}
+              >
+                Descargar Reporte
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowExportModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={[
+                styles.modalSubtitle,
+                { fontSize: isMobile ? 14 : 16, marginBottom: 24 },
+              ]}
+            >
+              Seleccione el formato de exportación:
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.exportOptionButton,
+                { marginBottom: 12, padding: isMobile ? 16 : 18 },
+              ]}
+              onPress={async () => {
+                console.log("Generando reporte PDF...");
+                setShowExportModal(false);
+                try {
+                  const success = await downloadReport("pdf", {
+                    prestamosActivos,
+                    equipos,
+                    usuarios,
+                    prestamosHoy,
+                  });
+
+                  console.log("Resultado PDF:", success);
+                  if (success && Platform.OS !== "web") {
+                    Alert.alert("Éxito", "Reporte generado correctamente");
+                  } else if (!success) {
+                    Alert.alert("Error", "No se pudo generar el reporte PDF");
+                  }
+                } catch (error) {
+                  console.error("Error en reporte PDF:", error);
+                  Alert.alert(
+                    "Error",
+                    "Ocurrió un error al generar el reporte",
+                  );
+                }
+              }}
+            >
+              <View style={styles.exportOptionContent}>
+                <View style={styles.exportIconWrapper}>
+                  <Ionicons name="document-text" size={28} color="#0A66FF" />
+                </View>
+                <View style={styles.exportTextContainer}>
+                  <Text
+                    style={[
+                      styles.exportOptionTitle,
+                      { fontSize: isMobile ? 16 : 18 },
+                    ]}
+                  >
+                    Formato PDF
+                  </Text>
+                  <Text
+                    style={[
+                      styles.exportOptionDescription,
+                      { fontSize: isMobile ? 12 : 13 },
+                    ]}
+                  >
+                    Documento listo para imprimir
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#94a3b8" />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.exportOptionButton,
+                { marginBottom: 16, padding: isMobile ? 16 : 18 },
+              ]}
+              onPress={async () => {
+                console.log("Generando reporte CSV...");
+                setShowExportModal(false);
+                try {
+                  const success = await downloadReport("csv", {
+                    prestamosActivos,
+                    equipos,
+                    usuarios,
+                    prestamosHoy,
+                  });
+
+                  console.log("Resultado CSV:", success);
+                  if (success) {
+                    if (Platform.OS !== "web") {
+                      Alert.alert(
+                        "Éxito",
+                        "Reporte CSV descargado correctamente",
+                      );
+                    }
+                  } else {
+                    Alert.alert("Error", "No se pudo descargar el reporte CSV");
+                  }
+                } catch (error) {
+                  console.error("Error en reporte CSV:", error);
+                  Alert.alert(
+                    "Error",
+                    "Ocurrió un error al generar el reporte",
+                  );
+                }
+              }}
+            >
+              <View style={styles.exportOptionContent}>
+                <View style={styles.exportIconWrapper}>
+                  <Ionicons name="grid" size={28} color="#10b981" />
+                </View>
+                <View style={styles.exportTextContainer}>
+                  <Text
+                    style={[
+                      styles.exportOptionTitle,
+                      { fontSize: isMobile ? 16 : 18 },
+                    ]}
+                  >
+                    Formato CSV
+                  </Text>
+                  <Text
+                    style={[
+                      styles.exportOptionDescription,
+                      { fontSize: isMobile ? 12 : 13 },
+                    ]}
+                  >
+                    Datos para Excel o análisis
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#94a3b8" />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cancelButton, { padding: isMobile ? 14 : 16 }]}
+              onPress={() => setShowExportModal(false)}
+            >
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  { fontSize: isMobile ? 14 : 16 },
+                ]}
+              >
+                Cancelar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -2476,6 +2632,76 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef2f7",
     borderWidth: 1,
     borderColor: "#e0e6ef",
+  },
+  modalSubtitle: {
+    color: "#64748b",
+    lineHeight: 22,
+  },
+  exportOptionButton: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        ":hover": {
+          borderColor: "#0A66FF",
+          backgroundColor: "#f8fafc",
+          transform: "translateX(4px)",
+        },
+      },
+      default: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      },
+    }),
+  },
+  exportOptionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  exportIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#f1f5f9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  exportTextContainer: {
+    flex: 1,
+  },
+  exportOptionTitle: {
+    fontWeight: "600",
+    color: "#0f172a",
+    marginBottom: 2,
+  },
+  exportOptionDescription: {
+    color: "#64748b",
+  },
+  cancelButton: {
+    backgroundColor: "#f1f5f9",
+    borderRadius: 10,
+    alignItems: "center",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "background-color 0.2s ease",
+        ":hover": {
+          backgroundColor: "#e2e8f0",
+        },
+      },
+    }),
+  },
+  cancelButtonText: {
+    color: "#475569",
+    fontWeight: "600",
   },
   filtersContainer: {
     padding: 20,
