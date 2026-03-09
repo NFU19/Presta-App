@@ -85,7 +85,7 @@ const ProductDetailsScreen = () => {
   }, [product.id]);
 
   const fetchArticulo = useCallback(() => {
-    fetch(`https://prestaapp.site/articulos/id/${product.id}`)
+    fetch(`https://api.prestaapp.site/articulos/id/${product.id}`)
       .then((response) => response.json())
       .then((data) => {
         console.log("Datos del equipozzzzzzzzzzz:", data);

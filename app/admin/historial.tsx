@@ -82,7 +82,7 @@ const HistorialScreen = () => {
 
   const fetchHistorial = async () => {
     try {
-      const response = await fetch("https://prestaapp.site/prestamos");
+      const response = await fetch("https://api.prestaapp.site/prestamos");
       const result = await response.json();
 
       // Asegura que siempre sea array

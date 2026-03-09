@@ -139,7 +139,7 @@ const HistoryScreen = () => {
       // Obtener préstamos del VPS
       console.log("Obteniendo préstamos del usuario VPS:", vpsUserId);
       const response = await fetch(
-        `https://prestaapp.site/prestamos/usuario/${vpsUserId}`,
+        `https://api.prestaapp.site/prestamos/usuario/${vpsUserId}`,
       );
 
       if (!response.ok) {
@@ -315,7 +315,7 @@ const HistoryScreen = () => {
           onPress: async () => {
             try {
               const response = await fetch(
-                `https://prestaapp.site/prestamos/cancelar/${prestamo.id}`,
+                `https://api.prestaapp.site/prestamos/cancelar/${prestamo.id}`,
                 { method: "DELETE" },
               );
 

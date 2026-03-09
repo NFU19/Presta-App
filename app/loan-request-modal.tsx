@@ -117,7 +117,7 @@ const LoanRequestModal = () => {
     }
 
     // crear prestamo en vps
-    fetch("https://prestaapp.site/prestamos/crear", {
+    fetch("https://api.prestaapp.site/prestamos/crear", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

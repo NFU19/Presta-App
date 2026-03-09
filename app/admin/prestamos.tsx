@@ -42,7 +42,7 @@ const PrestamosAdminScreen = () => {
   }, []);
 
   const fetchPrestamos = () => {
-    fetch("https://prestaapp.site/prestamos")
+    fetch("https://api.prestaapp.site/prestamos")
       .then((response) => response.json())
       .then((data) => {
         console.log("API RESPONSE:", data);

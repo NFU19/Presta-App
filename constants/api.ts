@@ -2,7 +2,7 @@
 // Configuración de la API del backend
 
 export const API_CONFIG = {
-  BASE_URL: "https://prestaapp.site",
+  BASE_URL: "https://api.prestaapp.site",
   ENDPOINTS: {
     // Usuarios
     USUARIOS: "/usuarios",

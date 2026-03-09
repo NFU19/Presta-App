@@ -65,7 +65,7 @@ const CatalogScreen = () => {
 
   const fetchEquipos = async () => {
     try {
-      const response = await fetch("https://prestaapp.site/articulos");
+      const response = await fetch("https://api.prestaapp.site/articulos");
       const data = await response.json();
 
       const mapped: Equipo[] = data.map((item: any, index: number) => ({

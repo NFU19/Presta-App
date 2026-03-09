@@ -3,17 +3,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  DimensionValue,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    DimensionValue,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    useWindowDimensions,
+    View,
 } from "react-native";
 
 // Define the structure of an Equipo
@@ -43,7 +43,7 @@ const EquiposAdminScreen = () => {
   }, []);
 
   const fetchArticulos = () => {
-    fetch("https://prestaapp.site/articulos")
+    fetch("https://api.prestaapp.site/articulos")
       .then((response) => response.json())
       .then((data) => {
         console.log("Artículos recibidos:", data);
@@ -97,7 +97,7 @@ const EquiposAdminScreen = () => {
           onPress: async () => {
             try {
               const response = await fetch(
-                `https://prestaapp.site/articulos/eliminar/${item.id}`,
+                `https://api.prestaapp.site/articulos/eliminar/${item.id}`,
                 { method: "DELETE" },
               );
 

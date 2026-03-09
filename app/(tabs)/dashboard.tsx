@@ -134,7 +134,7 @@ const DashboardScreen = () => {
 
   const fetchEquipos = () => {
     try {
-      fetch("https://prestaapp.site/articulos")
+      fetch("https://api.prestaapp.site/articulos")
         .then((response) => response.json())
         .then((data) => {
           const articulos = data.map((item: any) => ({

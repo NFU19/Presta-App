@@ -2,16 +2,16 @@
 // Servicio para manejar toda la lógica de usuarios
 
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { RegistroUsuarioData, Usuario } from "../types/usuario";
@@ -284,7 +284,7 @@ export const obtenerUsuarioPorCorreo = async (
   try {
     console.log("Buscando usuario con correo:", correo);
     const response = await fetch(
-      `https://prestaapp.site/usuarios/email/${correo}`,
+      `https://api.prestaapp.site/usuarios/email/${correo}`,
     );
 
     if (!response.ok) {

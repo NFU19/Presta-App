@@ -6,20 +6,20 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  DimensionValue,
-  FlatList,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    DimensionValue,
+    FlatList,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    useWindowDimensions,
 } from "react-native";
 
 interface Prestamo {
@@ -417,7 +417,7 @@ const AdminDashboard = () => {
     estado: "aprobado" | "rechazado",
   ) => {
     try {
-      fetch(`https://prestaapp.site/prestamos/uriel/${id}`, {
+      fetch(`https://api.prestaapp.site/prestamos/uriel/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -481,7 +481,7 @@ const AdminDashboard = () => {
             onPress: async () => {
               try {
                 const response = await fetch(
-                  "https://prestaapp.site/prestamos/entregar",
+                  "https://api.prestaapp.site/prestamos/entregar",
                   {
                     method: "POST",
                     headers: {
@@ -542,7 +542,7 @@ const AdminDashboard = () => {
             onPress: async () => {
               try {
                 const response = await fetch(
-                  "https://prestaapp.site/prestamos/devolver",
+                  "https://api.prestaapp.site/prestamos/devolver",
                   {
                     method: "POST",
                     headers: {

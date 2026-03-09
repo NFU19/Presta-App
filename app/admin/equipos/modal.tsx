@@ -47,7 +47,7 @@ const EquipoModalScreen = () => {
 
   const fetchArticulo = async () => {
     try {
-      fetch(`https://prestaapp.site/articulos/id/${id}`)
+      fetch(`https://api.prestaapp.site/articulos/id/${id}`)
         .then((response) => response.json())
         .then((data) => {
           setNombre(data.nombre || "");
@@ -108,7 +108,7 @@ const EquipoModalScreen = () => {
     try {
       if (isEditMode) {
         // Actualizar artículo existente con PUT
-        await fetch(`https://prestaapp.site/articulos/modificar/${id}`, {
+        await fetch(`https://api.prestaapp.site/articulos/modificar/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -117,7 +117,7 @@ const EquipoModalScreen = () => {
         });
         Alert.alert("Éxito", "Equipo actualizado correctamente.");
       } else {
-        await fetch(`https://prestaapp.site/articulos/crear`, {
+        await fetch(`https://api.prestaapp.site/articulos/crear`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -5,16 +5,16 @@ import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -71,7 +71,7 @@ const UsuariosAdminScreen = () => {
   }, []);
 
   const fetchUsuarios = () => {
-    fetch("https://prestaapp.site/usuarios")
+    fetch("https://api.prestaapp.site/usuarios")
       .then((response) => response.json())
       .then((data) => {
         const currentUserEmail = auth.currentUser?.email?.toLowerCase();
@@ -157,7 +157,7 @@ const UsuariosAdminScreen = () => {
       async () => {
         try {
           const response = await fetch(
-            `https://prestaapp.site/usuarios/eliminar/${user.id}`,
+            `https://api.prestaapp.site/usuarios/eliminar/${user.id}`,
             { method: "DELETE" },
           );
 
@@ -188,20 +188,23 @@ const UsuariosAdminScreen = () => {
 
   const actualizarUsuario = async () => {
     try {
-      fetch(`https://prestaapp.site/usuarios/modificar/${editingUser?.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      fetch(
+        `https://api.prestaapp.site/usuarios/modificar/${editingUser?.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            telefono: telefono.trim(),
+            correo: correo.trim(),
+            matricula: matricula.trim(),
+            rol, // RF-1
+          }),
         },
-        body: JSON.stringify({
-          nombre: nombre.trim(),
-          apellido: apellido.trim(),
-          telefono: telefono.trim(),
-          correo: correo.trim(),
-          matricula: matricula.trim(),
-          rol, // RF-1
-        }),
-      });
+      );
     } catch (error) {
       showAlert("Error", "Ocurrió un error al actualizar el usuario.");
       if (__DEV__) {
@@ -212,7 +215,7 @@ const UsuariosAdminScreen = () => {
 
   const crearUsuario = async () => {
     try {
-      fetch("https://prestaapp.site/usuarios/crear", {
+      fetch("https://api.prestaapp.site/usuarios/crear", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
