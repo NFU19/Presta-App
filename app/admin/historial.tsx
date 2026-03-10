@@ -162,7 +162,14 @@ const HistorialScreen = () => {
       contentContainerStyle={{ padding: 20, gap: 16 }}
     >
       <View style={styles.headerRow}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
           <Ionicons name="time" size={24} color={Colors.light.primary} />
           <Text style={styles.title}>Historial de Movimientos</Text>
         </View>
@@ -352,7 +359,6 @@ const styles = StyleSheet.create({
     color: Colors.light.gray,
     marginTop: 16,
   },
-
 });
 
 export default HistorialScreen;
