@@ -948,7 +948,7 @@ const styles = StyleSheet.create({
     }),
   },
   actionButtonEdit: {
-    backgroundColor: "#0A66FF",
+    backgroundColor: "#0e7490",
   },
   actionButtonWarning: {
     backgroundColor: "#f59e0b",

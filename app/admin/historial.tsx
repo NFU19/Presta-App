@@ -1,15 +1,12 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 
@@ -159,80 +156,15 @@ const HistorialScreen = () => {
     }
   };
 
-  const enviarNotificacionPrueba = async () => {
-    try {
-      // Solicitar permisos si no se han solicitado
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== "granted") {
-        Alert.alert(
-          "Permisos necesarios",
-          "Por favor, habilita los permisos de notificaciones en la configuración de tu dispositivo.",
-        );
-        return;
-      }
-
-      // Programar notificación local de prueba
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "🔔 Notificación de Prueba",
-          body: "¡Las notificaciones están funcionando correctamente! ✅",
-          data: { tipo: "prueba", screen: "historial" },
-          sound: true,
-          badge: 1,
-        },
-        trigger: {
-          seconds: 2, // Se mostrará en 2 segundos
-        },
-      });
-
-      Alert.alert(
-        "Notificación Enviada",
-        "Se enviará una notificación de prueba en 2 segundos.",
-        [{ text: "OK" }],
-      );
-    } catch (error) {
-      console.error("Error al enviar notificación de prueba:", error);
-      Alert.alert(
-        "Error",
-        "No se pudo enviar la notificación de prueba. Verifica los permisos.",
-      );
-    }
-  };
-
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ padding: 20, gap: 16 }}
     >
       <View style={styles.headerRow}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Ionicons name="time" size={24} color={Colors.light.primary} />
-            <Text style={styles.title}>Historial de Movimientos</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={enviarNotificacionPrueba}
-          >
-            <Ionicons name="notifications" size={20} color="#fff" />
-            <Text style={styles.testButtonText}>Probar Notificación</Text>
-          </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <Ionicons name="time" size={24} color={Colors.light.primary} />
+          <Text style={styles.title}>Historial de Movimientos</Text>
         </View>
         <Text style={styles.subtitle}>
           Registro inmutable de eventos clave (RF-9)
@@ -420,25 +352,7 @@ const styles = StyleSheet.create({
     color: Colors.light.gray,
     marginTop: 16,
   },
-  testButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.light.secondary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  testButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+
 });
 
 export default HistorialScreen;

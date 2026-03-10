@@ -151,6 +151,7 @@ const EquipoModalScreen = () => {
                 value={nombre}
                 onChangeText={setNombre}
                 placeholder="Ej. Laptop Dell Inspiron"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -161,6 +162,7 @@ const EquipoModalScreen = () => {
                 value={categoria}
                 onChangeText={setCategoria}
                 placeholder="Ej. Laptop, Monitor, Proyector"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -171,6 +173,7 @@ const EquipoModalScreen = () => {
                 value={marca}
                 onChangeText={setMarca}
                 placeholder="Ej. Dell, HP, Lenovo"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -181,6 +184,7 @@ const EquipoModalScreen = () => {
                 value={modelo}
                 onChangeText={setModelo}
                 placeholder="Ej. Inspiron 15 3000"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -191,6 +195,7 @@ const EquipoModalScreen = () => {
                 value={serie}
                 onChangeText={setSerie}
                 placeholder="Ej. SN123456789"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -232,6 +237,7 @@ const EquipoModalScreen = () => {
                 value={ubicacion}
                 onChangeText={setUbicacion}
                 placeholder="Ej. Laboratorio 1, Estante B"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -243,6 +249,7 @@ const EquipoModalScreen = () => {
                 onChangeText={setCantidad}
                 placeholder="Ej. 5"
                 keyboardType="numeric"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -253,6 +260,7 @@ const EquipoModalScreen = () => {
                 value={foto}
                 onChangeText={setFoto}
                 placeholder="https://ejemplo.com/imagen.jpg"
+                placeholderTextColor="#888"
               />
             </View>
 
@@ -263,6 +271,7 @@ const EquipoModalScreen = () => {
                 value={especificaciones}
                 onChangeText={setEspecificaciones}
                 placeholder="Ej. Procesador Intel Core i7, 16GB RAM, SSD 512GB..."
+                placeholderTextColor="#888"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"

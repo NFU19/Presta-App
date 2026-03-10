@@ -82,7 +82,7 @@ const StatCard = ({
   const isFullWidth = cardsPerRow === 1;
   const cardWidth: DimensionValue = isFullWidth
     ? "100%"
-    : `${100 / cardsPerRow - 3}%`;
+    : `${100 / cardsPerRow - 1}%`;
   const padding = isMobile ? 18 : isTablet ? 20 : 22;
 
   return (
@@ -93,7 +93,6 @@ const StatCard = ({
           width: cardWidth,
           padding,
           minHeight: isMobile ? 132 : 150,
-          marginRight: isFullWidth ? 0 : 12,
         },
       ]}
       onPress={onPress}
@@ -2254,7 +2253,7 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     marginBottom: 24,
     width: "100%",
   },
