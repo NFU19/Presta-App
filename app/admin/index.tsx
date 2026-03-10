@@ -238,13 +238,13 @@ const AdminDashboard = () => {
       };
 
       const [prestamosData, usuariosData, articulosData] = await Promise.all([
-        fetchWithTimeout("https://prestaapp.site/prestamos").catch(() => ({
+        fetchWithTimeout("https://api.prestaapp.site/prestamos").catch(() => ({
           error: true,
         })),
-        fetchWithTimeout("https://prestaapp.site/usuarios").catch(() => ({
+        fetchWithTimeout("https://api.prestaapp.site/usuarios").catch(() => ({
           error: true,
         })),
-        fetchWithTimeout("https://prestaapp.site/articulos").catch(() => ({
+        fetchWithTimeout("https://api.prestaapp.site/articulos").catch(() => ({
           error: true,
         })),
       ]);
@@ -417,7 +417,7 @@ const AdminDashboard = () => {
     estado: "aprobado" | "rechazado",
   ) => {
     try {
-      fetch(`https://api.prestaapp.site/prestamos/uriel/${id}`, {
+      fetch(`https://api.api.prestaapp.site/prestamos/uriel/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -481,7 +481,7 @@ const AdminDashboard = () => {
             onPress: async () => {
               try {
                 const response = await fetch(
-                  "https://api.prestaapp.site/prestamos/entregar",
+                  "https://api.api.prestaapp.site/prestamos/entregar",
                   {
                     method: "POST",
                     headers: {
@@ -542,7 +542,7 @@ const AdminDashboard = () => {
             onPress: async () => {
               try {
                 const response = await fetch(
-                  "https://api.prestaapp.site/prestamos/devolver",
+                  "https://api.api.prestaapp.site/prestamos/devolver",
                   {
                     method: "POST",
                     headers: {
