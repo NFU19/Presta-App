@@ -3,17 +3,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    DimensionValue,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Alert,
+  DimensionValue,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 // Define the structure of an Equipo
@@ -73,7 +73,11 @@ const EquiposAdminScreen = () => {
         setLoading(false);
       })
       .catch((error) => {
-        Alert.alert("Error", "No se pudieron cargar los equipos.");
+        if (Platform.OS === "web") {
+          window.alert("Error: No se pudieron cargar los equipos.");
+        } else {
+          Alert.alert("Error", "No se pudieron cargar los equipos.");
+        }
         if (__DEV__) {
           console.error("Error fetching equipos: ", error);
         }
@@ -86,37 +90,60 @@ const EquiposAdminScreen = () => {
   };
 
   const handleDelete = (item: Equipo) => {
-    Alert.alert(
-      "Confirmar Eliminación",
-      `¿Estás seguro de que quieres eliminar "${item.nombre}"? Esta acción no se puede deshacer.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const response = await fetch(
-                `https://api.prestaapp.site/articulos/eliminar/${item.id}`,
-                { method: "DELETE" },
-              );
+    const confirmDelete = async () => {
+      try {
+        const response = await fetch(
+          `https://api.prestaapp.site/articulos/eliminar/${item.id}`,
+          { method: "DELETE" },
+        );
 
-              if (response.ok) {
-                Alert.alert("Éxito", "Equipo eliminado correctamente.");
-                fetchArticulos(); // Refrescar lista después de eliminar
-              } else {
-                Alert.alert("Error", "No se pudo eliminar el equipo.");
-              }
-            } catch (error) {
-              Alert.alert("Error", "No se pudo eliminar el equipo.");
-              if (__DEV__) {
-                console.error("Error deleting document: ", error);
-              }
-            }
+        if (response.ok) {
+          if (Platform.OS === "web") {
+            window.alert("Éxito: Equipo eliminado correctamente.");
+          } else {
+            Alert.alert("Éxito", "Equipo eliminado correctamente.");
+          }
+          fetchArticulos(); // Refrescar lista después de eliminar
+        } else {
+          if (Platform.OS === "web") {
+            window.alert("Error: No se pudo eliminar el equipo.");
+          } else {
+            Alert.alert("Error", "No se pudo eliminar el equipo.");
+          }
+        }
+      } catch (error) {
+        if (Platform.OS === "web") {
+          window.alert("Error: No se pudo eliminar el equipo.");
+        } else {
+          Alert.alert("Error", "No se pudo eliminar el equipo.");
+        }
+        if (__DEV__) {
+          console.error("Error deleting document: ", error);
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmar = window.confirm(
+        `¿Estás seguro de que quieres eliminar "${item.nombre}"? Esta acción no se puede deshacer.`,
+      );
+      if (confirmar) {
+        confirmDelete();
+      }
+    } else {
+      Alert.alert(
+        "Confirmar Eliminación",
+        `¿Estás seguro de que quieres eliminar "${item.nombre}"? Esta acción no se puede deshacer.`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Eliminar",
+            style: "destructive",
+            onPress: confirmDelete,
           },
-        },
-      ],
-    );
+        ],
+      );
+    }
   };
 
   const handleAdd = () => {

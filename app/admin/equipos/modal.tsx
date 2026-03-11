@@ -130,6 +130,12 @@ const EquipoModalScreen = () => {
       console.error("Error saving document: ", error);
       Alert.alert("Error", "No se pudo guardar el equipo.");
     }
+    router.back();
+    if (Platform.OS === "web") {
+      window.alert("Equipo Guardado");
+    } else {
+      Alert.alert("Equipo Guardado", "El equipo ha sido guardado correctamente.");
+    }
   };
 
   return (

@@ -6,20 +6,20 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-    aprobarPrestamoConNotificacion,
-    rechazarPrestamoConNotificacion,
+  aprobarPrestamoConNotificacion,
+  rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -36,6 +36,10 @@ const PrestamosAdminScreen = () => {
     null,
   );
   const [motivoRechazo, setMotivoRechazo] = useState("");
+
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchPrestamos();
@@ -70,7 +74,15 @@ const PrestamosAdminScreen = () => {
           console.log("Estado del primer préstamo:", prestamosArray[0].Estado);
         }
 
-        setSolicitudes(prestamosArray);
+        // Ordenar préstamos de más reciente a más antiguo
+        const prestamosOrdenados = prestamosArray.sort((a: any, b: any) => {
+          const fechaA = new Date(a.Fecha_Solicitud || a.fechaSolicitud || 0);
+          const fechaB = new Date(b.Fecha_Solicitud || b.fechaSolicitud || 0);
+          return fechaB.getTime() - fechaA.getTime(); // Descendente (más reciente primero)
+        });
+
+        setSolicitudes(prestamosOrdenados);
+        setCurrentPage(1); // Resetear a la primera página
         setLoading(false);
       })
       .catch((error) => {
@@ -225,6 +237,28 @@ const PrestamosAdminScreen = () => {
     const { label, color, icon } =
       config[Estado as keyof typeof config] || config.espera;
     return { label, color, icon };
+  };
+
+  // Calcular datos de paginación
+  const totalPages = Math.ceil(solicitudes.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = solicitudes.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const formatDate = (date?: Date | string) => {
@@ -399,6 +433,8 @@ const PrestamosAdminScreen = () => {
           </View>
         </View>
 
+        
+
         {loading ? (
           <ActivityIndicator
             size="large"
@@ -417,19 +453,106 @@ const PrestamosAdminScreen = () => {
             </Text>
           </View>
         ) : (
-          <View
-            style={[
-              styles.cardsContainer,
-              (isMobile || isTablet) && styles.cardsContainerMobile,
-            ]}
-          >
-            {solicitudes.map((solicitud, index) => (
-              <PrestamoCard
-                key={(solicitud as any).ID || index}
-                solicitud={solicitud}
-              />
-            ))}
-          </View>
+          <>
+            <View
+              style={[
+                styles.cardsContainer,
+                (isMobile || isTablet) && styles.cardsContainerMobile,
+              ]}
+            >
+              {currentItems.map((solicitud, index) => (
+                <PrestamoCard
+                  key={(solicitud as any).ID || index}
+                  solicitud={solicitud}
+                />
+              ))}
+            </View>
+
+            {/* Controles de paginación */}
+            {totalPages > 1 && (
+              <View style={styles.paginationContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.paginationButton,
+                    currentPage === 1 && styles.paginationButtonDisabled,
+                  ]}
+                  onPress={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={
+                      currentPage === 1
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                  {!isMobile && (
+                    <Text
+                      style={[
+                        styles.paginationButtonText,
+                        currentPage === 1 &&
+                          styles.paginationButtonTextDisabled,
+                      ]}
+                    >
+                      Anterior
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.paginationInfo}>
+                  {isMobile ? (
+                    <Text style={styles.paginationText}>
+                      {currentPage} / {totalPages}
+                    </Text>
+                  ) : (
+                    <>
+                      <Text style={styles.paginationText}>
+                        Página {currentPage} de {totalPages}
+                      </Text>
+                      <Text style={styles.paginationSubtext}>
+                        ({indexOfFirstItem + 1}-
+                        {Math.min(indexOfLastItem, solicitudes.length)} de{" "}
+                        {solicitudes.length})
+                      </Text>
+                    </>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.paginationButton,
+                    currentPage === totalPages &&
+                      styles.paginationButtonDisabled,
+                  ]}
+                  onPress={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  {!isMobile && (
+                    <Text
+                      style={[
+                        styles.paginationButtonText,
+                        currentPage === totalPages &&
+                          styles.paginationButtonTextDisabled,
+                      ]}
+                    >
+                      Siguiente
+                    </Text>
+                  )}
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={
+                      currentPage === totalPages
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -765,6 +888,58 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     fontSize: 16,
     fontWeight: "600",
+  },
+  // Estilos de paginación
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  paginationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#f0f4f8",
+    gap: 6,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.light.secondary,
+  },
+  paginationButtonTextDisabled: {
+    color: Colors.light.gray,
+  },
+  paginationInfo: {
+    alignItems: "center",
+    gap: 4,
+  },
+  paginationText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.light.text,
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: Colors.light.gray,
   },
 });
 
