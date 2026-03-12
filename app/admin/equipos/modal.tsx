@@ -205,31 +205,104 @@ const EquipoModalScreen = () => {
               />
             </View>
 
-            <View style={styles.formField}>
+            <View style={[styles.formField, styles.estadoWrapper]}>
               <Text style={styles.label}>Estado</Text>
               <TouchableOpacity
-                style={[styles.input, { justifyContent: "center" }]}
+                style={[
+                  styles.estadoTrigger,
+                  showEstadoOptions && styles.estadoTriggerOpen,
+                ]}
                 onPress={() => setShowEstadoOptions(!showEstadoOptions)}
+                activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 16, color: estado ? "#000" : "#999" }}>
-                  {estado || "Selecciona el estado"}
+                <View style={styles.estadoTriggerLeft}>
+                  {estado ? (
+                    <View
+                      style={[
+                        styles.estadoBadge,
+                        estado === "disponible"
+                          ? styles.estadoBadgeDisponible
+                          : styles.estadoBadgeAgotado,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.estadoDot,
+                          estado === "disponible"
+                            ? styles.estadoDotDisponible
+                            : styles.estadoDotAgotado,
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.estadoBadgeText,
+                          estado === "disponible"
+                            ? styles.estadoBadgeTextDisponible
+                            : styles.estadoBadgeTextAgotado,
+                        ]}
+                      >
+                        {estado.charAt(0).toUpperCase() + estado.slice(1)}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.estadoPlaceholder}>
+                      Selecciona el estado
+                    </Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.estadoChevron,
+                    showEstadoOptions && styles.estadoChevronOpen,
+                  ]}
+                >
+                  ▾
                 </Text>
               </TouchableOpacity>
               {showEstadoOptions && (
-                <View style={styles.dropdownContainer}>
+                <View style={[styles.dropdownContainer, styles.dropdownAbsolute]}>
                   {estadoOptions.map((option) => (
                     <TouchableOpacity
                       key={option}
                       style={[
                         styles.dropdownOption,
-                        hoveredOption === option &&
-                          styles.dropdownOptionHovered,
+                        hoveredOption === option && styles.dropdownOptionHovered,
+                        estado === option && styles.dropdownOptionSelected,
                       ]}
                       onPress={() => handleEstadoSelect(option)}
                       onMouseEnter={() => setHoveredOption(option)}
                       onMouseLeave={() => setHoveredOption(null)}
                     >
-                      <Text style={styles.dropdownText}>{option}</Text>
+                      <View
+                        style={[
+                          styles.dropdownBadge,
+                          option === "disponible"
+                            ? styles.estadoBadgeDisponible
+                            : styles.estadoBadgeAgotado,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.estadoDot,
+                            option === "disponible"
+                              ? styles.estadoDotDisponible
+                              : styles.estadoDotAgotado,
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.estadoBadgeText,
+                            option === "disponible"
+                              ? styles.estadoBadgeTextDisponible
+                              : styles.estadoBadgeTextAgotado,
+                          ]}
+                        >
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </Text>
+                      </View>
+                      {estado === option && (
+                        <Text style={styles.dropdownCheckmark}>✓</Text>
+                      )}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -437,39 +510,143 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  buttonGhostText: { color: "#4b5563" },
+  buttonGhostText: { color: "#4b5563" },  // ── Estado wrapper (relative container) ─────────────────────────
+  estadoWrapper: {
+    position: "relative",
+    zIndex: 10,
+  },  // ── Estado trigger ──────────────────────────────────────────
+  estadoTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 50,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: "#e4e9f2",
+    ...Platform.select({
+      web: { cursor: "pointer", transition: "border-color 0.15s ease, box-shadow 0.15s ease" },
+    }),
+  },
+  estadoTriggerOpen: {
+    borderColor: "#0A66FF",
+    ...Platform.select({
+      web: { boxShadow: "0 0 0 3px rgba(10,102,255,0.12)" },
+    }),
+  },
+  estadoTriggerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  estadoPlaceholder: {
+    fontSize: 16,
+    color: "#999",
+  },
+  estadoChevron: {
+    fontSize: 18,
+    color: "#9ca3af",
+    marginLeft: 8,
+    ...Platform.select({
+      web: { transition: "transform 0.2s ease", display: "inline-block" },
+    }),
+  },
+  estadoChevronOpen: {
+    ...Platform.select({ web: { transform: "rotate(180deg)" } }),
+  },
+  estadoBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 6,
+  },
+  estadoBadgeDisponible: {
+    backgroundColor: "#ecfdf5",
+  },
+  estadoBadgeAgotado: {
+    backgroundColor: "#fef2f2",
+  },
+  estadoDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  estadoDotDisponible: {
+    backgroundColor: "#10b981",
+  },
+  estadoDotAgotado: {
+    backgroundColor: "#ef4444",
+  },
+  estadoBadgeText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  estadoBadgeTextDisponible: {
+    color: "#065f46",
+  },
+  estadoBadgeTextAgotado: {
+    color: "#991b1b",
+  },
+  // ── Dropdown ────────────────────────────────────────────────
   dropdownContainer: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#e4e9f2",
     borderRadius: 12,
-    marginTop: 4,
+    marginTop: 6,
+    overflow: "hidden",
     ...Platform.select({
-      web: { boxShadow: "0 4px 12px rgba(0,0,0,0.1)" },
+      web: { boxShadow: "0 8px 24px rgba(10,37,64,0.12)" },
       default: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowColor: "#0A2540",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+        elevation: 5,
       },
     }),
   },
   dropdownOption: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
+    borderBottomColor: "#f3f4f6",
     backgroundColor: "#fff",
     ...Platform.select({
-      web: {
-        transition: "all 1s ease-in-out",
-      },
+      web: { transition: "background-color 0.12s ease", cursor: "pointer" },
     }),
   },
   dropdownOptionHovered: {
-    backgroundColor: "#b8b8b8",
-    transform: "scale(1.02)",
+    backgroundColor: "#f0f5ff",
+  },
+  dropdownOptionSelected: {
+    backgroundColor: "#eef4ff",
+  },
+  dropdownAbsolute: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  dropdownBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 6,
+  },
+  dropdownCheckmark: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0A66FF",
   },
   dropdownText: {
     fontSize: 16,
