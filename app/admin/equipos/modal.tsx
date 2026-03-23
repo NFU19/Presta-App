@@ -134,7 +134,10 @@ const EquipoModalScreen = () => {
     if (Platform.OS === "web") {
       window.alert("Equipo Guardado");
     } else {
-      Alert.alert("Equipo Guardado", "El equipo ha sido guardado correctamente.");
+      Alert.alert(
+        "Equipo Guardado",
+        "El equipo ha sido guardado correctamente.",
+      );
     }
   };
 
@@ -260,13 +263,16 @@ const EquipoModalScreen = () => {
                 </Text>
               </TouchableOpacity>
               {showEstadoOptions && (
-                <View style={[styles.dropdownContainer, styles.dropdownAbsolute]}>
+                <View
+                  style={[styles.dropdownContainer, styles.dropdownAbsolute]}
+                >
                   {estadoOptions.map((option) => (
                     <TouchableOpacity
                       key={option}
                       style={[
                         styles.dropdownOption,
-                        hoveredOption === option && styles.dropdownOptionHovered,
+                        hoveredOption === option &&
+                          styles.dropdownOptionHovered,
                         estado === option && styles.dropdownOptionSelected,
                       ]}
                       onPress={() => handleEstadoSelect(option)}
@@ -510,11 +516,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  buttonGhostText: { color: "#4b5563" },  // ── Estado wrapper (relative container) ─────────────────────────
+  buttonGhostText: { color: "#4b5563" }, // ── Estado wrapper (relative container) ─────────────────────────
   estadoWrapper: {
     position: "relative",
     zIndex: 10,
-  },  // ── Estado trigger ──────────────────────────────────────────
+  }, // ── Estado trigger ──────────────────────────────────────────
   estadoTrigger: {
     flexDirection: "row",
     alignItems: "center",
@@ -526,7 +532,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e4e9f2",
     ...Platform.select({
-      web: { cursor: "pointer", transition: "border-color 0.15s ease, box-shadow 0.15s ease" },
+      web: {
+        cursor: "pointer",
+        transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+      },
     }),
   },
   estadoTriggerOpen: {
