@@ -10,6 +10,7 @@ import {
     Alert,
     Animated,
     DimensionValue,
+    Easing,
     FlatList,
     Modal,
     Platform,
@@ -151,35 +152,17 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.loadingContainer}>
-          <Ionicons name="warning-outline" size={64} color="#ef4444" />
-          <Text
-            style={[styles.loadingText, { color: "#ef4444", marginTop: 16 }]}
-          >
-            Error al cargar el dashboard
-          </Text>
-          <Text
-            style={{
-              marginTop: 8,
-              color: "#6b7280",
-              textAlign: "center",
-              paddingHorizontal: 32,
-            }}
-          >
-            {this.state.error?.message || "Ha ocurrido un error inesperado"}
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={42} color="#ef4444" />
+          <Text style={styles.errorTitle}>Ocurrió un error</Text>
+          <Text style={styles.errorMessage}>
+            Intenta recargar la pantalla. Si persiste, verifica tu conexión.
           </Text>
           <TouchableOpacity
-            style={[
-              styles.downloadButton,
-              { marginTop: 24, backgroundColor: "#ef4444" },
-            ]}
-            onPress={() => {
-              this.setState({ hasError: false, error: null });
-            }}
+            style={styles.retryButton}
+            onPress={() => this.setState({ hasError: false, error: null })}
           >
-            <Text style={{ color: "white", fontWeight: "600" }}>
-              Reintentar
-            </Text>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
       );
@@ -191,6 +174,7 @@ class ErrorBoundary extends React.Component<
 
 const AdminDashboard = () => {
   const { isMobile, isTablet, isDesktop } = useResponsive();
+  const chartAnim = React.useRef(new Animated.Value(0)).current;
 
   const [prestamosActivos, setPrestamosActivos] = useState<Prestamo[]>([]);
   const [equipos, setEquipos] = useState<Equipo[]>([]);
@@ -199,6 +183,7 @@ const AdminDashboard = () => {
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalAnimation] = useState(new Animated.Value(0));
+  
 
   // Modal para escaneo QR (RF-6)
   const [showQrModal, setShowQrModal] = useState(false);
@@ -212,10 +197,18 @@ const AdminDashboard = () => {
 
   // Verificar permisos cuando se abre el modal
   useEffect(() => {
-    if (showQrModal && permission && !permission.granted) {
+    if (!showQrModal) return;
+
+    // Asegura solicitar permisos en cuanto se abre el modal, incluso si el hook aún no los ha cargado
+    if (!permission) {
+      requestPermission();
+      return;
+    }
+
+    if (!permission.granted && permission.canAskAgain) {
       requestPermission();
     }
-  }, [showQrModal]);
+  }, [showQrModal, permission, requestPermission]);
 
   const [filtroTexto, setFiltroTexto] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
@@ -1299,6 +1292,16 @@ const AdminDashboard = () => {
     }
   }, [equipos, prestamosActivos, prestamosHoy]);
 
+  useEffect(() => {
+    chartAnim.setValue(0);
+    Animated.timing(chartAnim, {
+      toValue: 1,
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [chartAnim, lineChartData, barChartData, pieChartData, progressData]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -1421,22 +1424,35 @@ const AdminDashboard = () => {
               <View style={styles.lineChartContainer}>
                 <View style={styles.lineChartGrid}>
                   {lineChartData.map((value, index) => {
-                    const maxValue = Math.max(...lineChartData);
-                    const heightPercent = (value / maxValue) * 100;
+                    const maxValue = Math.max(...lineChartData, 1);
+                    const baseHeight = (value / maxValue) * 180;
+                    const animatedHeight = chartAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, baseHeight],
+                    });
+                    const zeroHeight = 22;
+                    const isZero = value <= 0;
+                    const label = lineChartLabels[index];
                     return (
                       <View key={index} style={styles.lineChartColumn}>
                         <View style={styles.lineChartBarWrapper}>
-                          <View
+                          <Animated.View
                             style={[
                               styles.lineChartBar,
-                              { height: `${heightPercent}%` as any },
+                              {
+                                height: isZero ? zeroHeight : animatedHeight,
+                                opacity: isZero ? 0.5 : 1,
+                                transform: [{ scaleY: isZero ? 1 : chartAnim }],
+                              },
                             ]}
                           />
-                          <Text style={styles.lineChartValue}>{value}</Text>
+                          <Animated.Text
+                            style={[styles.lineChartValue, { opacity: chartAnim }]}
+                          >
+                            {value}
+                          </Animated.Text>
                         </View>
-                        <Text style={styles.lineChartLabel}>
-                          {lineChartLabels[index]}
-                        </Text>
+                        <Text style={styles.lineChartLabel}>{label}</Text>
                       </View>
                     );
                   })}
@@ -1457,22 +1473,35 @@ const AdminDashboard = () => {
                 {barChartData.map((item, index) => {
                   const maxValue = Math.max(
                     ...barChartData.map((d) => d.value),
+                    1,
                   );
                   const widthPercent = (item.value / maxValue) * 100;
+                  const animatedWidth = chartAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", `${widthPercent}%`],
+                  });
+                  const zeroWidth = "18%";
+                  const isZero = item.value <= 0;
                   return (
                     <View key={index} style={styles.barChartRow}>
                       <Text style={styles.barChartLabel}>{item.label}</Text>
                       <View style={styles.barChartBarContainer}>
-                        <View
+                        <Animated.View
                           style={[
                             styles.barChartBar,
                             {
-                              width: `${widthPercent}%` as any,
-                              backgroundColor: item.color,
+                              width: isZero ? zeroWidth : animatedWidth,
+                              backgroundColor: isZero ? "#d1d5db" : item.color,
+                              opacity: isZero ? 0.7 : 1,
+                              transform: [{ scaleX: isZero ? 1 : chartAnim }],
                             },
                           ]}
                         />
-                        <Text style={styles.barChartValue}>{item.value}</Text>
+                        <Animated.Text
+                          style={[styles.barChartValue, { opacity: isZero ? 0.45 : chartAnim }]}
+                        >
+                          {item.value}
+                        </Animated.Text>
                       </View>
                     </View>
                   );
@@ -1545,6 +1574,8 @@ const AdminDashboard = () => {
                 <View style={styles.progressChartContainer}>
                   {progressData.map((item, index) => {
                     const percentage = item.value * 100;
+                    const zeroWidth = "14%";
+                    const isZero = percentage <= 0;
                     return (
                       <View key={index} style={styles.progressChartRow}>
                         <Text style={styles.progressChartLabel}>
@@ -1552,19 +1583,28 @@ const AdminDashboard = () => {
                         </Text>
                         <View style={styles.progressBarContainer}>
                           <View style={styles.progressBarBackground}>
-                            <View
+                            <Animated.View
                               style={[
                                 styles.progressBarFill,
                                 {
-                                  width: `${percentage}%` as any,
-                                  backgroundColor: item.color,
+                                  width: isZero
+                                    ? zeroWidth
+                                    : chartAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: ["0%", `${percentage}%`],
+                                      }),
+                                  backgroundColor: isZero ? "#d1d5db" : item.color,
+                                  opacity: isZero ? 0.65 : 1,
+                                  transform: [{ scaleX: isZero ? 1 : chartAnim }],
                                 },
                               ]}
                             />
                           </View>
-                          <Text style={styles.progressBarValue}>
+                          <Animated.Text
+                            style={[styles.progressBarValue, { opacity: isZero ? 0.4 : chartAnim }]}
+                          >
                             {percentage.toFixed(0)}%
-                          </Text>
+                          </Animated.Text>
                         </View>
                       </View>
                     );
@@ -2476,6 +2516,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0A2540",
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 10,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0A2540",
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: "#4b5563",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  retryButton: {
+    marginTop: 8,
+    backgroundColor: "#0A66FF",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
   pieChartContainer: {
     paddingVertical: 10,

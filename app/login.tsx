@@ -3,7 +3,7 @@ import { useVpsUser } from "@/contexts/VpsUserContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -16,7 +16,10 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    Animated,
+    Easing,
 } from "react-native";
+  import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../firebaseConfig";
 import { inicializarNotificaciones } from "../services/notificacionService";
 import { obtenerUsuarioPorCorreo } from "../services/usuarioService";
@@ -24,6 +27,7 @@ import { obtenerUsuarioPorCorreo } from "../services/usuarioService";
 const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web";
 const isMobile = width < 768;
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -31,8 +35,57 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const waveAnim = useRef(new Animated.Value(0)).current;
+  const waveAnimSecondary = useRef(new Animated.Value(0)).current;
+  const circles = useRef(
+    [
+      { size: 260, top: -40, left: -50, opacity: 0.42, xAmp: 28, yAmp: 16, rotate: "-12deg" },
+      { size: 220, top: 120, left: 80, opacity: 0.36, xAmp: 22, yAmp: 12, rotate: "8deg" },
+      { size: 300, top: -60, right: -80, opacity: 0.32, xAmp: 26, yAmp: 15, rotate: "15deg" },
+      { size: 240, bottom: -30, left: 60, opacity: 0.34, xAmp: 20, yAmp: 14, rotate: "-18deg" },
+      { size: 200, bottom: 60, right: -30, opacity: 0.40, xAmp: 24, yAmp: 18, rotate: "10deg" },
+      { size: 180, top: 220, left: 260, opacity: 0.30, xAmp: 20, yAmp: 12, rotate: "5deg" },
+      { size: 210, top: 260, right: 220, opacity: 0.28, xAmp: 18, yAmp: 14, rotate: "-8deg" },
+    ] as const,
+  ).current;
   const router = useRouter();
   const { setVpsUserId } = useVpsUser();
+
+  useEffect(() => {
+    waveAnim.setValue(0);
+    waveAnimSecondary.setValue(0);
+
+    const primary = Animated.loop(
+      Animated.timing(waveAnim, {
+        toValue: 1,
+        duration: 14000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+        isInteraction: false,
+      }),
+      { iterations: -1 },
+    );
+
+    const secondary = Animated.loop(
+      Animated.timing(waveAnimSecondary, {
+        toValue: 1,
+        duration: 16000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+        isInteraction: false,
+        delay: 2500,
+      }),
+      { iterations: -1 },
+    );
+
+    primary.start();
+    secondary.start();
+
+    return () => {
+      primary.stop();
+      secondary.stop();
+    };
+  }, [waveAnim, waveAnimSecondary]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -87,11 +140,50 @@ const LoginScreen = () => {
 
   const renderBrandPanel = () => (
     <View style={styles.brandPanel}>
+      <View style={styles.animatedBackdrop} pointerEvents="none">
+        {circles.map((circle, idx) => {
+          const animX = (idx % 2 === 0 ? waveAnim : waveAnimSecondary).interpolate({
+            inputRange: [0, 1],
+            outputRange: [-circle.xAmp, circle.xAmp],
+          });
+          const animY = (idx % 2 === 0 ? waveAnimSecondary : waveAnim).interpolate({
+            inputRange: [0, 1],
+            outputRange: [-circle.yAmp, circle.yAmp],
+          });
+
+          return (
+            <AnimatedGradient
+              key={`wave-circle-${idx}`}
+              colors={["rgba(255,255,255,0.32)", "rgba(255,255,255,0.10)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.waveCircle,
+                {
+                  width: circle.size,
+                  height: circle.size,
+                  borderRadius: circle.size / 2,
+                  opacity: circle.opacity,
+                  top: circle.top,
+                  left: circle.left,
+                  right: circle.right,
+                  bottom: circle.bottom,
+                  transform: [
+                    { translateX: animX },
+                    { translateY: animY },
+                    { rotate: circle.rotate },
+                  ],
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
       <View style={styles.brandContent}>
         <View style={styles.logoContainer}>
           <Ionicons name="cube" size={60} color="#fff" />
         </View>
-        <Text style={styles.brandTitle}>SG-PRÉSTAMOS</Text>
+        <Text style={styles.brandTitle}>SG-PRESTAMOS</Text>
         <Text style={styles.brandSubtitle}>
           Gestión inteligente de equipos{"\n"}tecnológicos para tu institución
         </Text>
@@ -127,7 +219,7 @@ const LoginScreen = () => {
           {isMobile && (
             <View style={styles.mobileHeader}>
               <Ionicons name="cube" size={50} color={Colors.light.primary} />
-              <Text style={styles.mobileTitle}>SG-PRÉSTAMOS</Text>
+              <Text style={styles.mobileTitle}>SG-PRESTAMOS</Text>
             </View>
           )}
 
@@ -139,7 +231,7 @@ const LoginScreen = () => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Correo Electrónico</Text>
+            <Text style={styles.label}>Correo Electronico</Text>
             <View
               style={[
                 styles.inputWrapper,
@@ -237,7 +329,7 @@ const LoginScreen = () => {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                <Text style={styles.loginButtonText}>Iniciar Sesion</Text>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
               </>
             )}
@@ -280,6 +372,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
     overflow: "hidden",
+  },
+  animatedBackdrop: {
+    position: "absolute",
+    top: -120,
+    bottom: -120,
+    left: -120,
+    right: -120,
+    opacity: 0.9,
+  },
+  waveCircle: {
+    position: "absolute",
   },
   brandContent: {
     maxWidth: 500,
