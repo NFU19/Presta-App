@@ -183,7 +183,6 @@ const AdminDashboard = () => {
 
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [modalAnimation] = useState(new Animated.Value(0));
-  
 
   // Modal para escaneo QR (RF-6)
   const [showQrModal, setShowQrModal] = useState(false);
@@ -1447,7 +1446,10 @@ const AdminDashboard = () => {
                             ]}
                           />
                           <Animated.Text
-                            style={[styles.lineChartValue, { opacity: chartAnim }]}
+                            style={[
+                              styles.lineChartValue,
+                              { opacity: chartAnim },
+                            ]}
                           >
                             {value}
                           </Animated.Text>
@@ -1498,7 +1500,10 @@ const AdminDashboard = () => {
                           ]}
                         />
                         <Animated.Text
-                          style={[styles.barChartValue, { opacity: isZero ? 0.45 : chartAnim }]}
+                          style={[
+                            styles.barChartValue,
+                            { opacity: isZero ? 0.45 : chartAnim },
+                          ]}
                         >
                           {item.value}
                         </Animated.Text>
@@ -1593,15 +1598,22 @@ const AdminDashboard = () => {
                                         inputRange: [0, 1],
                                         outputRange: ["0%", `${percentage}%`],
                                       }),
-                                  backgroundColor: isZero ? "#d1d5db" : item.color,
+                                  backgroundColor: isZero
+                                    ? "#d1d5db"
+                                    : item.color,
                                   opacity: isZero ? 0.65 : 1,
-                                  transform: [{ scaleX: isZero ? 1 : chartAnim }],
+                                  transform: [
+                                    { scaleX: isZero ? 1 : chartAnim },
+                                  ],
                                 },
                               ]}
                             />
                           </View>
                           <Animated.Text
-                            style={[styles.progressBarValue, { opacity: isZero ? 0.4 : chartAnim }]}
+                            style={[
+                              styles.progressBarValue,
+                              { opacity: isZero ? 0.4 : chartAnim },
+                            ]}
                           >
                             {percentage.toFixed(0)}%
                           </Animated.Text>

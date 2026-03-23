@@ -1,13 +1,16 @@
 import { Colors } from "@/constants/theme";
 import { useVpsUser } from "@/contexts/VpsUserContext";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Animated,
     Dimensions,
+    Easing,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -16,10 +19,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
-    Animated,
-    Easing,
 } from "react-native";
-  import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../firebaseConfig";
 import { inicializarNotificaciones } from "../services/notificacionService";
 import { obtenerUsuarioPorCorreo } from "../services/usuarioService";
@@ -37,17 +37,71 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const waveAnim = useRef(new Animated.Value(0)).current;
   const waveAnimSecondary = useRef(new Animated.Value(0)).current;
-  const circles = useRef(
-    [
-      { size: 260, top: -40, left: -50, opacity: 0.42, xAmp: 28, yAmp: 16, rotate: "-12deg" },
-      { size: 220, top: 120, left: 80, opacity: 0.36, xAmp: 22, yAmp: 12, rotate: "8deg" },
-      { size: 300, top: -60, right: -80, opacity: 0.32, xAmp: 26, yAmp: 15, rotate: "15deg" },
-      { size: 240, bottom: -30, left: 60, opacity: 0.34, xAmp: 20, yAmp: 14, rotate: "-18deg" },
-      { size: 200, bottom: 60, right: -30, opacity: 0.40, xAmp: 24, yAmp: 18, rotate: "10deg" },
-      { size: 180, top: 220, left: 260, opacity: 0.30, xAmp: 20, yAmp: 12, rotate: "5deg" },
-      { size: 210, top: 260, right: 220, opacity: 0.28, xAmp: 18, yAmp: 14, rotate: "-8deg" },
-    ] as const,
-  ).current;
+  const circles = useRef([
+    {
+      size: 260,
+      top: -40,
+      left: -50,
+      opacity: 0.42,
+      xAmp: 28,
+      yAmp: 16,
+      rotate: "-12deg",
+    },
+    {
+      size: 220,
+      top: 120,
+      left: 80,
+      opacity: 0.36,
+      xAmp: 22,
+      yAmp: 12,
+      rotate: "8deg",
+    },
+    {
+      size: 300,
+      top: -60,
+      right: -80,
+      opacity: 0.32,
+      xAmp: 26,
+      yAmp: 15,
+      rotate: "15deg",
+    },
+    {
+      size: 240,
+      bottom: -30,
+      left: 60,
+      opacity: 0.34,
+      xAmp: 20,
+      yAmp: 14,
+      rotate: "-18deg",
+    },
+    {
+      size: 200,
+      bottom: 60,
+      right: -30,
+      opacity: 0.4,
+      xAmp: 24,
+      yAmp: 18,
+      rotate: "10deg",
+    },
+    {
+      size: 180,
+      top: 220,
+      left: 260,
+      opacity: 0.3,
+      xAmp: 20,
+      yAmp: 12,
+      rotate: "5deg",
+    },
+    {
+      size: 210,
+      top: 260,
+      right: 220,
+      opacity: 0.28,
+      xAmp: 18,
+      yAmp: 14,
+      rotate: "-8deg",
+    },
+  ] as const).current;
   const router = useRouter();
   const { setVpsUserId } = useVpsUser();
 
@@ -142,11 +196,15 @@ const LoginScreen = () => {
     <View style={styles.brandPanel}>
       <View style={styles.animatedBackdrop} pointerEvents="none">
         {circles.map((circle, idx) => {
-          const animX = (idx % 2 === 0 ? waveAnim : waveAnimSecondary).interpolate({
+          const animX = (
+            idx % 2 === 0 ? waveAnim : waveAnimSecondary
+          ).interpolate({
             inputRange: [0, 1],
             outputRange: [-circle.xAmp, circle.xAmp],
           });
-          const animY = (idx % 2 === 0 ? waveAnimSecondary : waveAnim).interpolate({
+          const animY = (
+            idx % 2 === 0 ? waveAnimSecondary : waveAnim
+          ).interpolate({
             inputRange: [0, 1],
             outputRange: [-circle.yAmp, circle.yAmp],
           });
