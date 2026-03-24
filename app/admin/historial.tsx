@@ -1,13 +1,15 @@
 import { Colors } from "@/constants/theme";
+import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 interface HistorialEvento {
@@ -72,10 +74,21 @@ const tipoIcon: Record<
 const HistorialScreen = () => {
   const [data, setData] = useState<HistorialEvento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const { isMobile, isTablet } = useResponsive();
+
+  const itemsPerPage = useMemo(
+    () => (isMobile || isTablet ? 8 : 12),
+    [isMobile, isTablet],
+  );
 
   useEffect(() => {
     fetchHistorial();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data.length, itemsPerPage]);
 
   const fetchHistorial = async () => {
     try {
@@ -156,110 +169,384 @@ const HistorialScreen = () => {
     }
   };
 
+  const totalPages = Math.max(1, Math.ceil(data.length / itemsPerPage));
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ padding: 20, gap: 16 }}
+      contentContainerStyle={[
+        styles.content,
+        (isMobile || isTablet) && styles.contentMobile,
+      ]}
     >
-      <View style={styles.headerRow}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            marginBottom: 10,
-          }}
-        >
-          <Ionicons name="time" size={24} color={Colors.light.primary} />
-          <Text style={styles.title}>Historial de Movimientos</Text>
-        </View>
-        <Text style={styles.subtitle}>
-          Registro inmutable de eventos clave (RF-9)
-        </Text>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.light.secondary} />
-          <Text style={styles.loadingText}>Cargando historial...</Text>
-        </View>
-      ) : data.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="document-text-outline"
-            size={64}
-            color={Colors.light.gray}
-          />
-          <Text style={styles.emptyText}>No hay movimientos registrados</Text>
-        </View>
-      ) : (
-        <View style={styles.tableCard}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.th, { flex: 1.1 }]}>ID Transacción</Text>
-            <Text style={[styles.th, { flex: 1.1 }]}>Usuario</Text>
-            <Text style={[styles.th, { flex: 1.3 }]}>Equipo</Text>
-            <Text style={[styles.th, { flex: 1 }]}>Fecha</Text>
-            <Text style={[styles.th, { flex: 1 }]}>Tipo de Evento</Text>
-            <Text style={[styles.th, { flex: 0.9, textAlign: "right" }]}>
-              Estado
-            </Text>
+      <View style={Platform.OS === "web" ? styles.webInner : undefined}>
+        {Platform.OS === "web" && (
+          <View style={styles.headerRow}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 4,
+              }}
+            >
+              <Ionicons name="time" size={24} color={Colors.light.primary} />
+              <Text style={styles.title}>Historial de Movimientos</Text>
+            </View>
           </View>
+        )}
 
-          {data.map((item, index) => {
-            const badge = badgeStyles[item.estado] || badgeStyles.pendiente;
-            const iconMeta = tipoIcon[item.tipo] || tipoIcon["Préstamo"];
-            return (
-              <View key={`${item.id}-${index}`} style={styles.tr}>
-                <Text
-                  style={[
-                    styles.td,
-                    { flex: 1.1, fontWeight: "700", color: "#0A2540" },
-                  ]}
-                >
-                  {item.id}
-                </Text>
-                <Text style={[styles.td, { flex: 1.1 }]} numberOfLines={1}>
-                  {item.usuario}
-                </Text>
-                <Text style={[styles.td, { flex: 1.3 }]} numberOfLines={1}>
-                  {item.equipo}
-                </Text>
-                <Text style={[styles.td, { flex: 1 }]}>{item.fecha}</Text>
-                <View style={[styles.tdInline, { flex: 1 }]}>
-                  <Ionicons
-                    name={iconMeta.name}
-                    size={16}
-                    color={iconMeta.color}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.td}>{item.tipo}</Text>
-                </View>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.light.secondary} />
+            <Text style={styles.loadingText}>Cargando historial...</Text>
+          </View>
+        ) : data.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="document-text-outline"
+              size={64}
+              color={Colors.light.gray}
+            />
+            <Text style={styles.emptyText}>No hay movimientos registrados</Text>
+          </View>
+        ) : (
+          <>
+            {isMobile || isTablet ? (
+              <View style={styles.cardList}>
+                {currentItems.map((item, index) => {
+                  const badge =
+                    badgeStyles[item.estado] || badgeStyles.pendiente;
+                  const iconMeta = tipoIcon[item.tipo] || tipoIcon["Préstamo"];
+                  return (
+                    <View key={`${item.id}-${index}`} style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <View style={styles.cardTitleRow}>
+                          <Ionicons
+                            name={iconMeta.name}
+                            size={18}
+                            color={iconMeta.color}
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={styles.cardTitle}>{item.tipo}</Text>
+                        </View>
+                        <Text style={styles.cardId}>#{item.id}</Text>
+                      </View>
+
+                      <View style={styles.cardBody}>
+                        <View style={styles.cardRow}>
+                          <Text style={styles.cardLabel}>Usuario</Text>
+                          <Text style={styles.cardValue} numberOfLines={1}>
+                            {item.usuario}
+                          </Text>
+                        </View>
+                        <View style={styles.cardRow}>
+                          <Text style={styles.cardLabel}>Equipo</Text>
+                          <Text style={styles.cardValue} numberOfLines={1}>
+                            {item.equipo}
+                          </Text>
+                        </View>
+                        <View style={styles.cardRow}>
+                          <Text style={styles.cardLabel}>Fecha</Text>
+                          <Text style={styles.cardValue}>{item.fecha}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.cardFooter}>
+                        <View
+                          style={[
+                            styles.statusPill,
+                            {
+                              backgroundColor: badge.bg,
+                              borderColor: badge.border,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.statusText, { color: badge.text }]}
+                          >
+                            {item.estado.charAt(0).toUpperCase() +
+                              item.estado.slice(1)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <ScrollView
+                horizontal={Platform.OS !== "web"}
+                showsHorizontalScrollIndicator={Platform.OS !== "web"}
+                contentContainerStyle={
+                  Platform.OS === "web" ? styles.tableScrollWeb : undefined
+                }
+              >
                 <View
                   style={[
-                    styles.statusPill,
-                    {
-                      backgroundColor: badge.bg,
-                      borderColor: badge.border,
-                      flex: 0.9,
-                      justifyContent: "flex-end",
-                    },
+                    styles.tableCard,
+                    Platform.OS === "web" && styles.tableCardWeb,
                   ]}
                 >
-                  <Text style={[styles.statusText, { color: badge.text }]}>
-                    {item.estado.charAt(0).toUpperCase() + item.estado.slice(1)}
-                  </Text>
+                  <View style={styles.tableHeader}>
+                    <Text style={[styles.th, { flex: 1.1 }]}>
+                      ID Transacción
+                    </Text>
+                    <Text style={[styles.th, { flex: 1.1 }]}>Usuario</Text>
+                    <Text style={[styles.th, { flex: 1.3 }]}>Equipo</Text>
+                    <Text style={[styles.th, { flex: 1 }]}>Fecha</Text>
+                    <Text style={[styles.th, { flex: 1 }]}>Tipo de Evento</Text>
+                    <Text
+                      style={[styles.th, { flex: 0.9, textAlign: "right" }]}
+                    >
+                      Estado
+                    </Text>
+                  </View>
+
+                  {currentItems.map((item, index) => {
+                    const badge =
+                      badgeStyles[item.estado] || badgeStyles.pendiente;
+                    const iconMeta =
+                      tipoIcon[item.tipo] || tipoIcon["Préstamo"];
+                    return (
+                      <Pressable
+                        key={`${item.id}-${index}`}
+                        style={({ hovered }) => [
+                          styles.tr,
+                          hovered && Platform.OS === "web" && styles.trHover,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.td,
+                            { flex: 1.1, fontWeight: "700", color: "#0A2540" },
+                          ]}
+                        >
+                          {item.id}
+                        </Text>
+                        <Text
+                          style={[styles.td, { flex: 1.1 }]}
+                          numberOfLines={1}
+                        >
+                          {item.usuario}
+                        </Text>
+                        <Text
+                          style={[styles.td, { flex: 1.3 }]}
+                          numberOfLines={1}
+                        >
+                          {item.equipo}
+                        </Text>
+                        <Text style={[styles.td, { flex: 1 }]}>
+                          {item.fecha}
+                        </Text>
+                        <View style={[styles.tdInline, { flex: 1 }]}>
+                          <Ionicons
+                            name={iconMeta.name}
+                            size={16}
+                            color={iconMeta.color}
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text style={styles.td}>{item.tipo}</Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.statusPill,
+                            {
+                              backgroundColor: badge.bg,
+                              borderColor: badge.border,
+                              flex: 0.9,
+                              justifyContent: "flex-end",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.statusText, { color: badge.text }]}
+                          >
+                            {item.estado.charAt(0).toUpperCase() +
+                              item.estado.slice(1)}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
                 </View>
+              </ScrollView>
+            )}
+
+            {totalPages > 1 && (
+              <View
+                style={[
+                  styles.paginationContainer,
+                  (isMobile || isTablet) && styles.paginationContainerMobile,
+                ]}
+              >
+                {isMobile || isTablet ? (
+                  <>
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationIconButton,
+                        currentPage === 1 && styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== 1 &&
+                          Platform.OS === "web" &&
+                          styles.paginationIconButtonHover,
+                      ]}
+                      onPress={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <Ionicons
+                        name="chevron-back"
+                        size={20}
+                        color={
+                          currentPage === 1
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
+
+                    <View style={styles.paginationInfoPill}>
+                      <Text style={styles.paginationTextCompact}>
+                        {currentPage} / {totalPages}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationIconButton,
+                        currentPage === totalPages &&
+                          styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== totalPages &&
+                          Platform.OS === "web" &&
+                          styles.paginationIconButtonHover,
+                      ]}
+                      onPress={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={
+                          currentPage === totalPages
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationButton,
+                        currentPage === 1 && styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== 1 &&
+                          Platform.OS === "web" &&
+                          styles.paginationButtonHover,
+                      ]}
+                      onPress={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <Ionicons
+                        name="chevron-back"
+                        size={18}
+                        color={
+                          currentPage === 1
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.paginationButtonText,
+                          currentPage === 1 &&
+                            styles.paginationButtonTextDisabled,
+                        ]}
+                      >
+                        Anterior
+                      </Text>
+                    </Pressable>
+
+                    <View style={styles.paginationInfo}>
+                      <Text style={styles.paginationText}>
+                        Página {currentPage} de {totalPages}
+                      </Text>
+                      <Text style={styles.paginationSubtext}>
+                        ({indexOfFirstItem + 1}-
+                        {Math.min(indexOfLastItem, data.length)} de{" "}
+                        {data.length})
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationButton,
+                        currentPage === totalPages &&
+                          styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== totalPages &&
+                          Platform.OS === "web" &&
+                          styles.paginationButtonHover,
+                      ]}
+                      onPress={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <Text
+                        style={[
+                          styles.paginationButtonText,
+                          currentPage === totalPages &&
+                            styles.paginationButtonTextDisabled,
+                        ]}
+                      >
+                        Siguiente
+                      </Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={
+                          currentPage === totalPages
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
+                  </>
+                )}
               </View>
-            );
-          })}
-        </View>
-      )}
+            )}
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f7fb" },
+  content: { padding: 20, gap: 16 },
+  contentMobile: { padding: 14 },
+  webInner: {
+    width: "100%",
+    maxWidth: 1200,
+    alignSelf: "center",
+  },
   headerRow: { gap: 6 },
   title: {
     fontSize: 24,
@@ -270,6 +557,63 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 14,
     marginLeft: 34,
+  },
+  cardList: { gap: 14 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e6edf5",
+    shadowColor: "#0A2540",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0A2540",
+  },
+  cardId: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
+  cardBody: {
+    marginTop: 12,
+    gap: 10,
+  },
+  cardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  cardLabel: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    flex: 0.7,
+  },
+  cardValue: {
+    fontSize: 14,
+    color: Colors.light.text,
+    flex: 1.1,
+    fontWeight: "600",
+  },
+  cardFooter: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   tableCard: {
     backgroundColor: "#fff",
@@ -286,6 +630,13 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
+  },
+  tableCardWeb: {
+    width: "100%",
+    minWidth: 0,
+  },
+  tableScrollWeb: {
+    width: "100%",
   },
   tableHeader: {
     flexDirection: "row",
@@ -311,6 +662,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f2f6",
     gap: 6,
+  },
+  trHover: {
+    backgroundColor: "#f8fbff",
   },
   td: {
     fontSize: 14,
@@ -358,6 +712,90 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.light.gray,
     marginTop: 16,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e6edf5",
+    shadowColor: "#0A2540",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  paginationContainerMobile: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  paginationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "#f7f9fc",
+    borderRadius: 10,
+  },
+  paginationButtonHover: {
+    transform: "translateY(-1px)",
+    backgroundColor: "#edf3fb",
+  },
+  paginationButtonDisabled: { opacity: 0.5 },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.light.secondary,
+  },
+  paginationButtonTextDisabled: { color: Colors.light.gray },
+  paginationInfo: { alignItems: "center" },
+  paginationInfoPill: {
+    minWidth: 94,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+  },
+  paginationIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+  },
+  paginationIconButtonHover: {
+    transform: "translateY(-1px) scale(1.03)",
+    backgroundColor: "#edf3fb",
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.light.text,
+  },
+  paginationTextCompact: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Colors.light.primary,
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    marginTop: 2,
   },
 });
 

@@ -6,19 +6,19 @@ import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { auth } from "../firebaseConfig";
 import { inicializarNotificaciones } from "../services/notificacionService";
@@ -28,6 +28,7 @@ const { width } = Dimensions.get("window");
 const isWeb = Platform.OS === "web";
 const isMobile = width < 768;
 const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
+const MOTION_MS = 220;
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -37,6 +38,8 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const waveAnim = useRef(new Animated.Value(0)).current;
   const waveAnimSecondary = useRef(new Animated.Value(0)).current;
+  const formFadeAnim = useRef(new Animated.Value(0)).current;
+  const formTranslateAnim = useRef(new Animated.Value(16)).current;
   const circles = useRef([
     {
       size: 260,
@@ -140,6 +143,23 @@ const LoginScreen = () => {
       secondary.stop();
     };
   }, [waveAnim, waveAnimSecondary]);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(formFadeAnim, {
+        toValue: 1,
+        duration: MOTION_MS,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(formTranslateAnim, {
+        toValue: 0,
+        duration: MOTION_MS,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [formFadeAnim, formTranslateAnim]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -264,7 +284,15 @@ const LoginScreen = () => {
   );
 
   const renderForm = () => (
-    <View style={styles.formPanel}>
+    <Animated.View
+      style={[
+        styles.formPanel,
+        {
+          opacity: formFadeAnim,
+          transform: [{ translateY: formTranslateAnim }],
+        },
+      ]}
+    >
       <KeyboardAvoidingView
         style={styles.formContainer}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -394,7 +422,7 @@ const LoginScreen = () => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </Animated.View>
   );
 
   if (isWeb && !isMobile) {
@@ -604,6 +632,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.light.secondary,
     fontWeight: "600",
+    ...Platform.select({
+      web: {
+        transition: "opacity 0.22s ease",
+      },
+    }),
   },
   forgotTextDisabled: {
     opacity: 0.7,
@@ -619,6 +652,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
     ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.22s ease, opacity 0.22s ease",
+      },
       ios: {
         shadowColor: Colors.light.secondary,
         shadowOffset: { width: 0, height: 4 },

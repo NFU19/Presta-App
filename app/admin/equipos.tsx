@@ -1,22 +1,22 @@
+import { Colors } from "@/constants/theme";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  DimensionValue,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    ActivityIndicator,
+    Alert,
+    DimensionValue,
+    Image,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from "react-native";
 
-// Define the structure of an Equipo
 interface Equipo {
   id: string;
   nombre: string;
@@ -34,6 +34,7 @@ interface Equipo {
 const EquiposAdminScreen = () => {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet } = useResponsive();
@@ -46,9 +47,6 @@ const EquiposAdminScreen = () => {
     fetch("https://api.prestaapp.site/articulos")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Artículos recibidos:", data);
-
-        // Mapear los datos de la API a nuestro formato
         if (Array.isArray(data)) {
           const articulosMapeados = data.map((a: any) => ({
             id: a.ID?.toString() || "",
@@ -64,7 +62,6 @@ const EquiposAdminScreen = () => {
             especificaciones: a.Especificaciones || "",
           }));
 
-          console.log("Artículos mapeados:", articulosMapeados);
           setEquipos(articulosMapeados);
         } else {
           setEquipos([]);
@@ -103,7 +100,7 @@ const EquiposAdminScreen = () => {
           } else {
             Alert.alert("Éxito", "Equipo eliminado correctamente.");
           }
-          fetchArticulos(); // Refrescar lista después de eliminar
+          fetchArticulos();
         } else {
           if (Platform.OS === "web") {
             window.alert("Error: No se pudo eliminar el equipo.");
@@ -136,11 +133,7 @@ const EquiposAdminScreen = () => {
         `¿Estás seguro de que quieres eliminar "${item.nombre}"? Esta acción no se puede deshacer.`,
         [
           { text: "Cancelar", style: "cancel" },
-          {
-            text: "Eliminar",
-            style: "destructive",
-            onPress: confirmDelete,
-          },
+          { text: "Eliminar", style: "destructive", onPress: confirmDelete },
         ],
       );
     }
@@ -162,6 +155,33 @@ const EquiposAdminScreen = () => {
     [columns],
   );
 
+  const itemsPerPage = useMemo(() => {
+    if (isMobile) return 6;
+    if (isTablet) return 8;
+    return 12;
+  }, [isMobile, isTablet]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [equipos.length, itemsPerPage]);
+
+  const totalPages = Math.max(1, Math.ceil(equipos.length / itemsPerPage));
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const paginatedEquipos = equipos.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
   const StatusDot = ({ active }: { active: boolean }) => (
     <View
       style={[
@@ -172,7 +192,13 @@ const EquiposAdminScreen = () => {
   );
 
   const EquipoCard = ({ item }: { item: Equipo }) => (
-    <View style={[styles.card, { width: isMobile ? "100%" : cardWidth }]}>
+    <Pressable
+      style={({ hovered }) => [
+        styles.card,
+        { width: isMobile ? "100%" : cardWidth },
+        hovered && Platform.OS === "web" && styles.cardHover,
+      ]}
+    >
       <View style={styles.cardImageWrapper}>
         {item.foto ? (
           <Image
@@ -193,18 +219,26 @@ const EquiposAdminScreen = () => {
           </Text>
         </View>
         <View style={styles.cardActionsHover}>
-          <TouchableOpacity
-            style={[styles.iconButton, styles.iconButtonPrimary]}
+          <Pressable
+            style={({ hovered }) => [
+              styles.iconButton,
+              styles.iconButtonPrimary,
+              hovered && Platform.OS === "web" && styles.iconButtonHover,
+            ]}
             onPress={() => handleEdit(item)}
           >
             <Ionicons name="pencil" size={18} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconButton, styles.iconButtonDanger]}
+          </Pressable>
+          <Pressable
+            style={({ hovered }) => [
+              styles.iconButton,
+              styles.iconButtonDanger,
+              hovered && Platform.OS === "web" && styles.iconButtonHover,
+            ]}
             onPress={() => handleDelete(item)}
           >
             <Ionicons name="trash" size={18} color="#fff" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -228,52 +262,198 @@ const EquiposAdminScreen = () => {
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        (isMobile || isTablet) && styles.containerMobile,
-      ]}
-    >
-      <View
-        style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={[
+          styles.container,
+          (isMobile || isTablet) && styles.containerMobile,
+        ]}
+        contentContainerStyle={{ paddingBottom: 96 }}
       >
-        <Text
-          style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}
-        >
-          Gestión de Equipos
-        </Text>
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            (isMobile || isTablet) && styles.addButtonMobile,
-          ]}
-          onPress={handleAdd}
-        >
-          <Text
+        {Platform.OS === "web" && (
+          <View style={styles.header}>
+            <View style={styles.headerTitleRow}>
+              <Ionicons name="laptop-outline" size={24} color="#0A2540" />
+              <Text style={styles.title}>Gestión de Equipos</Text>
+            </View>
+          </View>
+        )}
+
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#0A66FF"
+            style={styles.loader}
+          />
+        ) : (
+          <View
+            style={[styles.cardsContainer, { justifyContent: "flex-start" }]}
+          >
+            {paginatedEquipos.map((item) => (
+              <EquipoCard key={item.id} item={item} />
+            ))}
+          </View>
+        )}
+
+        {!loading && totalPages > 1 && (
+          <View
             style={[
-              styles.addButtonText,
-              (isMobile || isTablet) && styles.addButtonTextMobile,
+              styles.paginationContainer,
+              (isMobile || isTablet) && styles.paginationContainerMobile,
             ]}
           >
-            {isMobile ? "+" : "Añadir Equipo"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            {isMobile || isTablet ? (
+              <>
+                <Pressable
+                  style={({ hovered }) => [
+                    styles.paginationIconButton,
+                    currentPage === 1 && styles.paginationButtonDisabled,
+                    hovered &&
+                      currentPage !== 1 &&
+                      Platform.OS === "web" &&
+                      styles.paginationIconButtonHover,
+                  ]}
+                  onPress={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={
+                      currentPage === 1
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                </Pressable>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#0A66FF" style={styles.loader} />
-      ) : (
-        <View style={[styles.cardsContainer, { justifyContent: "flex-start" }]}>
-          {equipos.map((item) => (
-            <EquipoCard key={item.id} item={item} />
-          ))}
-        </View>
-      )}
-    </ScrollView>
+                <View style={styles.paginationInfoPill}>
+                  <Text style={styles.paginationTextCompact}>
+                    {currentPage} / {totalPages}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={({ hovered }) => [
+                    styles.paginationIconButton,
+                    currentPage === totalPages &&
+                      styles.paginationButtonDisabled,
+                    hovered &&
+                      currentPage !== totalPages &&
+                      Platform.OS === "web" &&
+                      styles.paginationIconButtonHover,
+                  ]}
+                  onPress={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={
+                      currentPage === totalPages
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  style={({ hovered }) => [
+                    styles.paginationButton,
+                    currentPage === 1 && styles.paginationButtonDisabled,
+                    hovered &&
+                      currentPage !== 1 &&
+                      Platform.OS === "web" &&
+                      styles.paginationButtonHover,
+                  ]}
+                  onPress={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={
+                      currentPage === 1
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.paginationButtonText,
+                      currentPage === 1 && styles.paginationButtonTextDisabled,
+                    ]}
+                  >
+                    Anterior
+                  </Text>
+                </Pressable>
+
+                <View style={styles.paginationInfo}>
+                  <Text style={styles.paginationText}>
+                    Página {currentPage} de {totalPages}
+                  </Text>
+                  <Text style={styles.paginationSubtext}>
+                    ({indexOfFirstItem + 1}-
+                    {Math.min(indexOfLastItem, equipos.length)} de{" "}
+                    {equipos.length})
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={({ hovered }) => [
+                    styles.paginationButton,
+                    currentPage === totalPages &&
+                      styles.paginationButtonDisabled,
+                    hovered &&
+                      currentPage !== totalPages &&
+                      Platform.OS === "web" &&
+                      styles.paginationButtonHover,
+                  ]}
+                  onPress={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <Text
+                    style={[
+                      styles.paginationButtonText,
+                      currentPage === totalPages &&
+                        styles.paginationButtonTextDisabled,
+                    ]}
+                  >
+                    Siguiente
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={
+                      currentPage === totalPages
+                        ? Colors.light.gray
+                        : Colors.light.secondary
+                    }
+                  />
+                </Pressable>
+              </>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      <Pressable
+        style={({ hovered }) => [
+          styles.fab,
+          (isMobile || isTablet) && styles.fabMobile,
+          hovered && Platform.OS === "web" && styles.fabHover,
+        ]}
+        onPress={handleAdd}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </Pressable>
+    </View>
   );
 };
 
@@ -287,60 +467,58 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  headerMobile: {
     marginBottom: 16,
-    gap: 12,
-    paddingTop: 8,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
     color: "#0A2540",
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
-  titleMobile: {
-    fontSize: 20,
-    flex: 1,
-  },
-  addButton: {
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#0A66FF",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
     ...Platform.select({
       web: {
         cursor: "pointer",
-        transition: "all 0.2s ease",
         boxShadow: "0 14px 32px rgba(10,102,255,0.25)",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        ":hover": {
+          transform: "translateY(-2px) scale(1.02)",
+          boxShadow: "0 18px 36px rgba(10,102,255,0.35)",
+        },
+      },
+      default: {
+        shadowColor: "#0A66FF",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
       },
     }),
   },
-  addButtonMobile: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minWidth: 44,
-    minHeight: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  addButtonTextMobile: {
-    fontSize: 24,
-    fontWeight: "bold",
+  fabMobile: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    bottom: 18,
+    right: 18,
   },
   loader: {
     marginTop: 40,
   },
-  // Card styles for mobile
   cardsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -358,6 +536,10 @@ const styles = StyleSheet.create({
         boxShadow: "0 18px 42px rgba(10,37,64,0.12)",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
         cursor: "pointer",
+        ":hover": {
+          transform: "translateY(-4px) scale(1.012)",
+          boxShadow: "0 24px 50px rgba(10,37,64,0.18)",
+        },
       },
       default: {
         shadowColor: "#0A2540",
@@ -367,6 +549,10 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
+  },
+  cardHover: {
+    transform: "translateY(-4px) scale(1.012)",
+    boxShadow: "0 24px 50px rgba(10,37,64,0.18)",
   },
   cardImageWrapper: {
     width: "100%",
@@ -431,8 +617,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     ...Platform.select({
-      web: { boxShadow: "0 10px 18px rgba(0,0,0,0.12)" },
+      web: {
+        boxShadow: "0 10px 18px rgba(0,0,0,0.12)",
+        cursor: "pointer",
+        transition: "transform 0.16s ease, box-shadow 0.16s ease",
+        ":hover": {
+          transform: "scale(1.06)",
+          boxShadow: "0 14px 22px rgba(0,0,0,0.18)",
+        },
+      },
     }),
+  },
+  iconButtonHover: {
+    transform: "scale(1.06)",
+    boxShadow: "0 14px 22px rgba(0,0,0,0.18)",
   },
   iconButtonPrimary: { backgroundColor: "#0A66FF" },
   iconButtonDanger: { backgroundColor: "#d1434b" },
@@ -471,6 +669,126 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#4b5563",
     fontWeight: "600",
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e6edf5",
+    marginTop: 6,
+    ...Platform.select({
+      web: { boxShadow: "0 10px 24px rgba(10,37,64,0.08)" },
+      default: {
+        shadowColor: "#0A2540",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
+  },
+  paginationContainerMobile: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  paginationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#f7f9fc",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.16s ease, background-color 0.16s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          backgroundColor: "#edf3fb",
+        },
+      },
+    }),
+  },
+  paginationButtonHover: {
+    transform: "translateY(-1px)",
+    backgroundColor: "#edf3fb",
+  },
+  paginationButtonDisabled: {
+    opacity: 0.5,
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.light.secondary,
+  },
+  paginationButtonTextDisabled: {
+    color: Colors.light.gray,
+  },
+  paginationInfo: {
+    alignItems: "center",
+  },
+  paginationText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.light.text,
+  },
+  paginationSubtext: {
+    fontSize: 12,
+    color: Colors.light.gray,
+    marginTop: 2,
+  },
+  paginationInfoPill: {
+    minWidth: 94,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+  },
+  paginationIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.16s ease, background-color 0.16s ease",
+        ":hover": {
+          transform: "translateY(-1px) scale(1.03)",
+          backgroundColor: "#edf3fb",
+        },
+      },
+    }),
+  },
+  paginationIconButtonHover: {
+    transform: "translateY(-1px) scale(1.03)",
+    backgroundColor: "#edf3fb",
+  },
+  paginationTextCompact: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Colors.light.primary,
+  },
+  fabHover: {
+    transform: "translateY(-2px) scale(1.02)",
+    boxShadow: "0 18px 36px rgba(10,102,255,0.35)",
   },
 });
 

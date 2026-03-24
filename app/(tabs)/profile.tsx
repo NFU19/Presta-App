@@ -7,6 +7,7 @@ import * as Location from "expo-location";
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     Animated,
     Easing,
@@ -27,6 +28,8 @@ import { auth } from "../../firebaseConfig";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const MOTION_MS = 220;
+
 interface UserProfile {
   nombre: string;
   apellidos: string;
@@ -44,6 +47,7 @@ const ProfileScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [draftProfile, setDraftProfile] = useState<UserProfile | null>(null);
   const [locating, setLocating] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
   const router = useRouter();
@@ -73,7 +77,7 @@ const ProfileScreen = () => {
       }),
       Animated.timing(fadeAnim, {
         toValue: isMenuVisible ? 0 : 1,
-        duration: 500,
+        duration: MOTION_MS,
         easing: Easing.bezier(0.4, 0, 0.2, 1),
         useNativeDriver: true,
       }),
@@ -169,6 +173,7 @@ const ProfileScreen = () => {
   }, [fetchUserProfile]);
 
   const handleLogout = async () => {
+    setLoggingOut(true);
     try {
       await clearVpsUserId();
       auth.signOut();
@@ -177,6 +182,8 @@ const ProfileScreen = () => {
       console.error("Logout Error: ", error);
       auth.signOut();
       router.replace("/login");
+    } finally {
+      setTimeout(() => setLoggingOut(false), 1200);
     }
   };
 
@@ -516,6 +523,15 @@ const ProfileScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {loggingOut && (
+        <View style={styles.loggingOutOverlay}>
+          <View style={styles.loggingOutCard}>
+            <ActivityIndicator size="small" color={Colors.light.secondary} />
+            <Text style={styles.loggingOutText}>Cerrando sesión...</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -548,7 +564,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
     ...Platform.select({
       web: {
-        transition: "transform 0.2s ease",
+        transition: "transform 0.22s ease",
       },
     }),
   },
@@ -640,7 +656,7 @@ const styles = StyleSheet.create({
   actionButtonWeb: {
     ...Platform.select({
       web: {
-        transition: "transform 0.2s ease, opacity 0.2s ease",
+        transition: "transform 0.22s ease, opacity 0.22s ease",
         ":hover": {
           opacity: 0.9,
           transform: "translateY(-2px)",
@@ -713,6 +729,37 @@ const styles = StyleSheet.create({
   },
   locationButtonDisabled: {
     opacity: 0.7,
+  },
+  loggingOutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 37, 64, 0.14)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1200,
+  },
+  loggingOutCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.light.background,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 12,
+    ...Platform.select({
+      web: { boxShadow: "0 10px 28px rgba(10,37,64,0.14)" },
+      default: {
+        shadowColor: "#0A2540",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
+  },
+  loggingOutText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.light.text,
   },
 });
 

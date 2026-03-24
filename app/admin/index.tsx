@@ -14,6 +14,7 @@ import {
     FlatList,
     Modal,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
@@ -22,6 +23,10 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 interface Prestamo {
   id: string;
@@ -87,17 +92,17 @@ const StatCard = ({
   const padding = isMobile ? 18 : isTablet ? 20 : 22;
 
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      style={({ hovered }) => [
         styles.card,
         {
           width: cardWidth,
           padding,
           minHeight: isMobile ? 132 : 150,
         },
+        hovered && Platform.OS === "web" && styles.cardWebHover,
       ]}
       onPress={onPress}
-      activeOpacity={0.8}
     >
       <View style={styles.cardHeaderRow}>
         <View style={[styles.cardIconWrapper, { padding: isMobile ? 12 : 14 }]}>
@@ -125,7 +130,7 @@ const StatCard = ({
           <Ionicons name="chevron-forward" size={16} color="#0A66FF" />
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -213,6 +218,36 @@ const AdminDashboard = () => {
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
+
+  // Normaliza el valor leído del escáner para iOS/Android (algunas builds devuelven rawData en vez de data)
+  const parseScannedValue = (result: any): string => {
+    const candidates = [
+      result?.data,
+      result?.rawValue,
+      result?.rawString,
+      result?.rawData,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim();
+      }
+      // iOS puede entregar Uint8Array en rawData
+      if (candidate && typeof candidate === "object" && "length" in candidate) {
+        try {
+          const decoded = String.fromCharCode(...(candidate as any));
+          if (decoded.trim()) {
+            return decoded.trim();
+          }
+        } catch (err) {
+          // Ignorar si no se puede decodificar
+        }
+      }
+    }
+
+    return "";
+  };
 
   // Función para cargar datos - funciona en web y mobile
   const cargarDatos = async () => {
@@ -1001,7 +1036,13 @@ const AdminDashboard = () => {
     }
 
     return (
-      <Animated.View style={[styles.modalContent, modalProps]}>
+      <Animated.View
+        style={[
+          styles.modalContent,
+          (isMobile || isTablet) && styles.modalContentMobile,
+          modalProps,
+        ]}
+      >
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>{titulo}</Text>
           <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
@@ -1311,14 +1352,14 @@ const AdminDashboard = () => {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={{
           padding: containerPadding,
-          paddingTop:
-            isMobile || isTablet ? containerPadding + 8 : containerPadding,
+          paddingTop: isMobile || isTablet ? 12 : containerPadding,
         }}
+        scrollIndicatorInsets={{ top: insets.top }}
       >
         <View style={{ width: "100%", maxWidth: isDesktop ? 1400 : "100%" }}>
           {/* Header con título y botón de reporte (RF-8) */}
@@ -1328,13 +1369,31 @@ const AdminDashboard = () => {
               { marginBottom: isMobile ? 16 : 24 },
             ]}
           >
-            <Text
-              style={[styles.title, { fontSize: titleSize, marginBottom: 0 }]}
-            >
-              Dashboard de Administrador
-            </Text>
-            <TouchableOpacity
-              style={styles.downloadButton}
+            <View style={styles.dashboardTitleRow}>
+              {Platform.OS === "web" && (
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={24}
+                  color={Colors.light.primary}
+                />
+              )}
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    fontSize: Platform.OS === "web" ? 24 : titleSize,
+                    marginBottom: 0,
+                  },
+                ]}
+              >
+                Dashboard de Administrador
+              </Text>
+            </View>
+            <Pressable
+              style={({ hovered }) => [
+                styles.downloadButton,
+                hovered && Platform.OS === "web" && styles.downloadButtonHover,
+              ]}
               onPress={() => {
                 console.log("Botón de reporte presionado");
                 setShowExportModal(true);
@@ -1353,7 +1412,7 @@ const AdminDashboard = () => {
               >
                 {isMobile ? "Reporte" : "Descargar Reporte (PDF/CSV)"}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <View style={styles.cardsContainer}>
             <StatCard
@@ -1762,7 +1821,12 @@ const AdminDashboard = () => {
         animationType="none"
         onRequestClose={closeModal}
       >
-        <View style={styles.modalOverlay}>
+        <View
+          style={[
+            styles.modalOverlay,
+            (isMobile || isTablet) && styles.modalOverlayMobile,
+          ]}
+        >
           <TouchableOpacity
             style={styles.modalBackdrop}
             onPress={closeModal}
@@ -1773,14 +1837,16 @@ const AdminDashboard = () => {
       </Modal>
 
       {/* Botón flotante para Escanear QR (RF-6) */}
-      <TouchableOpacity
-        style={styles.fab}
+      <Pressable
+        style={({ hovered }) => [
+          styles.fab,
+          hovered && Platform.OS === "web" && styles.fabHover,
+        ]}
         onPress={() => setShowQrModal(true)}
-        activeOpacity={0.9}
       >
         <Ionicons name="qr-code-outline" size={24} color="#fff" />
         <Text style={styles.fabText}>Escanear QR</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Modal de cámara QR */}
       <Modal
@@ -2009,19 +2075,28 @@ const AdminDashboard = () => {
                   onBarcodeScanned={(result) => {
                     if (scannedData) return; // Evitar múltiples escaneos
 
-                    setScannedData(result.data);
+                    const scannedValue = parseScannedValue(result);
+                    if (!scannedValue) {
+                      Alert.alert(
+                        "QR no legible",
+                        "No se encontraron datos utilizables en el código. Intenta acercar más o verifica el contraste.",
+                      );
+                      return;
+                    }
+
+                    setScannedData(scannedValue);
 
                     // Buscar el préstamo por ID, QR code, o contenido del QR
-                    const scannedValue = result.data;
+                    const normalized = scannedValue.trim();
                     const prestamo = [
                       ...prestamosActivos,
                       ...prestamosHoy,
                     ].find(
                       (p) =>
-                        p.id === scannedValue ||
-                        p.id.toString() === scannedValue ||
-                        p.QR === scannedValue ||
-                        (p as any).codigoQR === scannedValue,
+                        p.id === normalized ||
+                        p.id.toString() === normalized ||
+                        p.QR === normalized ||
+                        (p as any).codigoQR === normalized,
                     );
 
                     if (prestamo) {
@@ -2031,7 +2106,7 @@ const AdminDashboard = () => {
                         codigoQR:
                           prestamo.QR ||
                           (prestamo as any).codigoQR ||
-                          scannedValue,
+                          normalized,
                       };
                       setScannedPrestamo(prestamoConQR);
                     } else {
@@ -2237,11 +2312,12 @@ const AdminDashboard = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#f0f4f8" },
   container: { flex: 1, backgroundColor: "#f0f4f8" },
   loadingContainer: {
     flex: 1,
@@ -2251,14 +2327,14 @@ const styles = StyleSheet.create({
   },
   loadingText: { marginTop: 16, fontSize: 16, color: "#666" },
   title: {
-    fontWeight: "bold",
+    fontWeight: "800",
     color: "#0A2540",
     marginBottom: 24,
-    ...Platform.select({
-      web: {
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-      },
-    }),
+  },
+  dashboardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   dashboardHeader: {
     flexDirection: "row",
@@ -2279,10 +2355,6 @@ const styles = StyleSheet.create({
       web: {
         cursor: "pointer",
         transition: "background-color 0.2s ease, transform 0.1s ease",
-        ":hover": {
-          backgroundColor: "#2a4a7b",
-          transform: "translateY(-1px)",
-        },
       },
       default: {
         shadowColor: "#000",
@@ -2292,6 +2364,10 @@ const styles = StyleSheet.create({
         elevation: 3,
       },
     }),
+  },
+  downloadButtonHover: {
+    backgroundColor: "#2a4a7b",
+    transform: [{ translateY: -1 }],
   },
   downloadButtonText: {
     color: "#fff",
@@ -2322,10 +2398,6 @@ const styles = StyleSheet.create({
         boxShadow: "0 14px 40px rgba(10,37,64,0.08)",
         cursor: "pointer",
         transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        ":hover": {
-          transform: "translateY(-6px)",
-          boxShadow: "0 18px 48px rgba(10,37,64,0.12)",
-        },
       },
       default: {
         shadowColor: "#0A2540",
@@ -2336,6 +2408,14 @@ const styles = StyleSheet.create({
       },
     }),
     position: "relative",
+  },
+  cardWebHover: {
+    transform: [{ translateY: -6 }],
+    ...Platform.select({
+      web: {
+        boxShadow: "0 18px 48px rgba(10,37,64,0.12)",
+      },
+    }),
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -2686,6 +2766,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+  modalOverlayMobile: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   modalBackdrop: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   modalContent: {
     backgroundColor: "#fdfefe",
@@ -2700,6 +2784,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 30,
     elevation: 30,
+  },
+  modalContentMobile: {
+    height: "70%",
+    maxHeight: "70%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -2919,6 +3007,7 @@ const styles = StyleSheet.create({
       web: {
         boxShadow: "0 16px 32px rgba(10,102,255,0.28)",
         cursor: "pointer",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
       },
       default: {
         shadowColor: "#0A2540",
@@ -2926,6 +3015,14 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 18,
         elevation: 8,
+      },
+    }),
+  },
+  fabHover: {
+    transform: [{ translateY: -2 }],
+    ...Platform.select({
+      web: {
+        boxShadow: "0 20px 38px rgba(10,102,255,0.34)",
       },
     }),
   },

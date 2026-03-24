@@ -9,6 +9,7 @@ import {
     Alert,
     Modal,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
@@ -333,7 +334,12 @@ const UsuariosAdminScreen = () => {
   );
 
   const UserCard = ({ user }: { user: Usuario }) => (
-    <View style={styles.userCard}>
+    <Pressable
+      style={({ hovered }) => [
+        styles.userCard,
+        hovered && Platform.OS === "web" && styles.userCardHover,
+      ]}
+    >
       <View style={styles.userCardHeader}>
         <View style={styles.userAvatar}>
           <Text style={styles.userAvatarText}>
@@ -376,105 +382,114 @@ const UsuariosAdminScreen = () => {
       </View>
 
       <View style={styles.userCardActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonEdit]}
+        <Pressable
+          style={({ hovered }) => [
+            styles.actionButton,
+            styles.actionButtonEdit,
+            hovered && Platform.OS === "web" && styles.actionButtonHover,
+          ]}
           onPress={() => handleEdit(user)}
         >
           <Ionicons name="pencil" size={16} color="#fff" />
           <Text style={styles.actionButtonText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.actionButtonDanger]}
+        </Pressable>
+        <Pressable
+          style={({ hovered }) => [
+            styles.actionButton,
+            styles.actionButtonDanger,
+            hovered && Platform.OS === "web" && styles.actionButtonHover,
+          ]}
           onPress={() => handleDelete(user)}
         >
           <Ionicons name="trash" size={16} color="#fff" />
           <Text style={styles.actionButtonText}>Eliminar</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        (isMobile || isTablet) && styles.containerMobile,
-      ]}
-    >
-      <View
-        style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
+    <>
+      <ScrollView
+        style={[
+          styles.container,
+          (isMobile || isTablet) && styles.containerMobile,
+        ]}
+        contentContainerStyle={styles.scrollContent}
       >
-        <Text
-          style={[styles.title, (isMobile || isTablet) && styles.titleMobile]}
-        >
-          Gestión de Usuarios
-        </Text>
-        <TouchableOpacity
+        {Platform.OS === "web" && (
+          <View style={styles.header}>
+            <View style={styles.headerTitleRow}>
+              <Ionicons name="people-outline" size={24} color="#0A2540" />
+              <Text style={styles.title}>Gestión de Usuarios</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Search Bar */}
+        <View
           style={[
-            styles.addButton,
-            (isMobile || isTablet) && styles.addButtonMobile,
+            styles.searchContainer,
+            (isMobile || isTablet) && styles.searchContainerMobile,
           ]}
-          onPress={handleAdd}
         >
           <Ionicons
-            name="person-add"
-            size={18}
-            color="#fff"
-            style={{ marginRight: 8 }}
+            name="search"
+            size={20}
+            color="#9ca3af"
+            style={styles.searchIcon}
           />
-          <Text style={styles.addButtonText}>
-            {isMobile ? "Nuevo" : "Registrar Usuario"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View
-        style={[
-          styles.searchContainer,
-          (isMobile || isTablet) && styles.searchContainerMobile,
-        ]}
-      >
-        <Ionicons
-          name="search"
-          size={20}
-          color="#9ca3af"
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por nombre, apellido, correo o matrícula..."
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          placeholderTextColor="#9ca3af"
-        />
-        {searchTerm.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchTerm("")}>
-            <Ionicons name="close-circle" size={20} color="#9ca3af" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0A66FF" style={styles.loader} />
-      ) : (
-        <View style={styles.usersContainer}>
-          {filteredUsuarios.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={64} color="#d1d5db" />
-              <Text style={styles.emptyStateText}>
-                {searchTerm
-                  ? "No se encontraron usuarios"
-                  : "No hay usuarios registrados"}
-              </Text>
-            </View>
-          ) : (
-            filteredUsuarios.map((user) => (
-              <UserCard key={user.id} user={user} />
-            ))
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nombre, apellido, correo o matrícula..."
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholderTextColor="#9ca3af"
+          />
+          {searchTerm.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchTerm("")}>
+              <Ionicons name="close-circle" size={20} color="#9ca3af" />
+            </TouchableOpacity>
           )}
         </View>
-      )}
+
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#0A66FF"
+            style={styles.loader}
+          />
+        ) : (
+          <View style={styles.usersContainer}>
+            {filteredUsuarios.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="people-outline" size={64} color="#d1d5db" />
+                <Text style={styles.emptyStateText}>
+                  {searchTerm
+                    ? "No se encontraron usuarios"
+                    : "No hay usuarios registrados"}
+                </Text>
+              </View>
+            ) : (
+              filteredUsuarios.map((user) => (
+                <UserCard key={user.id} user={user} />
+              ))
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      <Pressable
+        style={({ hovered }) => [
+          styles.floatingAddButton,
+          (isMobile || isTablet) && styles.floatingAddButtonMobile,
+          hovered && Platform.OS === "web" && styles.floatingAddButtonHover,
+        ]}
+        onPress={handleAdd}
+      >
+        <Ionicons name="person-add" size={22} color="#fff" />
+        <Text style={styles.floatingAddButtonText}>Nuevo</Text>
+      </Pressable>
 
       {/* Modal de Registro/Edición */}
       <Modal
@@ -725,7 +740,7 @@ const UsuariosAdminScreen = () => {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </>
   );
 };
 
@@ -738,11 +753,19 @@ const styles = StyleSheet.create({
   containerMobile: {
     padding: 16,
   },
+  scrollContent: {
+    paddingBottom: 110,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   headerMobile: {
     marginBottom: 16,
@@ -750,10 +773,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
     color: "#0A2540",
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   titleMobile: {
     fontSize: 20,
@@ -784,6 +807,51 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: "#fff",
     fontSize: 15,
+    fontWeight: "700",
+  },
+  floatingAddButton: {
+    position: "absolute",
+    right: 20,
+    bottom: 26,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#0A66FF",
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    ...Platform.select({
+      web: {
+        boxShadow: "0 10px 22px rgba(10, 102, 255, 0.35)",
+        cursor: "pointer",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        ":hover": {
+          transform: "translateY(-2px) scale(1.02)",
+          boxShadow: "0 14px 26px rgba(10, 102, 255, 0.42)",
+        },
+      },
+      default: {
+        shadowColor: "#0A66FF",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        elevation: 8,
+      },
+    }),
+  },
+  floatingAddButtonHover: {
+    transform: "translateY(-2px) scale(1.02)",
+    boxShadow: "0 14px 26px rgba(10, 102, 255, 0.42)",
+  },
+  floatingAddButtonMobile: {
+    right: 16,
+    bottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  floatingAddButtonText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "700",
   },
   searchContainer: {
@@ -832,6 +900,11 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        ":hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 10px 24px rgba(10,37,64,0.12)",
+        },
       },
       default: {
         shadowColor: "#000",
@@ -841,6 +914,10 @@ const styles = StyleSheet.create({
         elevation: 2,
       },
     }),
+  },
+  userCardHover: {
+    transform: "translateY(-2px)",
+    boxShadow: "0 10px 24px rgba(10,37,64,0.12)",
   },
   userCardHeader: {
     flexDirection: "row",
@@ -944,8 +1021,17 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         cursor: "pointer",
+        transition: "transform 0.14s ease, opacity 0.14s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          opacity: 0.95,
+        },
       },
     }),
+  },
+  actionButtonHover: {
+    transform: "translateY(-1px)",
+    opacity: 0.95,
   },
   actionButtonEdit: {
     backgroundColor: "#0e7490",
@@ -1097,6 +1183,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.14s ease, opacity 0.14s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          opacity: 0.96,
+        },
+      },
+    }),
   },
   modalButtonCancel: {
     backgroundColor: "#f3f4f6",

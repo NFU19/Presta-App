@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -64,39 +66,18 @@ const PrestamosAdminScreen = () => {
         // Log del primer préstamo para ver su estructura
         if (prestamosArray.length > 0) {
           console.log("ESTRUCTURA DEL PRIMER PRÉSTAMO:", prestamosArray[0]);
-          console.log(
-            "KEYS DEL PRIMER PRÉSTAMO:",
-            Object.keys(prestamosArray[0]),
-          );
-
-          // Verificar que el ID existe
-          console.log("Primer ID encontrado:", prestamosArray[0].ID);
-          console.log("Estado del primer préstamo:", prestamosArray[0].Estado);
         }
 
-        // Ordenar préstamos de más reciente a más antiguo
-        const prestamosOrdenados = prestamosArray.sort((a: any, b: any) => {
-          const fechaA = new Date(a.Fecha_Solicitud || a.fechaSolicitud || 0);
-          const fechaB = new Date(b.Fecha_Solicitud || b.fechaSolicitud || 0);
-          return fechaB.getTime() - fechaA.getTime(); // Descendente (más reciente primero)
-        });
-
-        setSolicitudes(prestamosOrdenados);
-        setCurrentPage(1); // Resetear a la primera página
-        setLoading(false);
+        setSolicitudes(prestamosArray);
       })
       .catch((error) => {
         if (__DEV__) {
-          console.error("Error al cargar solicitudes:", error);
+          console.error("Error al obtener préstamos:", error);
         }
-        setSolicitudes([]); // evita undefined
+      })
+      .finally(() => {
         setLoading(false);
       });
-  };
-
-  const handleAprobar = (solicitud: Prestamo) => {
-    setSelectedSolicitud(solicitud);
-    setConfirmModalVisible(true);
   };
 
   const confirmarAprobacion = async () => {
@@ -301,12 +282,27 @@ const PrestamosAdminScreen = () => {
     }
   };
 
+  const pendingCount = Array.isArray(solicitudes)
+    ? solicitudes.filter(
+        (s) =>
+          s.Estado === "espera" ||
+          s.Estado === "pendiente" ||
+          s.Estado === "En espera",
+      ).length
+    : 0;
+  const showInlineHeader = Platform.OS === "web";
+
   // PrestamoCard component for mobile view
   const PrestamoCard = ({ solicitud }: { solicitud: Prestamo }) => {
     const { label, color, icon } = getEstadoBadge(solicitud.Estado);
 
     return (
-      <View style={styles.card}>
+      <Pressable
+        style={({ hovered }) => [
+          styles.card,
+          hovered && Platform.OS === "web" && styles.cardHover,
+        ]}
+      >
         <View style={styles.cardHeader}>
           <View style={[styles.badge, { backgroundColor: color }]}>
             <Ionicons name={icon as any} size={16} color="#fff" />
@@ -366,20 +362,28 @@ const PrestamosAdminScreen = () => {
           solicitud.Estado === "pendiente" ||
           solicitud.Estado === "En espera") && (
           <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.approveButton]}
+            <Pressable
+              style={({ hovered }) => [
+                styles.actionButton,
+                styles.approveButton,
+                hovered && Platform.OS === "web" && styles.actionButtonHover,
+              ]}
               onPress={() => handleAprobar(solicitud)}
             >
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Aprobar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rejectButton]}
+            </Pressable>
+            <Pressable
+              style={({ hovered }) => [
+                styles.actionButton,
+                styles.rejectButton,
+                hovered && Platform.OS === "web" && styles.actionButtonHover,
+              ]}
               onPress={() => handleRechazar(solicitud)}
             >
               <Ionicons name="close-circle" size={20} color="#fff" />
               <Text style={styles.actionButtonText}>Rechazar</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
 
@@ -393,47 +397,45 @@ const PrestamosAdminScreen = () => {
             <Text style={styles.qrText}>Código QR: {solicitud.codigoQR}</Text>
           </View>
         )}
-      </View>
+      </Pressable>
     );
   };
 
   return (
     <>
       <ScrollView style={styles.container}>
-        <View
-          style={[styles.header, (isMobile || isTablet) && styles.headerMobile]}
-        >
-          <View>
-            <Text
+        {showInlineHeader && (
+          <View
+            style={[
+              styles.header,
+              (isMobile || isTablet) && styles.headerMobile,
+            ]}
+          >
+            <View
               style={[
-                styles.title,
-                (isMobile || isTablet) && styles.titleMobile,
+                styles.headerRow,
+                (isMobile || isTablet) && styles.headerRowMobile,
               ]}
             >
-              Gestión de Préstamos
-            </Text>
-            <Text
-              style={[
-                styles.subtitle,
-                (isMobile || isTablet) && styles.subtitleMobile,
-              ]}
-            >
-              {Array.isArray(solicitudes)
-                ? solicitudes
-                    .filter(
-                      (s) =>
-                        s.Estado === "espera" ||
-                        s.Estado === "pendiente" ||
-                        s.Estado === "En espera",
-                    )
-                    .length.toString()
-                : "0"}{" "}
-              solicitudes en espera
-            </Text>
+              <View style={styles.headerTitleRow}>
+                <Ionicons
+                  name="cube-outline"
+                  size={24}
+                  color={Colors.light.primary}
+                />
+                <Text style={styles.title}>Gestión de Préstamos</Text>
+              </View>
+              <View
+                style={[
+                  styles.countBadge,
+                  (isMobile || isTablet) && styles.countBadgeMobile,
+                ]}
+              >
+                <Text style={styles.countText}>{pendingCount} en espera</Text>
+              </View>
+            </View>
           </View>
-        </View>
-
-        
+        )}
 
         {loading ? (
           <ActivityIndicator
@@ -470,44 +472,102 @@ const PrestamosAdminScreen = () => {
 
             {/* Controles de paginación */}
             {totalPages > 1 && (
-              <View style={styles.paginationContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.paginationButton,
-                    currentPage === 1 && styles.paginationButtonDisabled,
-                  ]}
-                  onPress={handlePrevPage}
-                  disabled={currentPage === 1}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={
-                      currentPage === 1
-                        ? Colors.light.gray
-                        : Colors.light.secondary
-                    }
-                  />
-                  {!isMobile && (
-                    <Text
-                      style={[
-                        styles.paginationButtonText,
-                        currentPage === 1 &&
-                          styles.paginationButtonTextDisabled,
+              <View
+                style={[
+                  styles.paginationContainer,
+                  (isMobile || isTablet) && styles.paginationContainerMobile,
+                ]}
+              >
+                {isMobile || isTablet ? (
+                  <>
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationIconButton,
+                        currentPage === 1 && styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== 1 &&
+                          Platform.OS === "web" &&
+                          styles.paginationIconButtonHover,
                       ]}
+                      onPress={handlePrevPage}
+                      disabled={currentPage === 1}
                     >
-                      Anterior
-                    </Text>
-                  )}
-                </TouchableOpacity>
+                      <Ionicons
+                        name="chevron-back"
+                        size={20}
+                        color={
+                          currentPage === 1
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
 
-                <View style={styles.paginationInfo}>
-                  {isMobile ? (
-                    <Text style={styles.paginationText}>
-                      {currentPage} / {totalPages}
-                    </Text>
-                  ) : (
-                    <>
+                    <View style={styles.paginationInfoPill}>
+                      <Text style={styles.paginationTextCompact}>
+                        {currentPage} / {totalPages}
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationIconButton,
+                        currentPage === totalPages &&
+                          styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== totalPages &&
+                          Platform.OS === "web" &&
+                          styles.paginationIconButtonHover,
+                      ]}
+                      onPress={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={
+                          currentPage === totalPages
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationButton,
+                        currentPage === 1 && styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== 1 &&
+                          Platform.OS === "web" &&
+                          styles.paginationButtonHover,
+                      ]}
+                      onPress={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <Ionicons
+                        name="chevron-back"
+                        size={20}
+                        color={
+                          currentPage === 1
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                      <Text
+                        style={[
+                          styles.paginationButtonText,
+                          currentPage === 1 &&
+                            styles.paginationButtonTextDisabled,
+                        ]}
+                      >
+                        Anterior
+                      </Text>
+                    </Pressable>
+
+                    <View style={styles.paginationInfo}>
                       <Text style={styles.paginationText}>
                         Página {currentPage} de {totalPages}
                       </Text>
@@ -516,40 +576,42 @@ const PrestamosAdminScreen = () => {
                         {Math.min(indexOfLastItem, solicitudes.length)} de{" "}
                         {solicitudes.length})
                       </Text>
-                    </>
-                  )}
-                </View>
+                    </View>
 
-                <TouchableOpacity
-                  style={[
-                    styles.paginationButton,
-                    currentPage === totalPages &&
-                      styles.paginationButtonDisabled,
-                  ]}
-                  onPress={handleNextPage}
-                  disabled={currentPage === totalPages}
-                >
-                  {!isMobile && (
-                    <Text
-                      style={[
-                        styles.paginationButtonText,
+                    <Pressable
+                      style={({ hovered }) => [
+                        styles.paginationButton,
                         currentPage === totalPages &&
-                          styles.paginationButtonTextDisabled,
+                          styles.paginationButtonDisabled,
+                        hovered &&
+                          currentPage !== totalPages &&
+                          Platform.OS === "web" &&
+                          styles.paginationButtonHover,
                       ]}
+                      onPress={handleNextPage}
+                      disabled={currentPage === totalPages}
                     >
-                      Siguiente
-                    </Text>
-                  )}
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={
-                      currentPage === totalPages
-                        ? Colors.light.gray
-                        : Colors.light.secondary
-                    }
-                  />
-                </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.paginationButtonText,
+                          currentPage === totalPages &&
+                            styles.paginationButtonTextDisabled,
+                        ]}
+                      >
+                        Siguiente
+                      </Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={
+                          currentPage === totalPages
+                            ? Colors.light.gray
+                            : Colors.light.secondary
+                        }
+                      />
+                    </Pressable>
+                  </>
+                )}
               </View>
             )}
           </>
@@ -670,15 +732,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerRowMobile: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
   headerMobile: {
     padding: 16,
     paddingTop: 8,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: Colors.light.primary,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   titleMobile: {
     fontSize: 20,
@@ -689,6 +768,22 @@ const styles = StyleSheet.create({
   },
   subtitleMobile: {
     fontSize: 13,
+  },
+  countBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#e9f1ff",
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  countBadgeMobile: {
+    alignSelf: "flex-end",
+  },
+  countText: {
+    fontSize: 13,
+    color: Colors.light.primary,
+    fontWeight: "600",
   },
   loader: {
     marginTop: 40,
@@ -719,6 +814,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cardHover: {
+    transform: "translateY(-2px)",
+    boxShadow: "0 10px 24px rgba(10,37,64,0.12)",
   },
   cardHeader: {
     flexDirection: "row",
@@ -782,6 +881,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     gap: 6,
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.14s ease, opacity 0.14s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          opacity: 0.95,
+        },
+      },
+    }),
+  },
+  actionButtonHover: {
+    transform: "translateY(-1px)",
+    opacity: 0.95,
   },
   approveButton: {
     backgroundColor: "#28a745",
@@ -867,6 +980,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.14s ease, opacity 0.14s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          opacity: 0.96,
+        },
+      },
+    }),
   },
   modalButtonCancel: {
     backgroundColor: "#f0f0f0",
@@ -905,6 +1028,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  paginationContainerMobile: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   paginationButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -916,6 +1047,20 @@ const styles = StyleSheet.create({
     minWidth: 44,
     minHeight: 44,
     justifyContent: "center",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.16s ease, background-color 0.16s ease",
+        ":hover": {
+          transform: "translateY(-1px)",
+          backgroundColor: "#eaf2fb",
+        },
+      },
+    }),
+  },
+  paginationButtonHover: {
+    transform: "translateY(-1px)",
+    backgroundColor: "#eaf2fb",
   },
   paginationButtonDisabled: {
     opacity: 0.5,
@@ -932,10 +1077,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
+  paginationInfoPill: {
+    minWidth: 94,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+  },
+  paginationIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d8e3f0",
+    backgroundColor: "#f7f9fc",
+    ...Platform.select({
+      web: {
+        cursor: "pointer",
+        transition: "transform 0.16s ease, background-color 0.16s ease",
+        ":hover": {
+          transform: "translateY(-1px) scale(1.03)",
+          backgroundColor: "#edf3fb",
+        },
+      },
+    }),
+  },
+  paginationIconButtonHover: {
+    transform: "translateY(-1px) scale(1.03)",
+    backgroundColor: "#edf3fb",
+  },
   paginationText: {
     fontSize: 15,
     fontWeight: "600",
     color: Colors.light.text,
+  },
+  paginationTextCompact: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: Colors.light.primary,
   },
   paginationSubtext: {
     fontSize: 12,

@@ -5,8 +5,10 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
 import { useEffect } from "react";
+import { Platform } from "react-native";
+import "react-native-reanimated";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { VpsUserProvider, useVpsUser } from "@/contexts/VpsUserContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -16,16 +18,18 @@ export const unstable_settings = {
   initialRouteName: "login",
 };
 
+const MOTION_MS = 220;
+
 /**
  * Componente interno que maneja las notificaciones
  */
 function AppContent() {
   const colorScheme = useColorScheme();
   const { vpsUserId } = useVpsUser();
-  
+
   // Inicializar notificaciones cuando hay un usuario logueado
   const { notificacionesNoLeidas } = useNotifications(
-    vpsUserId ? parseInt(vpsUserId) : null
+    vpsUserId ? parseInt(vpsUserId) : null,
   );
 
   // Log para debug (opcional)
@@ -37,12 +41,16 @@ function AppContent() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: Platform.OS === "web" ? "none" : "fade",
+          animationDuration: Platform.OS === "web" ? 0 : MOTION_MS,
+          gestureEnabled: true,
+        }}
+      >
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="forgot-password"
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
         <Stack.Screen
@@ -69,8 +77,10 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <VpsUserProvider>
-      <AppContent />
-    </VpsUserProvider>
+    <SafeAreaProvider>
+      <VpsUserProvider>
+        <AppContent />
+      </VpsUserProvider>
+    </SafeAreaProvider>
   );
 }
