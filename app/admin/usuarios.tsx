@@ -1,8 +1,8 @@
 import {
-  FIREBASE_API_KEY,
-  FIREBASE_PROJECT_ID,
-  auth,
-  db,
+    FIREBASE_API_KEY,
+    FIREBASE_PROJECT_ID,
+    auth,
+    db,
 } from "@/firebaseConfig";
 import { useResponsive } from "@/hooks/use-responsive";
 import { activarUsuario, desactivarUsuario } from "@/services/usuarioService";
@@ -11,17 +11,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
