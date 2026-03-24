@@ -1,20 +1,26 @@
-import { auth } from "@/firebaseConfig";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_PROJECT_ID,
+  auth,
+  db,
+} from "@/firebaseConfig";
 import { useResponsive } from "@/hooks/use-responsive";
 import { activarUsuario, desactivarUsuario } from "@/services/usuarioService";
 import { Usuario } from "@/types/usuario";
 import { Ionicons } from "@expo/vector-icons";
+import { deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -38,6 +44,210 @@ const UsuariosAdminScreen = () => {
   const [password, setPassword] = useState(""); // Campo para password (RF-1)
 
   const { isMobile, isTablet } = useResponsive();
+
+  const toFirebaseRole = (userRole: Usuario["rol"]) => {
+    if (userRole === "Administrador") {
+      return "admin";
+    }
+    return "user";
+  };
+
+  const createFirebaseAuthAccount = async (
+    email: string,
+    userPassword: string,
+  ): Promise<{ uid: string; idToken: string }> => {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password: userPassword,
+          returnSecureToken: true,
+        }),
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data?.localId || !data?.idToken) {
+      const firebaseCode = data?.error?.message;
+      if (firebaseCode === "EMAIL_EXISTS") {
+        throw new Error("Ese correo ya existe en Firebase.");
+      }
+      if (
+        firebaseCode ===
+        "WEAK_PASSWORD : Password should be at least 6 characters"
+      ) {
+        throw new Error("La contraseña debe tener al menos 6 caracteres.");
+      }
+      throw new Error("No se pudo crear la cuenta en Firebase Auth.");
+    }
+
+    return {
+      uid: data.localId,
+      idToken: data.idToken,
+    };
+  };
+
+  const emailExistsInFirebase = async (email: string): Promise<boolean> => {
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${FIREBASE_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identifier: email,
+          continueUri: "https://prestaapp.local",
+        }),
+      },
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      const firebaseMessage = data?.error?.message;
+      throw new Error(
+        `No se pudo validar el correo en Firebase: ${firebaseMessage || "Error desconocido"}`,
+      );
+    }
+
+    return data?.registered === true;
+  };
+
+  const emailExistsInVps = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch(
+        `https://api.prestaapp.site/usuarios/email/${encodeURIComponent(email)}`,
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return false;
+        }
+
+        // Fallback por si el endpoint por correo falla o tiene comportamiento inconsistente
+        const allUsersResponse = await fetch(
+          "https://api.prestaapp.site/usuarios",
+        );
+        if (!allUsersResponse.ok) {
+          throw new Error("No se pudo validar el correo en VPS.");
+        }
+
+        const users = await allUsersResponse.json();
+        if (!Array.isArray(users)) {
+          return false;
+        }
+
+        return users.some((user: any) => {
+          const userEmail = (user.Email || user.correo || user.email || "")
+            .toString()
+            .trim()
+            .toLowerCase();
+          return userEmail === email;
+        });
+      }
+
+      const data = await response.json();
+      return Boolean(data?.id || data?.ID || data?.email || data?.Email);
+    } catch (error) {
+      if (__DEV__) {
+        console.error("Error validating VPS email: ", error);
+      }
+      throw new Error("No se pudo validar si el correo ya existe en VPS.");
+    }
+  };
+
+  const validateEmailAvailability = async (email: string): Promise<void> => {
+    const [existsInFirebase, existsInVps] = await Promise.all([
+      emailExistsInFirebase(email),
+      emailExistsInVps(email),
+    ]);
+
+    if (existsInFirebase && existsInVps) {
+      throw new Error("Ese correo ya existe en Firebase y en el VPS.");
+    }
+
+    if (existsInFirebase) {
+      throw new Error("Ese correo ya existe en Firebase.");
+    }
+
+    if (existsInVps) {
+      throw new Error("Ese correo ya existe en el VPS.");
+    }
+  };
+
+  const deleteFirebaseAuthAccount = async (idToken: string): Promise<void> => {
+    await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FIREBASE_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken,
+        }),
+      },
+    );
+  };
+
+  const upsertFirestoreUserDocument = async (
+    uid: string,
+    idToken: string,
+    payload: {
+      correo: string;
+      email: string;
+      nombre: string;
+      apellido: string;
+      telefono: string;
+      matricula: string;
+      rol: Usuario["rol"];
+      role: "admin" | "user";
+      activo: boolean;
+    },
+  ): Promise<void> => {
+    const now = new Date().toISOString();
+
+    const response = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/usuarios/${uid}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          fields: {
+            correo: { stringValue: payload.correo },
+            email: { stringValue: payload.email },
+            nombre: { stringValue: payload.nombre },
+            apellido: { stringValue: payload.apellido },
+            telefono: { stringValue: payload.telefono },
+            matricula: { stringValue: payload.matricula },
+            rol: { stringValue: payload.rol },
+            role: { stringValue: payload.role },
+            activo: { booleanValue: payload.activo },
+            createdAt: { timestampValue: now },
+            updatedAt: { timestampValue: now },
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const firestoreMessage =
+        errorBody?.error?.message || "Error desconocido de Firestore";
+      throw new Error(
+        `No se pudo crear el documento en Firestore: ${firestoreMessage}`,
+      );
+    }
+  };
 
   // Helper para mostrar confirmaciones que funcione en web y móvil
   const showConfirmDialog = (
@@ -130,6 +340,7 @@ const UsuariosAdminScreen = () => {
     setCorreo(user.correo);
     setMatricula(user.matricula);
     setRol(user.rol || "Estudiante"); // RF-1
+    setPassword("");
     setModalVisible(true);
   };
 
@@ -184,11 +395,12 @@ const UsuariosAdminScreen = () => {
     setCorreo("");
     setMatricula("");
     setRol("Estudiante"); // RF-1
+    setPassword("");
   };
 
   const actualizarUsuario = async () => {
     try {
-      fetch(
+      const response = await fetch(
         `https://api.prestaapp.site/usuarios/modificar/${editingUser?.id}`,
         {
           method: "PUT",
@@ -205,38 +417,101 @@ const UsuariosAdminScreen = () => {
           }),
         },
       );
+
+      if (!response.ok) {
+        throw new Error("No se pudo actualizar el usuario en el VPS.");
+      }
     } catch (error) {
-      showAlert("Error", "Ocurrió un error al actualizar el usuario.");
       if (__DEV__) {
         console.error("Error updating user: ", error);
       }
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al actualizar el usuario.";
+      throw new Error(message);
     }
   };
 
   const crearUsuario = async () => {
+    let firebaseUser:
+      | {
+          uid: string;
+          idToken: string;
+        }
+      | undefined;
+
     try {
-      fetch("https://api.prestaapp.site/usuarios/crear", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const normalizedEmail = correo.trim().toLowerCase();
+      const trimmedPassword = password.trim();
+
+      await validateEmailAvailability(normalizedEmail);
+
+      firebaseUser = await createFirebaseAuthAccount(
+        normalizedEmail,
+        trimmedPassword,
+      );
+
+      await upsertFirestoreUserDocument(
+        firebaseUser.uid,
+        firebaseUser.idToken,
+        {
+          correo: normalizedEmail,
+          email: normalizedEmail,
           nombre: nombre.trim(),
           apellido: apellido.trim(),
-          matricula: matricula.trim(),
           telefono: telefono.trim(),
-          email: correo.trim(),
-          rol: rol, // RF-1
-          carrera: "Sin asignar",
-          password: password.trim(), // RF-1
-          created_at: new Date().toISOString().split("T")[0], // Solo fecha en formato YYYY-MM-DD
-        }),
-      });
+          matricula: matricula.trim(),
+          rol,
+          role: toFirebaseRole(rol),
+          activo: true,
+        },
+      );
+
+      const response = await fetch(
+        "https://api.prestaapp.site/usuarios/crear",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            matricula: matricula.trim(),
+            telefono: telefono.trim(),
+            email: normalizedEmail,
+            rol: rol, // RF-1
+            carrera: "Sin asignar",
+            password: trimmedPassword, // RF-1
+            created_at: new Date().toISOString().split("T")[0], // Solo fecha en formato YYYY-MM-DD
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("No se pudo registrar el usuario en el VPS.");
+      }
     } catch (error) {
-      showAlert("Error", "Ocurrió un error al registrar el usuario.");
+      if (firebaseUser) {
+        try {
+          await deleteDoc(doc(db, "usuarios", firebaseUser.uid));
+          await deleteFirebaseAuthAccount(firebaseUser.idToken);
+        } catch (rollbackError) {
+          if (__DEV__) {
+            console.error("Error en rollback de Firebase: ", rollbackError);
+          }
+        }
+      }
+
       if (__DEV__) {
         console.error("Error creating user: ", error);
       }
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al registrar el usuario.";
+      throw new Error(message);
     }
   };
 
@@ -267,6 +542,18 @@ const UsuariosAdminScreen = () => {
       return;
     }
 
+    if (!editingUser) {
+      if (!password.trim()) {
+        showAlert("Error", "La contraseña es requerida");
+        return;
+      }
+
+      if (password.trim().length < 6) {
+        showAlert("Error", "La contraseña debe tener al menos 6 caracteres");
+        return;
+      }
+    }
+
     // Validar formato de correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(correo)) {
@@ -279,13 +566,14 @@ const UsuariosAdminScreen = () => {
     try {
       if (editingUser) {
         // Actualizar usuario existente
-        actualizarUsuario();
+        await actualizarUsuario();
         showAlert("Éxito", "Usuario actualizado correctamente.");
       } else {
         // Crear nuevo usuario
-        crearUsuario();
+        await crearUsuario();
         showAlert("Éxito", "Usuario registrado correctamente.");
       }
+      fetchUsuarios();
       setModalVisible(false);
       resetForm();
     } catch (error) {
