@@ -274,7 +274,7 @@ const EquiposAdminScreen = () => {
         ]}
         contentContainerStyle={{ paddingBottom: 96 }}
       >
-        {Platform.OS === "web" && (
+        {Platform.OS === "web" && !isMobile && !isTablet && (
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="laptop-outline" size={24} color="#0A2540" />

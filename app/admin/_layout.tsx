@@ -37,9 +37,8 @@ const AdminLayout = () => {
   const mobileHeaderBarHeight = 56;
   const mobileHeaderTotalHeight = insets.top + mobileHeaderBarHeight;
 
-  // En web siempre usamos layout de escritorio para evitar cabecera duplicada.
-  const showMobileLayout = Platform.OS !== "web" && (isMobile || isTablet);
-  const showSidebar = Platform.OS === "web" || (!isMobile && !isTablet);
+  // En móvil/tablet, el menú se oculta por defecto
+  const showSidebar = !isMobile && !isTablet;
 
   const currentTitle = useMemo(() => {
     if (!pathname) return "Dashboard";
@@ -116,7 +115,7 @@ const AdminLayout = () => {
       | "/admin/historial",
   ) => {
     router.replace(path);
-    if (showMobileLayout) {
+    if (isMobile || isTablet) {
       setIsMenuOpen(false);
     }
   };
@@ -208,7 +207,7 @@ const AdminLayout = () => {
   return (
     <View style={styles.container}>
       {/* Hamburger button for mobile/tablet */}
-      {showMobileLayout && (
+      {(isMobile || isTablet) && (
         <SafeAreaView
           edges={["top", "left", "right"]}
           style={styles.mobileHeaderSafeArea}
@@ -278,7 +277,7 @@ const AdminLayout = () => {
       <View
         style={[
           styles.mainContent,
-          showMobileLayout && {
+          (isMobile || isTablet) && {
             paddingTop: mobileHeaderTotalHeight + 8,
           },
         ]}

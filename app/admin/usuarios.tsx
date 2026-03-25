@@ -705,7 +705,7 @@ const UsuariosAdminScreen = () => {
         ]}
         contentContainerStyle={styles.scrollContent}
       >
-        {Platform.OS === "web" && (
+        {Platform.OS === "web" && !isMobile && !isTablet && (
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="people-outline" size={24} color="#0A2540" />

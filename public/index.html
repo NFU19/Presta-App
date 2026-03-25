@@ -285,21 +285,25 @@
         });
       });
 
-      // Service Worker: mantener desactivado y desregistrar cualquier SW previo
-      if ("serviceWorker" in navigator) {
+      // Service Worker Registration - Desactivado temporalmente para evitar problemas de caché
+      if ("serviceWorker" in navigator && false) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.getRegistrations().then((registrations) => {
-            registrations.forEach((registration) => {
-              registration.unregister();
+          // Primero, desregistrar cualquier SW existente
+          navigator.serviceWorker
+            .getRegistrations()
+            .then(function (registrations) {
+              for (let registration of registrations) {
+                registration.unregister();
+              }
             });
-          });
 
-          // Limpiar caches antiguas para evitar servir bundles desactualizados
-          if ("caches" in window) {
-            caches.keys().then((cacheNames) => {
-              cacheNames.forEach((cacheName) => caches.delete(cacheName));
-            });
-          }
+          // Luego registrar el nuevo
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => console.log("Service Worker registrado:", reg.scope))
+            .catch((err) =>
+              console.log("Error al registrar Service Worker:", err),
+            );
         });
       }
     </script>

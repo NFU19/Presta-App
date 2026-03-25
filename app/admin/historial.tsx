@@ -195,7 +195,7 @@ const HistorialScreen = () => {
       ]}
     >
       <View style={Platform.OS === "web" ? styles.webInner : undefined}>
-        {Platform.OS === "web" && (
+        {Platform.OS === "web" && !isMobile && !isTablet && (
           <View style={styles.headerRow}>
             <View
               style={{

@@ -219,6 +219,7 @@ const AdminDashboard = () => {
 
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
+  const showInlineHeader = Platform.OS === "web" && !isMobile && !isTablet;
 
   // Normaliza el valor leído del escáner para iOS/Android (algunas builds devuelven rawData en vez de data)
   const parseScannedValue = (result: any): string => {
@@ -1127,7 +1128,6 @@ const AdminDashboard = () => {
   // CALCULAR DATOS DINÁMICOS Y CONSTANTES - ANTES DEL RETURN CONDICIONAL
   // (Los hooks deben ejecutarse en cada render, no pueden estar después de un return)
   const containerPadding = isMobile ? 16 : isTablet ? 20 : 24;
-  const titleSize = isMobile ? 22 : isTablet ? 26 : 32;
 
   // Préstamos por mes (últimos 6 meses)
   const lineChartData = React.useMemo(() => {
@@ -1369,19 +1369,18 @@ const AdminDashboard = () => {
               { marginBottom: isMobile ? 16 : 24 },
             ]}
           >
+            {showInlineHeader && (
             <View style={styles.dashboardTitleRow}>
-              {Platform.OS === "web" && (
-                <Ionicons
-                  name="stats-chart-outline"
-                  size={24}
-                  color={Colors.light.primary}
-                />
-              )}
+              <Ionicons
+                name="stats-chart-outline"
+                size={24}
+                color={Colors.light.primary}
+              />
               <Text
                 style={[
                   styles.title,
                   {
-                    fontSize: Platform.OS === "web" ? 24 : titleSize,
+                    fontSize: 24,
                     marginBottom: 0,
                   },
                 ]}
@@ -1389,6 +1388,7 @@ const AdminDashboard = () => {
                 Dashboard de Administrador
               </Text>
             </View>
+            )}
             <Pressable
               style={({ hovered }) => [
                 styles.downloadButton,

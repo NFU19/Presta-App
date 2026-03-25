@@ -290,7 +290,7 @@ const PrestamosAdminScreen = () => {
           s.Estado === "En espera",
       ).length
     : 0;
-  const showInlineHeader = Platform.OS === "web";
+  const showInlineHeader = Platform.OS === "web" && !isMobile && !isTablet;
 
   // PrestamoCard component for mobile view
   const PrestamoCard = ({ solicitud }: { solicitud: Prestamo }) => {
