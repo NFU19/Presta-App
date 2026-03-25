@@ -998,8 +998,8 @@ const AdminDashboard = () => {
         titulo = "Préstamos Activos";
         filtrosEstado = [
           { label: "Todos", value: "todos" },
-          { label: "Aprobados", value: "aprobado" },
-          { label: "Pendientes", value: "pendiente" },
+          { label: "Aprobados", value: "aceptado"},
+          { label: "Pendientes", value: "espera" },
         ];
         renderItem = renderPrestamoItem;
         break;
@@ -1028,9 +1028,9 @@ const AdminDashboard = () => {
         titulo = "Préstamos de Hoy";
         filtrosEstado = [
           { label: "Todos", value: "todos" },
-          { label: "Aprobados", value: "aprobado" },
-          { label: "Pendientes", value: "pendiente" },
-          { label: "Rechazados", value: "rechazado" },
+          { label: "Aprobados", value: "aceptado" },
+          { label: "Pendientes", value: "espera" },
+          { label: "Rechazados", value: "denegado" },
         ];
         renderItem = renderPrestamoItem;
         break;
