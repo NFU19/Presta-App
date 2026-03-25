@@ -78,6 +78,13 @@ const LoanRequestModal = () => {
     { value: "other", label: "Otro", icon: "ellipsis-horizontal-outline" },
   ];
 
+  const formatLocalDateForApi = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const crearPrestamo = async () => {
     console.log("Intentando crear préstamo con vpsUserId:", vpsUserId);
 
@@ -117,6 +124,10 @@ const LoanRequestModal = () => {
     }
 
     // crear prestamo en vps
+    const now = new Date();
+    const fechaFin = new Date(now);
+    fechaFin.setDate(fechaFin.getDate() + duracionDias);
+
     fetch("https://api.prestaapp.site/prestamos/crear", {
       method: "POST",
       headers: {
@@ -125,11 +136,10 @@ const LoanRequestModal = () => {
       body: JSON.stringify({
         id_usuario: idUsuarioNumerico,
         id_articulo: product.id as string,
-        fecha_inicio: new Date().toISOString().split("T")[0], // Solo fecha sin hora
-        fecha_fin: new Date(Date.now() + duracionDias * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split("T")[0], // Solo fecha sin hora
-        fecha_solicitud: new Date().toISOString().split("T")[0], // Solo fecha sin hora
+        fecha_inicio: formatLocalDateForApi(now),
+        fecha_fin: formatLocalDateForApi(fechaFin),
+        // Enviar timestamp completo para evitar corrimientos de día/hora.
+        fecha_solicitud: now.toISOString(),
         fecha_aprobacion: null,
         nota: "xd",
         proposito:

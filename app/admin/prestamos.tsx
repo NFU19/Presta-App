@@ -51,6 +51,43 @@ const PrestamosAdminScreen = () => {
     fetchPrestamos();
   }, []);
 
+  const DATE_ONLY_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+  const isDateOnlyString = (value: unknown): value is string => {
+    return typeof value === "string" && DATE_ONLY_REGEX.test(value.trim());
+  };
+
+  const parseApiDate = (value: unknown): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === "number") {
+      const fromNumber = new Date(value);
+      return Number.isNaN(fromNumber.getTime()) ? null : fromNumber;
+    }
+
+    if (typeof value !== "string") return null;
+
+    const raw = value.trim();
+    const onlyDate = raw.match(DATE_ONLY_REGEX);
+
+    if (onlyDate) {
+      const year = Number(onlyDate[1]);
+      const monthIndex = Number(onlyDate[2]) - 1;
+      const day = Number(onlyDate[3]);
+      // Para cadenas solo fecha, crear Date local y evitar corrimientos por UTC.
+      return new Date(year, monthIndex, day);
+    }
+
+    const normalized =
+      raw.includes(" ") && !raw.includes("T") ? raw.replace(" ", "T") : raw;
+
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const getSolicitudTimestamp = (solicitud: any): number => {
     const rawDate =
       solicitud?.Fecha_Solicitud ||
@@ -60,14 +97,21 @@ const PrestamosAdminScreen = () => {
 
     if (!rawDate) return 0;
 
-    const parsed = new Date(rawDate).getTime();
-    return Number.isNaN(parsed) ? 0 : parsed;
+    const parsedDate = parseApiDate(rawDate);
+    return parsedDate ? parsedDate.getTime() : 0;
   };
 
   const getPrestamoId = (solicitud: Prestamo | null) => {
     if (!solicitud) return null;
     return (
       (solicitud as any).ID || (solicitud as any).Id || (solicitud as any).id
+    );
+  };
+
+  const isPendingSolicitud = (solicitud: any) => {
+    const estado = solicitud?.Estado || solicitud?.estado;
+    return (
+      estado === "espera" || estado === "pendiente" || estado === "En espera"
     );
   };
 
@@ -92,12 +136,19 @@ const PrestamosAdminScreen = () => {
           console.log("ESTRUCTURA DEL PRIMER PRÉSTAMO:", prestamosArray[0]);
         }
 
-        const sortedPrestamos = [...prestamosArray].sort(
-          (a: any, b: any) =>
-            getSolicitudTimestamp(b) - getSolicitudTimestamp(a),
-        );
+        const sortedPrestamos = [...prestamosArray].sort((a: any, b: any) => {
+          const pendingA = isPendingSolicitud(a);
+          const pendingB = isPendingSolicitud(b);
+
+          if (pendingA !== pendingB) {
+            return pendingA ? -1 : 1;
+          }
+
+          return getSolicitudTimestamp(b) - getSolicitudTimestamp(a);
+        });
 
         setSolicitudes(sortedPrestamos);
+        setCurrentPage(1);
       })
       .catch((error) => {
         if (__DEV__) {
@@ -287,13 +338,18 @@ const PrestamosAdminScreen = () => {
   const formatDate = (date?: Date | string) => {
     if (!date) return "-";
 
-    // Si es string, convertir a Date
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const dateObj = parseApiDate(date);
+    if (!dateObj) return "-";
 
-    // Validar que sea una fecha válida
-    if (isNaN(dateObj.getTime())) return "-";
+    if (isDateOnlyString(date)) {
+      return dateObj.toLocaleDateString("es-MX", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    }
 
-    return dateObj.toLocaleDateString("es-MX", {
+    return dateObj.toLocaleString("es-MX", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -309,8 +365,10 @@ const PrestamosAdminScreen = () => {
 
       if (!fechaInicio || !fechaFin) return 0;
 
-      const inicio = new Date(fechaInicio);
-      const fin = new Date(fechaFin);
+      const inicio = parseApiDate(fechaInicio);
+      const fin = parseApiDate(fechaFin);
+
+      if (!inicio || !fin) return 0;
 
       const diferenciaMilisegundos = fin.getTime() - inicio.getTime();
       const dias = Math.ceil(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
@@ -395,7 +453,12 @@ const PrestamosAdminScreen = () => {
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={18} color={Colors.light.gray} />
             <Text style={styles.infoTextSmall}>
-              Solicitado: {formatDate(solicitud.Fecha_Solicitud)}
+              Solicitado:{" "}
+              {formatDate(
+                (solicitud as any).Fecha_Solicitud ||
+                  (solicitud as any).fechaSolicitud ||
+                  (solicitud as any).FechaSolicitud,
+              )}
             </Text>
           </View>
         </View>
