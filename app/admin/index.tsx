@@ -1370,24 +1370,24 @@ const AdminDashboard = () => {
             ]}
           >
             {showInlineHeader && (
-            <View style={styles.dashboardTitleRow}>
-              <Ionicons
-                name="stats-chart-outline"
-                size={24}
-                color={Colors.light.primary}
-              />
-              <Text
-                style={[
-                  styles.title,
-                  {
-                    fontSize: 24,
-                    marginBottom: 0,
-                  },
-                ]}
-              >
-                Dashboard de Administrador
-              </Text>
-            </View>
+              <View style={styles.dashboardTitleRow}>
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={24}
+                  color={Colors.light.primary}
+                />
+                <Text
+                  style={[
+                    styles.title,
+                    {
+                      fontSize: 24,
+                      marginBottom: 0,
+                    },
+                  ]}
+                >
+                  Dashboard de Administrador
+                </Text>
+              </View>
             )}
             <Pressable
               style={({ hovered }) => [

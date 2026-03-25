@@ -6,22 +6,22 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-  aprobarPrestamoConNotificacion,
-  rechazarPrestamoConNotificacion,
+    aprobarPrestamoConNotificacion,
+    rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
