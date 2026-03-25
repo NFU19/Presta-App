@@ -267,20 +267,21 @@
         });
       });
       
-      // Service Worker Registration - Desactivado temporalmente para evitar problemas de caché
-      if ('serviceWorker' in navigator && false) {
+      // Service Worker: mantener desactivado y desregistrar cualquier SW previo
+      if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          // Primero, desregistrar cualquier SW existente
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            registrations.forEach((registration) => {
               registration.unregister();
-            }
+            });
           });
-          
-          // Luego registrar el nuevo
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker registrado:', reg.scope))
-            .catch(err => console.log('Error al registrar Service Worker:', err));
+
+          // Limpiar caches antiguas para evitar servir bundles desactualizados
+          if ('caches' in window) {
+            caches.keys().then((cacheNames) => {
+              cacheNames.forEach((cacheName) => caches.delete(cacheName));
+            });
+          }
         });
       }
     </script>
