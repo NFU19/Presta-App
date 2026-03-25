@@ -371,15 +371,7 @@ const ProductDetailsScreen = () => {
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.secondaryActions}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={handleViewHistory}
-              >
-                <Ionicons name="time-outline" size={18} color="#007bff" />
-                <Text style={styles.secondaryButtonText}>Ver Historial</Text>
-              </TouchableOpacity>
-            </View>
+            
           </View>
 
           {/* Additional Info */}

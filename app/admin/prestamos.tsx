@@ -6,22 +6,22 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { auth } from "../../firebaseConfig";
 import {
-    aprobarPrestamoConNotificacion,
-    rechazarPrestamoConNotificacion,
+  aprobarPrestamoConNotificacion,
+  rechazarPrestamoConNotificacion,
 } from "../../services/notificacionService";
 import { EstadoPrestamo, Prestamo } from "../../types/prestamo";
 
@@ -34,6 +34,10 @@ const PrestamosAdminScreen = () => {
   // Estados para modales de confirmación
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [approvalResultModalVisible, setApprovalResultModalVisible] =
+    useState(false);
+  const [approvalResultTitle, setApprovalResultTitle] = useState("");
+  const [approvalResultMessage, setApprovalResultMessage] = useState("");
   const [selectedSolicitud, setSelectedSolicitud] = useState<Prestamo | null>(
     null,
   );
@@ -46,6 +50,26 @@ const PrestamosAdminScreen = () => {
   useEffect(() => {
     fetchPrestamos();
   }, []);
+
+  const getSolicitudTimestamp = (solicitud: any): number => {
+    const rawDate =
+      solicitud?.Fecha_Solicitud ||
+      solicitud?.fechaSolicitud ||
+      solicitud?.Fecha_Creacion ||
+      solicitud?.createdAt;
+
+    if (!rawDate) return 0;
+
+    const parsed = new Date(rawDate).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const getPrestamoId = (solicitud: Prestamo | null) => {
+    if (!solicitud) return null;
+    return (
+      (solicitud as any).ID || (solicitud as any).Id || (solicitud as any).id
+    );
+  };
 
   const fetchPrestamos = () => {
     fetch("https://api.prestaapp.site/prestamos")
@@ -68,7 +92,12 @@ const PrestamosAdminScreen = () => {
           console.log("ESTRUCTURA DEL PRIMER PRÉSTAMO:", prestamosArray[0]);
         }
 
-        setSolicitudes(prestamosArray);
+        const sortedPrestamos = [...prestamosArray].sort(
+          (a: any, b: any) =>
+            getSolicitudTimestamp(b) - getSolicitudTimestamp(a),
+        );
+
+        setSolicitudes(sortedPrestamos);
       })
       .catch((error) => {
         if (__DEV__) {
@@ -85,7 +114,9 @@ const PrestamosAdminScreen = () => {
 
     const adminId = auth.currentUser?.uid;
     if (!adminId) {
-      Alert.alert("Error", "No se pudo identificar al administrador");
+      setApprovalResultTitle("Error");
+      setApprovalResultMessage("No se pudo identificar al administrador");
+      setApprovalResultModalVisible(true);
       setConfirmModalVisible(false);
       return;
     }
@@ -95,36 +126,47 @@ const PrestamosAdminScreen = () => {
       setConfirmModalVisible(false);
 
       // Extraer el ID correctamente
-      const prestamoId = (selectedSolicitud as any).ID;
+      const prestamoId = getPrestamoId(selectedSolicitud);
 
       if (!prestamoId) {
-        Alert.alert("Error", "No se pudo obtener el ID del préstamo");
+        setApprovalResultTitle("Error");
+        setApprovalResultMessage("No se pudo obtener el ID del préstamo");
+        setApprovalResultModalVisible(true);
         return;
       }
 
       const result = await aprobarPrestamoConNotificacion(prestamoId, adminId);
 
       if (result.success) {
-        Alert.alert(
-          "Solicitud Aprobada",
+        setApprovalResultTitle("Solicitud Aprobada");
+        setApprovalResultMessage(
           `Se ha aprobado la solicitud y se generó el código QR:\n\n${result.codigoQR}\n\nEl usuario ha recibido una notificación.`,
         );
+        setApprovalResultModalVisible(true);
         fetchPrestamos();
       } else {
-        Alert.alert(
-          "Error",
+        setApprovalResultTitle("Error");
+        setApprovalResultMessage(
           result.message || "No se pudo aprobar la solicitud",
         );
+        setApprovalResultModalVisible(true);
       }
     } catch (error: any) {
       if (__DEV__) {
         console.error("Error al aprobar solicitud:", error);
       }
-      Alert.alert("Error", "No se pudo procesar la solicitud.");
+      setApprovalResultTitle("Error");
+      setApprovalResultMessage("No se pudo procesar la solicitud.");
+      setApprovalResultModalVisible(true);
     } finally {
       setProcessing(false);
       setSelectedSolicitud(null);
     }
+  };
+
+  const handleAprobar = (solicitud: Prestamo) => {
+    setSelectedSolicitud(solicitud);
+    setConfirmModalVisible(true);
   };
 
   const handleRechazar = (solicitud: Prestamo) => {
@@ -153,7 +195,7 @@ const PrestamosAdminScreen = () => {
       setRejectModalVisible(false);
 
       // Extraer el ID correctamente
-      const prestamoId = (selectedSolicitud as any).ID;
+      const prestamoId = getPrestamoId(selectedSolicitud);
 
       if (!prestamoId) {
         Alert.alert("Error", "No se pudo obtener el ID del préstamo");
@@ -665,6 +707,45 @@ const PrestamosAdminScreen = () => {
         </View>
       </Modal>
 
+      {/* Modal de resultado de aprobación */}
+      <Modal
+        visible={approvalResultModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setApprovalResultModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Ionicons
+                name={
+                  approvalResultTitle === "Error"
+                    ? "alert-circle-outline"
+                    : "checkmark-circle-outline"
+                }
+                size={48}
+                color={approvalResultTitle === "Error" ? "#dc3545" : "#28a745"}
+              />
+              <Text style={styles.modalTitle}>{approvalResultTitle}</Text>
+            </View>
+            <Text style={styles.modalMessage}>{approvalResultMessage}</Text>
+            <View style={styles.singleModalAction}>
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  approvalResultTitle === "Error"
+                    ? styles.modalButtonReject
+                    : styles.modalButtonConfirm,
+                ]}
+                onPress={() => setApprovalResultModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Entendido</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal de rechazo con input */}
       <Modal
         visible={rejectModalVisible}
@@ -973,6 +1054,9 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: "row",
     gap: 12,
+  },
+  singleModalAction: {
+    width: "100%",
   },
   modalButton: {
     flex: 1,
