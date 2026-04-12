@@ -6,26 +6,26 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    DimensionValue,
-    Easing,
-    FlatList,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  DimensionValue,
+  Easing,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 interface Prestamo {
@@ -380,14 +380,15 @@ const AdminDashboard = () => {
         );
 
         // Filtrar préstamos de hoy (solicitados hoy)
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+        const hoy = new Date().toISOString().split("T")[0]; // Solo la fecha sin hora
+        console.log("Fecha de hoy para comparación:", hoy);
         const prestamosDehoy = prestamosMapeados.filter((p) => {
-          if (!p.fechaSolicitud) return false;
-          const fechaSolicitud = new Date(p.fechaSolicitud);
-          fechaSolicitud.setHours(0, 0, 0, 0);
-          return fechaSolicitud.getTime() === hoy.getTime();
+          const fechaSolicitud = p.fechaSolicitud
+            ? new Date(p.fechaSolicitud).toISOString().split("T")[0]
+            : null;
+          return fechaSolicitud === hoy;
         });
+        console.log("Préstamos de hoy encontrados:", prestamosDehoy);
 
         setPrestamosActivos(activos);
         setPrestamosHoy(prestamosDehoy);
@@ -692,6 +693,16 @@ const AdminDashboard = () => {
     );
   };
 
+  // Función para sumar 1 día a una fecha y formatearla
+  const formatDateWithPlusOne = (date: any): string => {
+    if (!date) return "Sin fecha";
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) return "Sin fecha";
+    // Sumar 1 día
+    dateObj.setDate(dateObj.getDate() + 1);
+    return dateObj.toLocaleDateString("es-ES");
+  };
+
   const renderPrestamoItem = ({ item }: { item: Prestamo }) => {
     const badge = getStatusTokens(item.estado);
 
@@ -724,9 +735,9 @@ const AdminDashboard = () => {
             />
             <Text style={styles.metaText}>
               {item.fechaAprobacion
-                ? new Date(item.fechaAprobacion).toLocaleDateString("es-ES")
+                ? formatDateWithPlusOne(item.fechaAprobacion)
                 : item.fechaSolicitud
-                  ? new Date(item.fechaSolicitud).toLocaleDateString("es-ES")
+                  ? formatDateWithPlusOne(item.fechaSolicitud)
                   : "Sin fecha"}
             </Text>
           </View>
@@ -998,7 +1009,7 @@ const AdminDashboard = () => {
         titulo = "Préstamos Activos";
         filtrosEstado = [
           { label: "Todos", value: "todos" },
-          { label: "Aprobados", value: "aceptado"},
+          { label: "Aprobados", value: "aceptado" },
           { label: "Pendientes", value: "espera" },
         ];
         renderItem = renderPrestamoItem;
