@@ -139,7 +139,7 @@ const LoanRequestModal = () => {
         fecha_inicio: formatLocalDateForApi(now),
         fecha_fin: formatLocalDateForApi(fechaFin),
         // Enviar timestamp completo para evitar corrimientos de día/hora.
-        fecha_solicitud: now.toISOString(),
+        fecha_solicitud: now.toISOString().split("T")[0],
         fecha_aprobacion: null,
         nota: "xd",
         proposito:
