@@ -1,25 +1,25 @@
 import { Header } from "@/components/header";
 import { Colors } from "@/constants/theme";
 import { useVpsUser } from "@/contexts/VpsUserContext";
+import {
+  marcarNotificacionLeida,
+  marcarTodasLeidas,
+  obtenerNotificacionesUsuario,
+} from "@/services/notificacionService";
+import { Notificacion, TipoNotificacion } from "@/types/notificacion";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import {
-  obtenerNotificacionesUsuario,
-  marcarNotificacionLeida,
-  marcarTodasLeidas,
-} from "@/services/notificacionService";
-import { Notificacion, TipoNotificacion } from "@/types/notificacion";
 
 /**
  * Configuración de estilos por tipo de notificación
@@ -69,19 +69,52 @@ const tipoNotificacionStyles: Record<
  * Convierte fecha ISO a texto relativo
  */
 const formatearTiempoRelativo = (fecha: string): string => {
-  const ahora = new Date();
-  const fechaNotif = new Date(fecha);
+  try {
+    // Validar que la fecha no esté vacía
+    if (!fecha) {
+      return "Fecha desconocida";
+    }
+
+    const ahora = new Date();
+    const fechaNotif = new Date(fecha);
+
+    // Validar que la fecha se haya parseado correctamente
+    if (isNaN(fechaNotif.getTime())) {
+      // Intentar con otros formatos comunes
+      const timestamp = parseInt(fecha);
+      if (!isNaN(timestamp)) {
+        const fechaAlternativa = new Date(timestamp);
+        if (!isNaN(fechaAlternativa.getTime())) {
+          return formatearDesdeDate(ahora, fechaAlternativa);
+        }
+      }
+      return "Fecha desconocida";
+    }
+
+    return formatearDesdeDate(ahora, fechaNotif);
+  } catch (error) {
+    console.warn("Error al formatear fecha:", fecha, error);
+    return "Fecha desconocida";
+  }
+};
+
+/**
+ * Formatea la diferencia entre dos fechas
+ */
+const formatearDesdeDate = (ahora: Date, fechaNotif: Date): string => {
   const diffMs = ahora.getTime() - fechaNotif.getTime();
+  if (diffMs < 0) return "Ahora mismo";
   const diffMinutos = Math.floor(diffMs / 60000);
   const diffHoras = Math.floor(diffMinutos / 60);
   const diffDias = Math.floor(diffHoras / 24);
 
   if (diffMinutos < 1) return "Ahora mismo";
   if (diffMinutos < 60) return `Hace ${diffMinutos} min`;
-  if (diffHoras < 24) return `Hace ${diffHoras} ${diffHoras === 1 ? "hora" : "horas"}`;
+  if (diffHoras < 24)
+    return `Hace ${diffHoras} ${diffHoras === 1 ? "hora" : "horas"}`;
   if (diffDias === 1) return "Ayer";
   if (diffDias < 7) return `Hace ${diffDias} días`;
-  
+
   return fechaNotif.toLocaleDateString("es-MX", {
     day: "numeric",
     month: "short",
@@ -91,7 +124,7 @@ const formatearTiempoRelativo = (fecha: string): string => {
 const NotificationsScreen = () => {
   const router = useRouter();
   const { vpsUserId } = useVpsUser();
-  
+
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -99,28 +132,31 @@ const NotificationsScreen = () => {
   /**
    * Cargar notificaciones del backend
    */
-  const cargarNotificaciones = useCallback(async (refresh = false) => {
-    if (!vpsUserId) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      if (refresh) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
+  const cargarNotificaciones = useCallback(
+    async (refresh = false) => {
+      if (!vpsUserId) {
+        setIsLoading(false);
+        return;
       }
 
-      const notifs = await obtenerNotificacionesUsuario(parseInt(vpsUserId));
-      setNotificaciones(notifs);
-    } catch (error) {
-      console.error("Error al cargar notificaciones:", error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [vpsUserId]);
+      try {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        const notifs = await obtenerNotificacionesUsuario(parseInt(vpsUserId));
+        setNotificaciones(notifs);
+      } catch (error) {
+        console.error("Error al cargar notificaciones:", error);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [vpsUserId],
+  );
 
   /**
    * Marcar notificación como leída al tocarla
@@ -128,13 +164,13 @@ const NotificationsScreen = () => {
   const handleNotificacionPress = async (notificacion: Notificacion) => {
     if (!notificacion.leida) {
       const exito = await marcarNotificacionLeida(notificacion.id);
-      
+
       if (exito) {
         // Actualizar estado local
         setNotificaciones((prev) =>
           prev.map((n) =>
-            n.id === notificacion.id ? { ...n, leida: true } : n
-          )
+            n.id === notificacion.id ? { ...n, leida: true } : n,
+          ),
         );
       }
     }
@@ -157,12 +193,10 @@ const NotificationsScreen = () => {
     if (!vpsUserId) return;
 
     const exito = await marcarTodasLeidas(parseInt(vpsUserId));
-    
+
     if (exito) {
       // Actualizar estado local
-      setNotificaciones((prev) =>
-        prev.map((n) => ({ ...n, leida: true }))
-      );
+      setNotificaciones((prev) => prev.map((n) => ({ ...n, leida: true })));
     }
   };
 
@@ -184,10 +218,7 @@ const NotificationsScreen = () => {
 
     return (
       <TouchableOpacity
-        style={[
-          styles.card,
-          !item.leida && styles.cardNoLeida,
-        ]}
+        style={[styles.card, !item.leida && styles.cardNoLeida]}
         onPress={() => handleNotificacionPress(item)}
         activeOpacity={0.7}
       >

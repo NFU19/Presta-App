@@ -59,6 +59,43 @@ interface Equipo {
   estado?: boolean;
 }
 
+const normalizarEstadoPrestamo = (estadoRaw: unknown): string => {
+  const estado = String(estadoRaw || "")
+    .toLowerCase()
+    .trim();
+
+  if (
+    ["espera", "pendiente", "en espera", "en_espera", "solicitado"].includes(
+      estado,
+    )
+  ) {
+    return "pendiente";
+  }
+
+  if (
+    [
+      "aceptado",
+      "aprobado",
+      "activo",
+      "en curso",
+      "en_curso",
+      "prestado",
+    ].includes(estado)
+  ) {
+    return "aprobado";
+  }
+
+  if (["rechazado", "denegado", "cancelado"].includes(estado)) {
+    return "rechazado";
+  }
+
+  if (["devuelto", "finalizado", "completado"].includes(estado)) {
+    return "devuelto";
+  }
+
+  return estado || "pendiente";
+};
+
 interface Usuario {
   id: string;
   nombre: string;
@@ -353,7 +390,7 @@ const AdminDashboard = () => {
                   prestamo?.Email_Usuario ||
                   usuario?.nombre ||
                   `Usuario #${p["ID Usuario"]}`,
-                estado: String(p.Estado || "espera").toLowerCase(),
+                estado: normalizarEstadoPrestamo(p.Estado || "espera"),
                 fechaSolicitud: p.Fecha_Solicitud || null,
                 fechaAprobacion: p.Fecha_Aprobacion || null,
                 fechaDevolucionEsperada: p["Fecha Fin"] || null,
@@ -373,10 +410,7 @@ const AdminDashboard = () => {
 
         // Filtrar préstamos activos (solo los que están en préstamo actualmente)
         const activos = prestamosMapeados.filter(
-          (p) =>
-            p.estado === "activo" ||
-            p.estado === "aceptado" ||
-            p.estado === "aprobado",
+          (p) => p.estado === "aprobado" || p.estado === "pendiente",
         );
 
         // Filtrar préstamos de hoy (solicitados hoy)
@@ -437,56 +471,6 @@ const AdminDashboard = () => {
       duration: 250,
       useNativeDriver: true,
     }).start(() => setActiveModal(null));
-  };
-
-  // Acciones RF-5 (aprobación/rechazo)
-  const actualizarEstadoPrestamo = (
-    id: string,
-    estado: "aprobado" | "rechazado",
-  ) => {
-    try {
-      fetch(`https://api.api.prestaapp.site/prestamos/uriel/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          Estado: estado,
-          fecha_aprobacion: new Date().toISOString().split("T")[0],
-        }),
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error("Error al actualizar el estado del préstamo");
-        }
-      });
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        "No se pudo actualizar el estado del préstamo. Por favor, inténtalo de nuevo.",
-      );
-      if (__DEV__) {
-        console.error("Error al actualizar el estado del préstamo:", error);
-      }
-    }
-
-    setPrestamosHoy((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, estado } : p)),
-    );
-    setPrestamosActivos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, estado } : p)),
-    );
-  };
-
-  const aprobarPrestamo = (prestamoId: string) => {
-    actualizarEstadoPrestamo(prestamoId, "aprobado");
-  };
-
-  const rechazarPrestamo = (prestamoId: string) => {
-    Alert.alert(
-      "Demo",
-      "En la versión completa, esto rechazaría la solicitud y notificaría al usuario.",
-    );
-    actualizarEstadoPrestamo(prestamoId, "rechazado");
   };
 
   const marcarComoDevuelto = async (prestamoId: string) => {
@@ -647,12 +631,27 @@ const AdminDashboard = () => {
         text: "#8a6500",
         border: "rgba(255, 193, 7, 0.28)",
       },
+      espera: {
+        bg: "rgba(255, 193, 7, 0.16)",
+        text: "#8a6500",
+        border: "rgba(255, 193, 7, 0.28)",
+      },
       aprobado: {
         bg: "rgba(40, 167, 69, 0.14)",
         text: "#1f7a39",
         border: "rgba(40, 167, 69, 0.32)",
       },
+      aceptado: {
+        bg: "rgba(40, 167, 69, 0.14)",
+        text: "#1f7a39",
+        border: "rgba(40, 167, 69, 0.32)",
+      },
       rechazado: {
+        bg: "rgba(220, 53, 69, 0.14)",
+        text: "#932937",
+        border: "rgba(220, 53, 69, 0.28)",
+      },
+      denegado: {
         bg: "rgba(220, 53, 69, 0.14)",
         text: "#932937",
         border: "rgba(220, 53, 69, 0.28)",
@@ -759,27 +758,6 @@ const AdminDashboard = () => {
             </View>
           ) : null}
         </View>
-
-        {item.estado === "pendiente" && (
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonSuccess]}
-              onPress={() => aprobarPrestamo(item.id)}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="checkmark" size={16} color="#fff" />
-              <Text style={styles.actionButtonText}>Aprobar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonDanger]}
-              onPress={() => rechazarPrestamo(item.id)}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="close" size={16} color="#fff" />
-              <Text style={styles.actionButtonText}>Rechazar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {item.estado === "aprobado" && (
           <TouchableOpacity
@@ -1009,8 +987,8 @@ const AdminDashboard = () => {
         titulo = "Préstamos Activos";
         filtrosEstado = [
           { label: "Todos", value: "todos" },
-          { label: "Aprobados", value: "aceptado" },
-          { label: "Pendientes", value: "espera" },
+          { label: "Aprobados", value: "aprobado" },
+          { label: "Pendientes", value: "pendiente" },
         ];
         renderItem = renderPrestamoItem;
         break;
@@ -1039,9 +1017,9 @@ const AdminDashboard = () => {
         titulo = "Préstamos de Hoy";
         filtrosEstado = [
           { label: "Todos", value: "todos" },
-          { label: "Aprobados", value: "aceptado" },
-          { label: "Pendientes", value: "espera" },
-          { label: "Rechazados", value: "denegado" },
+          { label: "Aprobados", value: "aprobado" },
+          { label: "Pendientes", value: "pendiente" },
+          { label: "Rechazados", value: "rechazado" },
         ];
         renderItem = renderPrestamoItem;
         break;
@@ -1306,10 +1284,7 @@ const AdminDashboard = () => {
       // Calcular satisfacción basado en préstamos completados vs rechazados
       const completados = Array.isArray(prestamosHoy)
         ? prestamosHoy.filter(
-            (p) =>
-              p?.estado === "devuelto" ||
-              p?.estado === "aprobado" ||
-              p?.estado === "aceptado",
+            (p) => p?.estado === "devuelto" || p?.estado === "aprobado",
           ).length || 1
         : 1;
       const rechazados = Array.isArray(prestamosHoy)
@@ -1977,43 +1952,6 @@ const AdminDashboard = () => {
                     </View>
                   )}
                 </View>
-
-                {scannedPrestamo.estado === "pendiente" && (
-                  <View style={styles.qrActionsContainer}>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        styles.actionButtonSuccess,
-                        { flex: 1 },
-                      ]}
-                      onPress={() => {
-                        aprobarPrestamo(scannedPrestamo.id);
-                        setShowQrModal(false);
-                        setScannedData(null);
-                        setScannedPrestamo(null);
-                      }}
-                    >
-                      <Ionicons name="checkmark" size={18} color="#fff" />
-                      <Text style={styles.actionButtonText}>Aprobar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        styles.actionButtonDanger,
-                        { flex: 1 },
-                      ]}
-                      onPress={() => {
-                        rechazarPrestamo(scannedPrestamo.id);
-                        setShowQrModal(false);
-                        setScannedData(null);
-                        setScannedPrestamo(null);
-                      }}
-                    >
-                      <Ionicons name="close" size={18} color="#fff" />
-                      <Text style={styles.actionButtonText}>Rechazar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
 
                 {(scannedPrestamo.estado === "aprobado" ||
                   scannedPrestamo.estado === "aceptado") &&

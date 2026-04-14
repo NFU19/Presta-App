@@ -3,6 +3,7 @@ import { Colors } from "@/constants/theme";
 import { useVpsUser } from "@/contexts/VpsUserContext";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
+import { onAuthStateChanged } from "firebase/auth";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -108,10 +109,11 @@ const HistoryScreen = () => {
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [devolviendoId, setDevolviendoId] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(-300)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { vpsUserId } = useVpsUser();
+  const { vpsUserId, isLoading: vpsLoading } = useVpsUser();
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
 
@@ -119,19 +121,32 @@ const HistoryScreen = () => {
   const cardPadding = isMobile ? 14 : 18;
   const contentMaxWidth = isDesktop ? 1200 : width;
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, () => {
+      setAuthReady(true);
+    });
+    return unsub;
+  }, []);
+
   const loadPrestamos = useCallback(async () => {
+    if (!authReady || vpsLoading) {
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const user = auth.currentUser;
       if (!user) {
-        setPrestamos(samplePrestamos);
+        setPrestamos([]);
         setLoading(false);
         return;
       }
 
-      // Si no hay ID del VPS, usar los préstamos de muestra
+      // Si no hay ID del VPS, no consultar para evitar mezclar datos
       if (!vpsUserId) {
-        console.log("No hay ID de usuario VPS, usando datos de muestra");
-        setPrestamos(samplePrestamos);
+        console.log("No hay ID de usuario VPS; esperando sincronización");
+        setPrestamos([]);
         setLoading(false);
         return;
       }
@@ -155,9 +170,16 @@ const HistoryScreen = () => {
         ? data
             .filter((p: any) => {
               // Filtro adicional de seguridad: asegurar que el préstamo pertenece al usuario
-              const prestamoUserId =
-                p.ID_Usuario?.toString() || p.id_usuario?.toString();
-              return prestamoUserId === vpsUserId.toString();
+              const prestamoUserId = (
+                p.ID_Usuario ??
+                p.id_usuario ??
+                p["ID Usuario"] ??
+                p.usuarioId ??
+                p.usuario_id
+              )?.toString();
+              return (
+                !!prestamoUserId && prestamoUserId === vpsUserId.toString()
+              );
             })
             .map((p: any, index: number) => {
               // Calcular duración en días
@@ -200,8 +222,8 @@ const HistoryScreen = () => {
                 // Log para debug
                 _rawEstado: p.Estado,
                 notas: p.Nota || "",
-                createdAt: new Date().toISOString().split("T")[0],
-                updatedAt: new Date().toISOString().split("T")[0],
+                createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+                updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
               };
             })
         : [];
@@ -212,14 +234,14 @@ const HistoryScreen = () => {
         prestamosData.map((p) => ({ id: p.id, estado: p.estado })),
       );
 
-      setPrestamos(prestamosData.length ? prestamosData : samplePrestamos);
+      setPrestamos(prestamosData);
     } catch (error) {
       console.error("Error al cargar préstamos:", error);
-      setPrestamos(samplePrestamos);
+      setPrestamos(__DEV__ ? samplePrestamos : []);
     } finally {
       setLoading(false);
     }
-  }, [vpsUserId]);
+  }, [authReady, vpsLoading, vpsUserId]);
 
   useEffect(() => {
     loadPrestamos();

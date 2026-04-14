@@ -2,10 +2,12 @@ import { Header } from "@/components/header";
 import { ProductCard } from "@/components/shared/product-card";
 import { KeyboardDismissWrapper } from "@/components/ui/keyboard-dismiss-wrapper";
 import { Colors } from "@/constants/theme";
+import { useVpsUser } from "@/contexts/VpsUserContext";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useResponsive } from "@/hooks/use-responsive";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -99,6 +101,10 @@ const DashboardScreen = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const router = useRouter();
   const { isMobile, isTablet, isDesktop } = useResponsive();
+  const { vpsUserId } = useVpsUser();
+  const { notificacionesNoLeidas, refreshNotificaciones } = useNotifications(
+    vpsUserId ? parseInt(vpsUserId) : null,
+  );
 
   // Animaciones del menú lateral
   const slideAnim = useState(new Animated.Value(-300))[0];
@@ -131,6 +137,13 @@ const DashboardScreen = () => {
   useEffect(() => {
     fetchEquipos();
   }, []);
+
+  // Refrescar notificaciones cuando la pantalla se enfoca
+  useFocusEffect(
+    useCallback(() => {
+      refreshNotificaciones();
+    }, [refreshNotificaciones]),
+  );
 
   const fetchEquipos = () => {
     try {
@@ -247,15 +260,31 @@ const DashboardScreen = () => {
               />
             </View>
             <TouchableOpacity
-              style={[styles.iconButton, { marginLeft: isMobile ? 10 : 14 }]}
+              style={[
+                styles.iconButton,
+                { marginLeft: isMobile ? 10 : 14, position: "relative" },
+              ]}
               onPress={() => router.push("/notifications")}
               accessibilityLabel="Abrir notificaciones"
             >
               <Ionicons
-                name="notifications-outline"
+                name={
+                  notificacionesNoLeidas > 0
+                    ? "notifications"
+                    : "notifications-outline"
+                }
                 size={isMobile ? 18 : 20}
-                color={Colors.light.primary}
+                color={
+                  notificacionesNoLeidas > 0 ? "#DC2626" : Colors.light.primary
+                }
               />
+              {notificacionesNoLeidas > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </Header>
@@ -379,6 +408,24 @@ const styles = StyleSheet.create({
   },
   carouselContent: {
     paddingVertical: 8,
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#DC2626",
+    borderRadius: 12,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: Colors.light.background,
+  },
+  notificationBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
 

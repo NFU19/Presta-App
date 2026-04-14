@@ -6,9 +6,9 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { API_CONFIG, buildUrl } from "../constants/api";
 import {
-  Notificacion,
-  NotificacionLocal,
-  RegistrarTokenData,
+    Notificacion,
+    NotificacionLocal,
+    RegistrarTokenData,
 } from "../types/notificacion";
 
 /**
@@ -193,11 +193,91 @@ export const obtenerNotificacionesUsuario = async (
       return [];
     }
 
-    const notificaciones: Notificacion[] = await response.json();
+    const data = await response.json();
+
+    const parseFechaNotificacion = (valor: unknown): Date | null => {
+      if (valor instanceof Date) {
+        return isNaN(valor.getTime()) ? null : valor;
+      }
+
+      if (typeof valor === "number") {
+        const epochMs = valor < 1_000_000_000_000 ? valor * 1000 : valor;
+        const fecha = new Date(epochMs);
+        return isNaN(fecha.getTime()) ? null : fecha;
+      }
+
+      if (typeof valor !== "string") return null;
+      const raw = valor.trim();
+      if (!raw) return null;
+
+      if (/^\d+$/.test(raw)) {
+        const numero = Number(raw);
+        const epochMs = numero < 1_000_000_000_000 ? numero * 1000 : numero;
+        const fechaEpoch = new Date(epochMs);
+        if (!isNaN(fechaEpoch.getTime())) return fechaEpoch;
+      }
+
+      // MySQL suele devolver "YYYY-MM-DD HH:mm:ss"; se normaliza a formato ISO.
+      let normalizada = raw.replace(" ", "T");
+      if (/^\d{4}-\d{2}-\d{2}$/.test(normalizada)) {
+        normalizada = `${normalizada}T00:00:00Z`;
+      } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(normalizada)) {
+        normalizada = `${normalizada}Z`;
+      }
+
+      const fechaIso = new Date(normalizada);
+      if (!isNaN(fechaIso.getTime())) return fechaIso;
+
+      // Fallback para formato dd/mm/yyyy HH:mm:ss
+      const matchLatam = raw.match(
+        /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/,
+      );
+      if (matchLatam) {
+        const [, dd, mm, yyyy, hh = "0", mi = "0", ss = "0"] = matchLatam;
+        const fecha = new Date(
+          Date.UTC(
+            Number(yyyy),
+            Number(mm) - 1,
+            Number(dd),
+            Number(hh),
+            Number(mi),
+            Number(ss),
+          ),
+        );
+        return isNaN(fecha.getTime()) ? null : fecha;
+      }
+
+      return null;
+    };
+
+    const notificaciones: Notificacion[] = (
+      Array.isArray(data) ? data : []
+    ).map((item: any) => {
+      const fecha = parseFechaNotificacion(
+        item?.createdAt ??
+          item?.created_at ??
+          item?.fechaCreacion ??
+          item?.fecha_creacion ??
+          item?.fecha,
+      );
+
+      return {
+        id: Number(item?.id ?? 0),
+        usuarioId: Number(item?.usuarioId ?? item?.usuario_id ?? usuarioId),
+        tipo: item?.tipo,
+        titulo: item?.titulo ?? "",
+        mensaje: item?.mensaje ?? "",
+        leida: Boolean(item?.leida),
+        datos: item?.datos,
+        createdAt: fecha ? fecha.toISOString() : "",
+      } as Notificacion;
+    });
 
     // Ordenar por fecha (más recientes primero)
     return notificaciones.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      const timeA = parseFechaNotificacion(a.createdAt)?.getTime() ?? 0;
+      const timeB = parseFechaNotificacion(b.createdAt)?.getTime() ?? 0;
+      return timeB - timeA;
     });
   } catch (error) {
     console.error("Error al obtener notificaciones del backend:", error);
