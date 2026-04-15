@@ -1,8 +1,8 @@
 import {
-    FIREBASE_API_KEY,
-    FIREBASE_PROJECT_ID,
-    auth,
-    db,
+  FIREBASE_API_KEY,
+  FIREBASE_PROJECT_ID,
+  auth,
+  db,
 } from "@/firebaseConfig";
 import { useResponsive } from "@/hooks/use-responsive";
 import { activarUsuario, desactivarUsuario } from "@/services/usuarioService";
@@ -11,17 +11,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { deleteDoc, doc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const UsuariosAdminScreen = () => {
@@ -37,6 +37,7 @@ const UsuariosAdminScreen = () => {
   const [telefono, setTelefono] = useState("");
   const [correo, setCorreo] = useState("");
   const [matricula, setMatricula] = useState("");
+  const [carrera, setCarrera] = useState("");
   const [rol, setRol] = useState<"Estudiante" | "Docente" | "Administrador">(
     "Estudiante",
   ); // RF-1
@@ -301,6 +302,7 @@ const UsuariosAdminScreen = () => {
             telefono: user.Telefono || user.telefono || "",
             correo: user.Email || user.correo || "",
             matricula: user.Matricula || user.matricula || "",
+            carrera: user.Carrera || user.carrera || "",
             rol: user.Rol || user.rol || "Estudiante",
             activo: user.Activo !== false,
             createdAt: user.created_at || user.createdAt || new Date(),
@@ -310,6 +312,7 @@ const UsuariosAdminScreen = () => {
             Email: user.Email,
             Telefono: user.Telefono,
             Matricula: user.Matricula,
+            Carrera: user.Carrera,
             Rol: user.Rol,
             Nombre: user.Nombre,
             Apellido: user.Apellido,
@@ -340,6 +343,7 @@ const UsuariosAdminScreen = () => {
     setTelefono(user.telefono);
     setCorreo(user.correo);
     setMatricula(user.matricula);
+    setCarrera(user.carrera || user.Carrera || "");
     setRol(user.rol || "Estudiante"); // RF-1
     setPassword("");
     setModalVisible(true);
@@ -395,6 +399,7 @@ const UsuariosAdminScreen = () => {
     setTelefono("");
     setCorreo("");
     setMatricula("");
+    setCarrera("");
     setRol("Estudiante"); // RF-1
     setPassword("");
   };
@@ -414,6 +419,7 @@ const UsuariosAdminScreen = () => {
             telefono: telefono.trim(),
             correo: correo.trim(),
             matricula: matricula.trim(),
+            carrera: carrera.trim(),
             rol, // RF-1
           }),
         },
@@ -483,7 +489,7 @@ const UsuariosAdminScreen = () => {
             telefono: telefono.trim(),
             email: normalizedEmail,
             rol: rol, // RF-1
-            carrera: "Sin asignar",
+            carrera: carrera.trim(),
             password: trimmedPassword, // RF-1
             created_at: new Date().toISOString().split("T")[0], // Solo fecha en formato YYYY-MM-DD
           }),
@@ -876,6 +882,18 @@ const UsuariosAdminScreen = () => {
                   placeholder="Ingrese la matrícula"
                   placeholderTextColor="#9ca3af"
                   maxLength={20}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Carrera</Text>
+                <TextInput
+                  style={styles.input}
+                  value={carrera}
+                  onChangeText={setCarrera}
+                  placeholder="Ingrese la carrera"
+                  placeholderTextColor="#9ca3af"
+                  maxLength={100}
                 />
               </View>
 

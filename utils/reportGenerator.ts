@@ -277,7 +277,6 @@ const generateHTML = (data: ReportData): string => {
       <tr>
         <th>Nombre</th>
         <th>Categoría</th>
-        <th>Tipo</th>
         <th>Estado</th>
       </tr>
     </thead>
@@ -288,7 +287,6 @@ const generateHTML = (data: ReportData): string => {
         <tr>
           <td>${e.nombre}</td>
           <td>${e.categoria || "N/A"}</td>
-          <td>${e.tipo || "N/A"}</td>
           <td><span class="badge ${e.estado ? "badge-success" : "badge-danger"}">${e.estado ? "Disponible" : "No disponible"}</span></td>
         </tr>
       `,

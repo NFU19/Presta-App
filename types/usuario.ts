@@ -8,6 +8,7 @@ export interface Usuario {
   telefono: string;
   correo: string;
   matricula: string;
+  carrera?: string;
   rol: "Estudiante" | "Docente" | "Administrador"; // RF-1
 
   // Estado
@@ -24,6 +25,7 @@ export interface Usuario {
   Email?: string;
   Telefono?: string;
   Matricula?: string;
+  Carrera?: string;
   Rol?: string;
   Activo?: boolean;
 }
@@ -34,5 +36,6 @@ export interface RegistroUsuarioData {
   telefono: string;
   correo: string;
   matricula: string;
+  carrera?: string;
   rol: "Estudiante" | "Docente" | "Administrador"; // RF-1
 }
